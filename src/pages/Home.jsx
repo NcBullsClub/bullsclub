@@ -35,8 +35,8 @@ function CountUp({ end, duration = 2000, suffix = '' }) {
 }
 
 const teamData = {
-  'raising-bulls': { name: 'Raising Bulls', color: 'bg-primary-dark', badge: 'RB', accent: 'border-accent' },
-  'royal-bulls': { name: 'Royal Bulls', color: 'bg-primary', badge: 'RY', accent: 'border-accent-light' },
+  'raising-bulls': { name: 'Raising Bulls', color: 'bg-accent', badge: 'RB', accent: 'border-primary-dark', textColor: 'text-primary-dark', subTextColor: 'text-primary-dark/70', badgeBg: 'bg-primary-dark', badgeText: 'text-accent' },
+  'royal-bulls': { name: 'Royal Bulls', color: 'bg-primary', badge: 'RY', accent: 'border-accent-light', textColor: 'text-white', subTextColor: 'text-gray-300', badgeBg: 'bg-accent', badgeText: 'text-primary-dark' },
 }
 
 export default function Home() {
@@ -98,11 +98,11 @@ export default function Home() {
                     to="/teams"
                     className={`${team.color} border-t-4 ${team.accent} rounded-xl p-5 hover:scale-105 transition-transform duration-200`}
                   >
-                    <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center font-display font-bold text-primary-dark text-lg mb-3">
+                    <div className={`w-12 h-12 ${team.badgeBg} rounded-full flex items-center justify-center font-display font-bold ${team.badgeText} text-lg mb-3`}>
                       {team.badge}
                     </div>
-                    <h3 className="font-display font-bold text-white text-lg leading-tight mb-2">{team.name}</h3>
-                    <div className="text-gray-300 text-sm">{wins} wins this season</div>
+                    <h3 className={`font-display font-bold ${team.textColor} text-lg leading-tight mb-2`}>{team.name}</h3>
+                    <div className={`${team.subTextColor} text-sm`}>{wins} wins this season</div>
                   </Link>
                 )
               })}

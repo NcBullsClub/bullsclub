@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import logo from '../../assets/images/ncbullsclublogo.png'
 
 const navLinks = [
   { path: '/', label: 'Home' },
@@ -39,24 +40,20 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <img
-              src="/bullsclub/logo.png"
-              alt="Raising Bulls Cricket Club"
-              className="h-12 w-auto object-contain"
-              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-            />
-            <div className="hidden items-center gap-3">
-              <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center font-display font-bold text-primary-dark text-sm">
-                NCB
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className={`transition-all duration-300 rounded-xl p-1 ${scrolled ? 'bg-white shadow-md' : 'bg-white/10'}`}>
+              <img
+                src={logo}
+                alt="Raising Bulls Cricket Club"
+                className="h-10 w-auto object-contain"
+              />
+            </div>
+            <div className="leading-tight">
+              <div className="font-display font-bold text-white text-sm sm:text-base leading-none">
+                RAISING BULLS
               </div>
-              <div className="leading-tight">
-                <div className="font-display font-bold text-white text-sm sm:text-base leading-none">
-                  NC BULLS
-                </div>
-                <div className="text-accent text-xs font-medium tracking-widest">
-                  CRICKET CLUB
-                </div>
+              <div className="text-accent text-xs font-medium tracking-widest">
+                CRICKET CLUB
               </div>
             </div>
           </Link>

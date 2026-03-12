@@ -83,7 +83,7 @@ export default function Fixtures() {
                       <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
                     </div>
                     <h3 className="font-display font-bold text-primary text-xl mb-1">
-                      NC Bulls vs {f.opponent}
+                      {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'} vs {f.opponent}
                     </h3>
                     <div className="flex flex-col sm:flex-row sm:gap-4 text-sm text-gray-500">
                       <span>⏰ {f.time}</span>

@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "name": "Triangle Cricket League",
+    "tier": "Gold",
+    "website": null,
+    "logo": null
+  },
+  {
+    "id": 2,
+    "name": "Cary Sports Complex",
+    "tier": "Silver",
+    "website": null,
+    "logo": null
+  },
+  {
+    "id": 3,
+    "name": "Desi Flavors Restaurant",
+    "tier": "Silver",
+    "website": null,
+    "logo": null
+  },
+  {
+    "id": 4,
+    "name": "Triangle Tech Solutions",
+    "tier": "Bronze",
+    "website": null,
+    "logo": null
+  },
+  {
+    "id": 5,
+    "name": "NC Sports Medicine",
+    "tier": "Bronze",
+    "website": null,
+    "logo": null
+  },
+  {
+    "id": 6,
+    "name": "Raleigh Cricket Gear",
+    "tier": "Bronze",
+    "website": null,
+    "logo": null
+  }
+]

@@ -1,0 +1,80 @@
+[
+  {
+    "id": 1,
+    "date": "2026-03-07",
+    "opponent": "Greensboro Lions",
+    "team": "raising-bulls",
+    "venue": "WakeMed Soccer Park, Cary NC",
+    "format": "T20",
+    "result": "Won",
+    "ncbScore": "168/4",
+    "oppScore": "142/8",
+    "mom": "Ravi Sharma",
+    "momStat": "65 runs off 42 balls"
+  },
+  {
+    "id": 2,
+    "date": "2026-03-05",
+    "opponent": "RTP Royals",
+    "team": "royal-bulls",
+    "venue": "Morrisville Community Park",
+    "format": "T20",
+    "result": "Won",
+    "ncbScore": "154/6",
+    "oppScore": "138/9",
+    "mom": "Manish Verma",
+    "momStat": "42 runs & 3 wickets"
+  },
+  {
+    "id": 3,
+    "date": "2026-02-28",
+    "opponent": "Apex Titans",
+    "team": "raising-bulls",
+    "venue": "Cary Bond Park",
+    "format": "T20",
+    "result": "Lost",
+    "ncbScore": "130/9",
+    "oppScore": "131/5",
+    "mom": "Akash Nair",
+    "momStat": "4 wickets for 18 runs"
+  },
+  {
+    "id": 4,
+    "date": "2026-02-21",
+    "opponent": "Burlington Bulls",
+    "team": "royal-bulls",
+    "venue": "WakeMed Soccer Park, Cary NC",
+    "format": "T20",
+    "result": "Won",
+    "ncbScore": "180/3",
+    "oppScore": "155/7",
+    "mom": "Kiran Reddy",
+    "momStat": "88 runs off 52 balls"
+  },
+  {
+    "id": 5,
+    "date": "2026-02-14",
+    "opponent": "Wake Forest Warriors",
+    "team": "raising-bulls",
+    "venue": "Morrisville Community Park",
+    "format": "T20",
+    "result": "Won",
+    "ncbScore": "162/5",
+    "oppScore": "148/8",
+    "mom": "Deepak Mehta",
+    "momStat": "55 runs & 2 wickets"
+  },
+  {
+    "id": 6,
+    "date": "2026-02-07",
+    "opponent": "Research Triangle XI",
+    "team": "royal-bulls",
+    "venue": "Southern Community Park, Durham",
+    "format": "T20",
+    "result": "Lost",
+    "ncbScore": "145/8",
+    "oppScore": "147/6",
+    "mom": "Sanjay Gupta",
+    "momStat": "3 wickets for 22 runs"
+  }
+]

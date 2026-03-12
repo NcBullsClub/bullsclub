@@ -1,0 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { font-family: "Inter", system-ui, sans-serif; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent text-primary-dark font-bold py-3 px-6 rounded-lg hover:bg-accent-dark transition-all duration-200 inline-block cursor-pointer;
+  }
+  .btn-outline {
+    @apply border-2 border-accent text-accent font-bold py-3 px-6 rounded-lg hover:bg-accent hover:text-primary-dark transition-all duration-200 inline-block cursor-pointer;
+  }
+  .section-heading {
+    @apply font-display text-3xl md:text-4xl font-bold text-primary uppercase tracking-wider;
+  }
+}

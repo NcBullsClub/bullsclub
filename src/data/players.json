@@ -1,0 +1,162 @@
+[
+  {
+    "id": 1,
+    "name": "Ravi Sharma",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": true,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 28, "runs": 1240, "avg": 46.2, "wickets": 0, "sr": 132.5 }
+  },
+  {
+    "id": 2,
+    "name": "Akash Nair",
+    "team": "raising-bulls",
+    "role": "Bowler",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 25, "runs": 180, "avg": 9.0, "wickets": 42, "sr": 95.2 }
+  },
+  {
+    "id": 3,
+    "name": "Deepak Mehta",
+    "team": "raising-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 30, "runs": 780, "avg": 28.5, "wickets": 18, "sr": 118.4 }
+  },
+  {
+    "id": 4,
+    "name": "Suresh Kumar",
+    "team": "raising-bulls",
+    "role": "Wicket-Keeper",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 27, "runs": 620, "avg": 24.8, "wickets": 0, "sr": 110.7 }
+  },
+  {
+    "id": 5,
+    "name": "Vijay Patel",
+    "team": "raising-bulls",
+    "role": "Bowler",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 22, "runs": 90, "avg": 6.0, "wickets": 35, "sr": 88.3 }
+  },
+  {
+    "id": 6,
+    "name": "Nikhil Rao",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 24, "runs": 890, "avg": 38.7, "wickets": 0, "sr": 125.6 }
+  },
+  {
+    "id": 7,
+    "name": "Arjun Singh",
+    "team": "raising-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 20, "runs": 460, "avg": 25.6, "wickets": 14, "sr": 114.2 }
+  },
+  {
+    "id": 8,
+    "name": "Pranav Iyer",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 18, "runs": 540, "avg": 32.1, "wickets": 0, "sr": 120.0 }
+  },
+  {
+    "id": 9,
+    "name": "Kiran Reddy",
+    "team": "royal-bulls",
+    "role": "Batsman",
+    "captain": true,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 26, "runs": 1080, "avg": 42.5, "wickets": 0, "sr": 128.4 }
+  },
+  {
+    "id": 10,
+    "name": "Sanjay Gupta",
+    "team": "royal-bulls",
+    "role": "Bowler",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 24, "runs": 120, "avg": 7.5, "wickets": 38, "sr": 82.0 }
+  },
+  {
+    "id": 11,
+    "name": "Manish Verma",
+    "team": "royal-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 28, "runs": 820, "avg": 31.5, "wickets": 22, "sr": 115.8 }
+  },
+  {
+    "id": 12,
+    "name": "Rahul Pillai",
+    "team": "royal-bulls",
+    "role": "Wicket-Keeper",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 25, "runs": 590, "avg": 26.4, "wickets": 0, "sr": 108.9 }
+  },
+  {
+    "id": 13,
+    "name": "Kartik Joshi",
+    "team": "royal-bulls",
+    "role": "Bowler",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 20, "runs": 60, "avg": 5.0, "wickets": 30, "sr": 78.5 }
+  },
+  {
+    "id": 14,
+    "name": "Dev Mishra",
+    "team": "royal-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 22, "runs": 710, "avg": 34.3, "wickets": 0, "sr": 122.1 }
+  },
+  {
+    "id": 15,
+    "name": "Anil Dubey",
+    "team": "royal-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 19, "runs": 380, "avg": 22.4, "wickets": 12, "sr": 109.5 }
+  },
+  {
+    "id": 16,
+    "name": "Rohit Saxena",
+    "team": "royal-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 17, "runs": 490, "avg": 30.6, "wickets": 0, "sr": 119.2 }
+  }
+]

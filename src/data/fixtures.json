@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "date": "2026-03-20",
+    "time": "10:00 AM",
+    "opponent": "Carolina Strikers",
+    "team": "raising-bulls",
+    "venue": "WakeMed Soccer Park, Cary NC",
+    "format": "T20",
+    "type": "League"
+  },
+  {
+    "id": 2,
+    "date": "2026-03-22",
+    "time": "2:00 PM",
+    "opponent": "Triangle Hawks",
+    "team": "royal-bulls",
+    "venue": "Morrisville Community Park",
+    "format": "T20",
+    "type": "League"
+  },
+  {
+    "id": 3,
+    "date": "2026-03-28",
+    "time": "10:00 AM",
+    "opponent": "Raleigh Panthers",
+    "team": "raising-bulls",
+    "venue": "WakeMed Soccer Park, Cary NC",
+    "format": "T20",
+    "type": "Cup"
+  },
+  {
+    "id": 4,
+    "date": "2026-04-04",
+    "time": "11:00 AM",
+    "opponent": "Durham Falcons",
+    "team": "royal-bulls",
+    "venue": "Southern Community Park, Durham",
+    "format": "T20",
+    "type": "League"
+  },
+  {
+    "id": 5,
+    "date": "2026-04-11",
+    "time": "10:00 AM",
+    "opponent": "Chapel Hill Eagles",
+    "team": "raising-bulls",
+    "venue": "Cary Bond Park",
+    "format": "T20",
+    "type": "League"
+  },
+  {
+    "id": 6,
+    "date": "2026-04-18",
+    "time": "2:00 PM",
+    "opponent": "Charlotte Warriors",
+    "team": "royal-bulls",
+    "venue": "WakeMed Soccer Park, Cary NC",
+    "format": "T20",
+    "type": "Cup"
+  }
+]

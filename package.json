@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://github.com/ncbullscricketclub/raising_website",
+  "homepage": "https://NcBullsClub.github.io/bullsclub",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

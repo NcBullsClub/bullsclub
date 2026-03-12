@@ -1,86 +1,166 @@
 [
   {
     "id": 1,
-    "name": "Ravi Sharma",
+    "name": "Ravi",
     "team": "raising-bulls",
     "role": "Batsman",
     "captain": true,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 28, "runs": 1240, "avg": 46.2, "wickets": 0, "sr": 132.5 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
     "id": 2,
-    "name": "Akash Nair",
+    "name": "Aashay",
     "team": "raising-bulls",
-    "role": "Bowler",
+    "role": "Batsman",
     "captain": false,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 25, "runs": 180, "avg": 9.0, "wickets": 42, "sr": 95.2 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
     "id": 3,
-    "name": "Deepak Mehta",
+    "name": "Aravind",
+    "team": "raising-bulls",
+    "role": "Wicket-Keeper Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 4,
+    "name": "Challa",
     "team": "raising-bulls",
     "role": "All-Rounder",
     "captain": false,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 30, "runs": 780, "avg": 28.5, "wickets": 18, "sr": 118.4 }
-  },
-  {
-    "id": 4,
-    "name": "Suresh Kumar",
-    "team": "raising-bulls",
-    "role": "Wicket-Keeper",
-    "captain": false,
-    "photo": null,
-    "nationality": "India",
-    "stats": { "matches": 27, "runs": 620, "avg": 24.8, "wickets": 0, "sr": 110.7 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
     "id": 5,
-    "name": "Vijay Patel",
+    "name": "Guna",
+    "team": "raising-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 6,
+    "name": "Karthikeya",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 7,
+    "name": "Kumar",
+    "team": "raising-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 8,
+    "name": "Phani",
     "team": "raising-bulls",
     "role": "Bowler",
     "captain": false,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 22, "runs": 90, "avg": 6.0, "wickets": 35, "sr": 88.3 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
-    "id": 6,
-    "name": "Nikhil Rao",
+    "id": 9,
+    "name": "Pramod",
     "team": "raising-bulls",
-    "role": "Batsman",
+    "role": "Bowler",
     "captain": false,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 24, "runs": 890, "avg": 38.7, "wickets": 0, "sr": 125.6 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
-    "id": 7,
-    "name": "Arjun Singh",
+    "id": 10,
+    "name": "Prasanth",
     "team": "raising-bulls",
     "role": "All-Rounder",
     "captain": false,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 20, "runs": 460, "avg": 25.6, "wickets": 14, "sr": 114.2 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
-    "id": 8,
-    "name": "Pranav Iyer",
+    "id": 11,
+    "name": "Ranjan",
+    "team": "raising-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 12,
+    "name": "Sairam",
+    "team": "raising-bulls",
+    "role": "All-Rounder",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 13,
+    "name": "Selva",
     "team": "raising-bulls",
     "role": "Batsman",
     "captain": false,
     "photo": null,
     "nationality": "India",
-    "stats": { "matches": 18, "runs": 540, "avg": 32.1, "wickets": 0, "sr": 120.0 }
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
   },
   {
-    "id": 9,
+    "id": 14,
+    "name": "Sudhir",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 15,
+    "name": "Sunny",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 16,
+    "name": "Uday",
+    "team": "raising-bulls",
+    "role": "Batsman",
+    "captain": false,
+    "photo": null,
+    "nationality": "India",
+    "stats": { "matches": 0, "runs": 0, "avg": 0, "wickets": 0, "sr": 0 }
+  },
+  {
+    "id": 17,
     "name": "Kiran Reddy",
     "team": "royal-bulls",
     "role": "Batsman",
@@ -90,7 +170,7 @@
     "stats": { "matches": 26, "runs": 1080, "avg": 42.5, "wickets": 0, "sr": 128.4 }
   },
   {
-    "id": 10,
+    "id": 18,
     "name": "Sanjay Gupta",
     "team": "royal-bulls",
     "role": "Bowler",
@@ -100,7 +180,7 @@
     "stats": { "matches": 24, "runs": 120, "avg": 7.5, "wickets": 38, "sr": 82.0 }
   },
   {
-    "id": 11,
+    "id": 19,
     "name": "Manish Verma",
     "team": "royal-bulls",
     "role": "All-Rounder",
@@ -110,7 +190,7 @@
     "stats": { "matches": 28, "runs": 820, "avg": 31.5, "wickets": 22, "sr": 115.8 }
   },
   {
-    "id": 12,
+    "id": 20,
     "name": "Rahul Pillai",
     "team": "royal-bulls",
     "role": "Wicket-Keeper",
@@ -120,7 +200,7 @@
     "stats": { "matches": 25, "runs": 590, "avg": 26.4, "wickets": 0, "sr": 108.9 }
   },
   {
-    "id": 13,
+    "id": 21,
     "name": "Kartik Joshi",
     "team": "royal-bulls",
     "role": "Bowler",
@@ -130,7 +210,7 @@
     "stats": { "matches": 20, "runs": 60, "avg": 5.0, "wickets": 30, "sr": 78.5 }
   },
   {
-    "id": 14,
+    "id": 22,
     "name": "Dev Mishra",
     "team": "royal-bulls",
     "role": "Batsman",
@@ -140,7 +220,7 @@
     "stats": { "matches": 22, "runs": 710, "avg": 34.3, "wickets": 0, "sr": 122.1 }
   },
   {
-    "id": 15,
+    "id": 23,
     "name": "Anil Dubey",
     "team": "royal-bulls",
     "role": "All-Rounder",
@@ -150,7 +230,7 @@
     "stats": { "matches": 19, "runs": 380, "avg": 22.4, "wickets": 12, "sr": 109.5 }
   },
   {
-    "id": 16,
+    "id": 24,
     "name": "Rohit Saxena",
     "team": "royal-bulls",
     "role": "Batsman",

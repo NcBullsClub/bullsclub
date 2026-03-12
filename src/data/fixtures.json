@@ -1,62 +1,132 @@
 [
   {
     "id": 1,
-    "date": "2026-03-20",
-    "time": "10:00 AM",
-    "opponent": "Carolina Strikers",
+    "date": "2026-03-22",
+    "time": "1:00 PM",
+    "opponent": "NC Jordans",
     "team": "raising-bulls",
-    "venue": "WakeMed Soccer Park, Cary NC",
+    "venue": "CF3",
     "format": "T20",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 2,
-    "date": "2026-03-22",
-    "time": "2:00 PM",
-    "opponent": "Triangle Hawks",
-    "team": "royal-bulls",
-    "venue": "Morrisville Community Park",
+    "date": "2026-03-28",
+    "time": "4:00 PM",
+    "opponent": "Knockout Kings",
+    "team": "raising-bulls",
+    "venue": "RTP1",
     "format": "T20",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 3,
-    "date": "2026-03-28",
-    "time": "10:00 AM",
-    "opponent": "Raleigh Panthers",
+    "date": "2026-04-05",
+    "time": "1:00 PM",
+    "opponent": "Super Rangers",
     "team": "raising-bulls",
-    "venue": "WakeMed Soccer Park, Cary NC",
+    "venue": "RTP4",
     "format": "T20",
-    "type": "Cup"
+    "type": "Mega Bash"
   },
   {
     "id": 4,
-    "date": "2026-04-04",
-    "time": "11:00 AM",
-    "opponent": "Durham Falcons",
-    "team": "royal-bulls",
-    "venue": "Southern Community Park, Durham",
+    "date": "2026-04-11",
+    "time": "12:45 PM",
+    "opponent": "Chargers",
+    "team": "raising-bulls",
+    "venue": "CR Woods",
     "format": "T20",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 5,
-    "date": "2026-04-11",
+    "date": "2026-04-18",
     "time": "10:00 AM",
-    "opponent": "Chapel Hill Eagles",
+    "opponent": "Hit & Fun",
     "team": "raising-bulls",
-    "venue": "Cary Bond Park",
+    "venue": "Bethesda Upper",
     "format": "T20",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 6,
-    "date": "2026-04-18",
-    "time": "2:00 PM",
-    "opponent": "Charlotte Warriors",
-    "team": "royal-bulls",
-    "venue": "WakeMed Soccer Park, Cary NC",
+    "date": "2026-04-25",
+    "time": "10:00 AM",
+    "opponent": "Star Blasters",
+    "team": "raising-bulls",
+    "venue": "Bethesda Lower",
     "format": "T20",
-    "type": "Cup"
+    "type": "Mega Bash"
+  },
+  {
+    "id": 7,
+    "date": "2026-05-02",
+    "time": "10:00 AM",
+    "opponent": "Limited Edition",
+    "team": "raising-bulls",
+    "venue": "RTP3",
+    "format": "T20",
+    "type": "Mega Bash"
+  },
+  {
+    "id": 8,
+    "date": "2026-05-09",
+    "time": "1:00 PM",
+    "opponent": "Courageous Lions",
+    "team": "raising-bulls",
+    "venue": "CF3",
+    "format": "T20",
+    "type": "Mega Bash"
+  },
+  {
+    "id": 9,
+    "date": "2026-05-30",
+    "time": "5:00 PM",
+    "opponent": "Fuquay Mavericks",
+    "team": "raising-bulls",
+    "venue": "Bethesda Lower",
+    "format": "T20",
+    "type": "Mega Bash"
+  },
+  {
+    "id": 10,
+    "date": "2026-05-31",
+    "time": "6:30 PM",
+    "opponent": "Blue Dragons",
+    "team": "raising-bulls",
+    "venue": "Apex Jaycee Park",
+    "format": "T20",
+    "type": "Mega Bash"
+  },
+  {
+    "id": 11,
+    "date": "2026-06-07",
+    "time": "2:00 PM",
+    "opponent": "Hickory Boys",
+    "team": "raising-bulls",
+    "venue": "RTP1",
+    "format": "T20",
+    "type": "Mega Bash"
+  },
+  {
+    "id": 12,
+    "date": "2026-06-14",
+    "time": "2:00 PM",
+    "opponent": "Triangle Titans",
+    "team": "raising-bulls",
+    "venue": "RTP1",
+    "format": "T20",
+    "type": "Mega Bash"
+  },
+  {
+    "id": 13,
+    "date": "2026-06-21",
+    "time": "7:30 AM",
+    "opponent": "Cary Kings",
+    "team": "raising-bulls",
+    "venue": "RTP4",
+    "format": "T20",
+    "type": "Mega Bash"
   }
 ]

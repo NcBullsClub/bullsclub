@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import logo from '../assets/images/nc_bulls_club_logo.png'
 import fixtures from '../data/fixtures.json'
 import results from '../data/results.json'
 import news from '../data/news.json'
@@ -48,6 +49,10 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
+        {/* Background logo watermark */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <img src={logo} alt="" className="w-[600px] max-w-[80vw] opacity-[0.06] select-none" />
+        </div>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-96 h-96 rounded-full bg-accent blur-3xl" />
           <div className="absolute bottom-20 left-10 w-64 h-64 rounded-full bg-accent-light blur-3xl" />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import logo from '../../assets/images/ncbullsclublogo.png'
+import logo from '../../assets/images/nc_bulls_club_logo.png'
 
 const navLinks = [
   { path: '/', label: 'Home' },
@@ -50,7 +50,7 @@ export default function Navbar() {
             </div>
             <div className="leading-tight">
               <div className="font-display font-bold text-white text-sm sm:text-base leading-none">
-                RAISING BULLS
+                NC BULLS
               </div>
               <div className="text-accent text-xs font-medium tracking-widest">
                 CRICKET CLUB

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "title": "Pre-Season Meetup 2026",
+    "category": "pre-season",
+    "date": "2026-02-22",
+    "time": "4:00 PM",
+    "location": "Cary, NC",
+    "description": "Kick off the 2026 season with the full squad! Players, coaches, and supporters come together to discuss the upcoming season, introduce new members, and build team spirit before the games begin.",
+    "status": "completed"
+  },
+  {
+    "id": 2,
+    "title": "Jersey Curtain Raiser 2026",
+    "category": "jersey",
+    "date": "2026-03-15",
+    "time": "5:00 PM",
+    "location": "Cary, NC",
+    "description": "The moment we've all been waiting for — the official unveiling of the 2026 NC Bulls jerseys for both Raising Bulls and Royal Bulls. Come celebrate with the team and be the first to see this year's kits.",
+    "status": "upcoming"
+  },
+  {
+    "id": 3,
+    "title": "Championship Meetup 2026",
+    "category": "championship",
+    "date": "2026-07-20",
+    "time": "6:00 PM",
+    "location": "Cary, NC",
+    "description": "End-of-season celebration bringing the entire NC Bulls family together. We'll recap the season highlights, honor standout performers, and celebrate our journey through the 2026 campaign.",
+    "status": "upcoming"
+  }
+]

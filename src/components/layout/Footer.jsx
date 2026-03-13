@@ -47,6 +47,7 @@ export default function Footer() {
               {[
                 { to: '/fixtures', label: 'Fixtures' },
                 { to: '/results', label: 'Results' },
+                { to: '/events', label: 'Events' },
                 { to: '/players', label: 'Players' },
                 { to: '/news', label: 'News' },
                 { to: '/contact', label: 'Join the Club' },

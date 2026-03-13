@@ -123,7 +123,7 @@ export default function Home() {
             {[
               { label: 'Total Players', value: 119, suffix: '+' },
               { label: 'Matches Played', value: 170, suffix: '+' },
-              { label: 'Wins 2025 Winter Season', value: 4, suffix: '' },
+              { label: 'Wins 2025 Winter Season', value: 8, suffix: '' },
               { label: 'Years in Cricket', value: 4, suffix: '+' },
             ].map((stat) => (
               <div key={stat.label} className="text-primary-dark">

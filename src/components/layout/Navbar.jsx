@@ -11,6 +11,7 @@ const navLinks = [
   { path: '/fixtures', label: 'Fixtures' },
   { path: '/results', label: 'Results' },
   { path: '/gallery', label: 'Gallery' },
+  { path: '/events', label: 'Events' },
   { path: '/news', label: 'News' },
   { path: '/sponsors', label: 'Sponsors' },
   { path: '/contact', label: 'Join Us' },

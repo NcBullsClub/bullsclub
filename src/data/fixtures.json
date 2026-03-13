@@ -151,7 +151,7 @@
     "venue": "C R Woods Park",
     "venueAddress": "417 Commonwealth St, Durham, NC 27703",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 15,
@@ -162,7 +162,7 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 16,
@@ -173,7 +173,7 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 17,
@@ -184,7 +184,7 @@
     "venue": "RTP 4",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 18,
@@ -195,7 +195,7 @@
     "venue": "Century Fields 3",
     "venueAddress": "7720 Barefoot Rd, Fuquay-Varina, NC 27526",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 19,
@@ -206,7 +206,7 @@
     "venue": "Apex Jaycee Park",
     "venueAddress": "Apex, NC",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 20,
@@ -217,7 +217,7 @@
     "venue": "River Forest Park",
     "venueAddress": "1000 Windermere Dr, Durham, NC 27712",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 21,
@@ -228,7 +228,7 @@
     "venue": "RTP 4",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 22,
@@ -239,7 +239,7 @@
     "venue": "RTP 4",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 23,
@@ -250,7 +250,7 @@
     "venue": "Century Fields 3",
     "venueAddress": "7720 Barefoot Rd, Fuquay-Varina, NC 27526",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 24,
@@ -261,7 +261,7 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 25,
@@ -272,7 +272,7 @@
     "venue": "RTP 3",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   },
   {
     "id": 26,
@@ -283,6 +283,6 @@
     "venue": "RTP 3",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
     "format": "HT",
-    "type": "League"
+    "type": "Mega Bash"
   }
 ]

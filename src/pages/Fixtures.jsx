@@ -8,6 +8,63 @@ const teamsFilter = [
   { id: 'royal-bulls', label: 'Royal Bulls' },
 ]
 
+function VenueActions({ venue, venueAddress }) {
+  const [copied, setCopied] = useState(false)
+
+  const fullAddress = venueAddress || venue
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(fullAddress).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div className="mt-2">
+      <div className="flex items-start gap-1.5 text-sm text-gray-500 mb-1.5">
+        <span className="mt-0.5">📍</span>
+        <span><span className="font-medium text-gray-700">{venue}</span>{venueAddress ? ` — ${venueAddress}` : ''}</span>
+      </div>
+      <div className="flex flex-wrap gap-2 ml-5">
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Open in Maps
+        </a>
+        <button
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          {copied ? (
+            <>
+              <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-green-600">Copied!</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Address
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('all')
 
@@ -85,10 +142,10 @@ export default function Fixtures() {
                     <h3 className="font-display font-bold text-primary text-xl mb-1">
                       {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'} vs {f.opponent}
                     </h3>
-                    <div className="flex flex-col sm:flex-row sm:gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                       <span>⏰ {f.time}</span>
-                      <span>📍 {f.venue}{f.venueAddress ? ` — ${f.venueAddress}` : ''}</span>
                     </div>
+                    <VenueActions venue={f.venue} venueAddress={f.venueAddress} />
                   </div>
 
                   {/* Upcoming pill */}

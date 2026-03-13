@@ -60,7 +60,6 @@ export default function Contact() {
                 {[
                   { icon: '📍', label: 'Location', value: 'Cary, North Carolina' },
                   { icon: '✉️', label: 'Email', value: 'sivab4usai@gmail.com' },
-                  { icon: '🏟️', label: 'Home Ground', value: 'WakeMed Soccer Park, Cary NC' },
                   { icon: '🕐', label: 'Training', value: 'Weekends — contact us for schedule' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-4">

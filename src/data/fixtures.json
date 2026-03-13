@@ -128,5 +128,135 @@
     "venue": "RTP4",
     "format": "T20",
     "type": "Mega Bash"
+  },
+  {
+    "id": 14,
+    "date": "2026-03-14",
+    "time": "12:15 PM",
+    "opponent": "CT Titans HT",
+    "team": "royal-bulls",
+    "venue": "CR Woods",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 15,
+    "date": "2026-03-21",
+    "time": "2:30 PM",
+    "opponent": "Bhaukal Army",
+    "team": "royal-bulls",
+    "venue": "Bethesda Lower",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 16,
+    "date": "2026-03-29",
+    "time": "3:30 PM",
+    "opponent": "Markhor",
+    "team": "royal-bulls",
+    "venue": "Bethesda Lower",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 17,
+    "date": "2026-04-04",
+    "time": "3:30 PM",
+    "opponent": "Revengers",
+    "team": "royal-bulls",
+    "venue": "RTP4",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 18,
+    "date": "2026-04-12",
+    "time": "3:30 PM",
+    "opponent": "Alphas",
+    "team": "royal-bulls",
+    "venue": "CF3",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 19,
+    "date": "2026-04-19",
+    "time": "12:00 PM",
+    "opponent": "The Bouys",
+    "team": "royal-bulls",
+    "venue": "Apex Jaycee Park",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 20,
+    "date": "2026-04-26",
+    "time": "12:30 PM",
+    "opponent": "Rockers",
+    "team": "royal-bulls",
+    "venue": "River Forest",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 21,
+    "date": "2026-05-03",
+    "time": "3:30 PM",
+    "opponent": "Royal Bengal Tigers",
+    "team": "royal-bulls",
+    "venue": "RTP4",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 22,
+    "date": "2026-05-09",
+    "time": "12:30 PM",
+    "opponent": "Boys HT",
+    "team": "royal-bulls",
+    "venue": "RTP4",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 23,
+    "date": "2026-05-30",
+    "time": "10:30 AM",
+    "opponent": "GOG",
+    "team": "royal-bulls",
+    "venue": "CF3",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 24,
+    "date": "2026-06-06",
+    "time": "7:30 AM",
+    "opponent": "Invincible XI",
+    "team": "royal-bulls",
+    "venue": "Bethesda Lower",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 25,
+    "date": "2026-06-14",
+    "time": "7:00 PM",
+    "opponent": "Hyderabad Hunters",
+    "team": "royal-bulls",
+    "venue": "RTP3",
+    "format": "HT",
+    "type": "League"
+  },
+  {
+    "id": 26,
+    "date": "2026-06-21",
+    "time": "1:00 PM",
+    "opponent": "CSK",
+    "team": "royal-bulls",
+    "venue": "RTP3",
+    "format": "HT",
+    "type": "League"
   }
 ]

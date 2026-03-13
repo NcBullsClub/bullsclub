@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import logo from '../../assets/images/nc_bulls_club_logo.png'
+import logo from '../../assets/images/logo_without_background.png'
 
 const navLinks = [
   { path: '/', label: 'Home' },
@@ -41,11 +41,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className={`transition-all duration-300 rounded-xl p-1 ${scrolled ? 'bg-white shadow-md' : 'bg-white/10'}`}>
+            <div className={`transition-all duration-300 rounded-full overflow-hidden ${scrolled ? 'bg-white shadow-md' : 'bg-white/10'}`}>
               <img
                 src={logo}
-                alt="Raising Bulls Cricket Club"
-                className="h-10 w-auto object-contain"
+                alt="NC Bulls Cricket Club"
+                className="h-10 w-10 object-contain"
               />
             </div>
             <div className="leading-tight">

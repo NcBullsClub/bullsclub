@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import logo from '../assets/images/nc_bulls_club_logo.png'
+import logo from '../assets/images/logo_without_background.png'
 import fixtures from '../data/fixtures.json'
 import results from '../data/results.json'
 import news from '../data/news.json'

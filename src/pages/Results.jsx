@@ -91,7 +91,7 @@ export default function Results() {
                         NC Bulls vs {r.opponent}
                       </h3>
                       <div className="text-sm text-gray-400">
-                        {new Date(r.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {r.venue}
+                        {new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {r.venue}
                       </div>
                     </div>
 

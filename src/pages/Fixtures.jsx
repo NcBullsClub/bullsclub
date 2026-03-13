@@ -117,18 +117,24 @@ export default function Fixtures() {
                 className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 hover:border-accent hover:shadow-md transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {/* Date block */}
-                  <div className="bg-primary-dark text-white rounded-xl px-4 py-3 text-center min-w-[72px]">
-                    <div className="font-display font-bold text-accent text-xl leading-none">
-                      {new Date(f.date).getDate()}
-                    </div>
-                    <div className="text-xs text-gray-300 mt-0.5">
-                      {new Date(f.date).toLocaleDateString('en-US', { month: 'short' })}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {new Date(f.date).getFullYear()}
-                    </div>
-                  </div>
+                  {/* Date block — parse as local date by replacing hyphens to avoid UTC shift */}
+                  {(() => {
+                    const [year, month, day] = f.date.split('-').map(Number)
+                    const d = new Date(year, month - 1, day)
+                    return (
+                      <div className="bg-primary-dark text-white rounded-xl px-4 py-3 text-center min-w-[72px]">
+                        <div className="font-display font-bold text-accent text-xl leading-none">
+                          {d.getDate()}
+                        </div>
+                        <div className="text-xs text-gray-300 mt-0.5">
+                          {d.toLocaleDateString('en-US', { month: 'short' })}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {d.getFullYear()}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Match info */}
                   <div className="flex-1">

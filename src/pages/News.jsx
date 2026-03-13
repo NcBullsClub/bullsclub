@@ -49,7 +49,7 @@ export default function News() {
                 </div>
                 <div className="p-5 flex flex-col flex-1">
                   <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
-                    <span>{new Date(article.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                    <span>{new Date(article.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                     <span>{article.author}</span>
                   </div>
                   <h2 className="font-display font-bold text-primary text-xl mb-3 leading-snug group-hover:text-accent transition-colors">

@@ -37,7 +37,7 @@ export default function Article() {
               {article.title}
             </h1>
             <div className="flex items-center gap-4 text-sm text-gray-400">
-              <span>{new Date(article.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              <span>{new Date(article.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
               <span>·</span>
               <span>{article.author}</span>
               {article.team !== 'both' && (

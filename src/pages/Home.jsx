@@ -163,7 +163,7 @@ export default function Home() {
                   <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{f.type}</span>
                 </div>
                 <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
-                <div className="text-sm text-gray-500">{new Date(f.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
+                <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
                 <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
               </motion.div>
             ))}
@@ -199,7 +199,7 @@ export default function Home() {
                     </span>
                     vs {r.opponent}
                   </div>
-                  <div className="text-sm text-gray-400">{new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                  <div className="text-sm text-gray-400">{new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-primary text-sm">{r.ncbScore}</div>
@@ -234,7 +234,7 @@ export default function Home() {
                   <span className="font-display text-accent text-4xl font-bold opacity-30">NCB</span>
                 </div>
                 <div className="p-5">
-                  <div className="text-xs text-gray-400 mb-2">{new Date(article.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+                  <div className="text-xs text-gray-400 mb-2">{new Date(article.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
                   <h3 className="font-semibold text-gray-800 text-base mb-2 group-hover:text-primary transition-colors leading-snug">
                     {article.title}
                   </h3>

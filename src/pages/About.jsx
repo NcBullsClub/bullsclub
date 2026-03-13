@@ -2,13 +2,11 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 const milestones = [
-  { year: '2019', event: 'NC Bulls Cricket Club founded in Cary, NC by a group of cricket enthusiasts.' },
-  { year: '2021', event: 'Launched the Raising Bulls — our first competitive T20 squad in the Triangle Cricket League.' },
-  { year: '2022', event: 'Reached our first league final. Royal Bulls squad formed to grow the club further.' },
-  { year: '2023', event: 'Raising Bulls win their first league championship title.' },
-  { year: '2024', event: 'Club membership exceeds 30 active players. Ground partnership secured at WakeMed Soccer Park.' },
-  { year: '2025', event: 'Raising Bulls win back-to-back titles. Royal Bulls reach the semi-finals for the first time.' },
-  { year: '2026', event: '2026 season underway — aiming for a historic third straight title for Raising Bulls.' },
+  { year: '2022', event: 'NC Bulls Cricket Club founded. Raising Bulls hit the ground running — Table Toppers & Winter Finalists in their debut season.' },
+  { year: '2023', event: 'Dominant year across four seasons: Spring Table Toppers, Summer Table Toppers & Summer Champions, Fall Champions, and Winter Table Toppers.' },
+  { year: '2024', event: 'Winter Champions — continued excellence with another title to the cabinet.' },
+  { year: '2025', event: 'Triple honour: Smash Table Toppers, Winter Table Toppers & Finalists, and APEX League Table Toppers & Finalists.' },
+  { year: '2026', event: '2026 Mega Bash season underway — aiming to add more silverware to an already outstanding record.' },
 ]
 
 const values = [
@@ -47,13 +45,13 @@ export default function About() {
               <h2 className="section-heading mb-6">Our Story</h2>
               <div className="space-y-4 text-gray-600 leading-relaxed">
                 <p>
-                  NC Bulls Cricket Club was born in 2019 in Cary, North Carolina, out of a shared love of cricket among the growing South Asian community in the Triangle area. What started as informal weekend matches quickly grew into something much bigger.
+                  NC Bulls Cricket Club was founded in 2022 in Cary, North Carolina, out of a shared love for cricket among the South Asian community in the Triangle area. What started as a single competitive squad quickly grew into a celebrated club.
                 </p>
                 <p>
-                  Today, NC Bulls fields two competitive T20 squads — the <strong className="text-primary">Raising Bulls</strong> and the <strong className="text-primary">Royal Bulls</strong> — competing in the Triangle Cricket League and other regional tournaments across North Carolina.
+                  The <strong className="text-primary">Raising Bulls</strong> have been the standout side from day one — winning titles across Spring, Summer, Fall, and Winter seasons, cementing themselves as one of the most consistent teams in the region.
                 </p>
                 <p>
-                  With over 16 active players, a dedicated coaching setup, and a passionate supporter base, NC Bulls has become one of the most recognised cricket clubs in North Carolina.
+                  With 9 titles and finals appearances since 2022, and a growing squad of 16+ active players, NC Bulls has established itself as a powerhouse of cricket in North Carolina.
                 </p>
               </div>
               <div className="mt-8">

@@ -89,7 +89,7 @@ export default function Sponsors() {
             <p className="text-gray-300 mb-8 text-lg">
               Partner with NC Bulls Cricket Club and get your brand in front of a passionate, growing community of cricket fans across North Carolina.
             </p>
-            <a href="mailto:info@ncbullscc.com" className="btn-primary text-base">
+            <a href="mailto:sivab4usai@gmail.com" className="btn-primary text-base">
               Get in Touch →
             </a>
           </motion.div>

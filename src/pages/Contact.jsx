@@ -59,7 +59,7 @@ export default function Contact() {
               <div className="space-y-5">
                 {[
                   { icon: '📍', label: 'Location', value: 'Cary, North Carolina' },
-                  { icon: '✉️', label: 'Email', value: 'info@ncbullscc.com' },
+                  { icon: '✉️', label: 'Email', value: 'sivab4usai@gmail.com' },
                   { icon: '🏟️', label: 'Home Ground', value: 'WakeMed Soccer Park, Cary NC' },
                   { icon: '🕐', label: 'Training', value: 'Weekends — contact us for schedule' },
                 ].map((item) => (

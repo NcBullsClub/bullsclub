@@ -50,8 +50,8 @@ export default function Home() {
       {/* Hero */}
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
         {/* Background logo watermark */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <img src={logo} alt="" className="w-[600px] max-w-[80vw] opacity-[0.06] select-none" />
+        <div className="absolute inset-0 flex items-center justify-end pointer-events-none pr-8 lg:pr-20">
+          <img src={logo} alt="" className="w-[480px] max-w-[60vw] opacity-[0.18] select-none" />
         </div>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-96 h-96 rounded-full bg-accent blur-3xl" />

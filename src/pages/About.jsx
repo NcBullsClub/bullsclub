@@ -45,7 +45,7 @@ export default function About() {
               <h2 className="section-heading mb-6">Our Story</h2>
               <div className="space-y-4 text-gray-600 leading-relaxed">
                 <p>
-                  NC Bulls Cricket Club was founded in 2022 in Cary, North Carolina, out of a shared love for cricket among the South Asian community in the Triangle area. What started as a single competitive squad quickly grew into a celebrated club.
+                  NC Bulls Cricket Club was founded in 2022 in Apex, North Carolina, out of a shared love for cricket among the South Asian community in the Triangle area. What started as a single competitive squad quickly grew into a celebrated club.
                 </p>
                 <p>
                   The <strong className="text-primary">Raising Bulls</strong> have been the standout side from day one — winning titles across Spring, Summer, Fall, and Winter seasons, cementing themselves as one of the most consistent teams in the region.

@@ -63,7 +63,7 @@ export default function Footer() {
           <div>
             <h3 className="font-display font-semibold text-white uppercase tracking-wider text-sm mb-4">Contact</h3>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>📍 Cary, North Carolina</li>
+              <li>📍 Apex, North Carolina</li>
               <li>✉️ <a href="mailto:sivab4usai@gmail.com" className="hover:text-accent transition-colors">sivab4usai@gmail.com</a></li>
               <li className="pt-2 flex gap-3">
                 <a href="#" aria-label="Facebook" className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-accent hover:text-primary-dark transition-colors text-xs font-bold">f</a>

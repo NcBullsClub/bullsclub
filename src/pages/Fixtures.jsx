@@ -87,7 +87,7 @@ export default function Fixtures() {
                     </h3>
                     <div className="flex flex-col sm:flex-row sm:gap-4 text-sm text-gray-500">
                       <span>⏰ {f.time}</span>
-                      <span>📍 {f.venue}</span>
+                      <span>📍 {f.venue}{f.venueAddress ? ` — ${f.venueAddress}` : ''}</span>
                     </div>
                   </div>
 

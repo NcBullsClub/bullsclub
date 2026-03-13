@@ -58,7 +58,7 @@ export default function Contact() {
               <h2 className="section-heading mb-6">Contact Us</h2>
               <div className="space-y-5">
                 {[
-                  { icon: '📍', label: 'Location', value: 'Cary, North Carolina' },
+                  { icon: '📍', label: 'Location', value: 'Apex, North Carolina' },
                   { icon: '✉️', label: 'Email', value: 'sivab4usai@gmail.com' },
                   { icon: '🕐', label: 'Training', value: 'Weekends — contact us for schedule' },
                 ].map((item) => (

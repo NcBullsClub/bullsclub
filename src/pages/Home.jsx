@@ -50,8 +50,8 @@ export default function Home() {
       {/* Hero */}
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
         {/* Background logo watermark */}
-        <div className="absolute inset-0 flex items-center justify-end pointer-events-none pr-8 lg:pr-20">
-          <img src={logo} alt="" className="w-[480px] max-w-[60vw] opacity-[0.18] select-none" />
+        <div className="absolute inset-0 flex items-start justify-center pointer-events-none" style={{paddingTop: '6%'}}>
+          <img src={logo} alt="" className="w-[550px] max-w-[70vw] opacity-[0.28] select-none" />
         </div>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-96 h-96 rounded-full bg-accent blur-3xl" />
@@ -121,10 +121,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             {[
-              { label: 'Total Players', value: 16, suffix: '+' },
-              { label: 'Matches Played', value: 54, suffix: '' },
+              { label: 'Total Players', value: 119, suffix: '+' },
+              { label: 'Matches Played', value: 170, suffix: '+' },
               { label: 'Wins This Season', value: 8, suffix: '' },
-              { label: 'Years in Cricket', value: 5, suffix: '+' },
+              { label: 'Years in Cricket', value: 4, suffix: '+' },
             ].map((stat) => (
               <div key={stat.label} className="text-primary-dark">
                 <div className="font-display text-4xl md:text-5xl font-bold">

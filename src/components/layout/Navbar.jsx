@@ -41,11 +41,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className={`transition-all duration-300 rounded-full overflow-hidden ${scrolled ? 'bg-white shadow-md' : 'bg-white/10'}`}>
+            <div className="transition-all duration-300 rounded-full overflow-hidden bg-white shadow-md p-0.5">
               <img
                 src={logo}
                 alt="NC Bulls Cricket Club"
-                className="h-10 w-10 object-contain"
+                className="h-10 w-10 object-contain rounded-full"
               />
             </div>
             <div className="leading-tight">

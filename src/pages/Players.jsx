@@ -76,9 +76,10 @@ export default function Players() {
       <section className="py-12 bg-surface min-h-[60vh]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* Raising Bulls — external roster link */}
-          {teamFilter === 'raising-bulls' ? (
+          {/* Team roster links — external CricHeroes */}
+          {teamFilter === 'raising-bulls' || teamFilter === 'royal-bulls' ? (
             <motion.div
+              key={teamFilter}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center justify-center py-24 text-center"
@@ -89,13 +90,18 @@ export default function Players() {
                 </svg>
               </div>
               <h2 className="font-display text-3xl font-bold text-primary-dark mb-3">
-                Raising Bulls <span className="text-accent">Roster</span>
+                {teamFilter === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}{' '}
+                <span className="text-accent">Roster</span>
               </h2>
               <p className="text-gray-500 mb-8 max-w-md">
-                View the full Raising Bulls squad, stats, and profiles on CricHeroes — our official league platform.
+                View the full {teamFilter === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'} squad, stats, and profiles on CricHeroes — our official league platform.
               </p>
               <a
-                href="https://cricheroes.com/team-profile/12480147/raising-bulls/members"
+                href={
+                  teamFilter === 'raising-bulls'
+                    ? 'https://cricheroes.com/team-profile/12480147/raising-bulls/members'
+                    : 'https://cricheroes.com/team-profile/12480151/royal-bulls/members'
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-primary-dark text-accent font-bold px-8 py-3 rounded-full hover:bg-primary transition-colors text-base"

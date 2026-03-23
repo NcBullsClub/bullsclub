@@ -75,6 +75,39 @@ export default function Players() {
       {/* Player Grid */}
       <section className="py-12 bg-surface min-h-[60vh]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* Raising Bulls — external roster link */}
+          {teamFilter === 'raising-bulls' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-24 text-center"
+            >
+              <div className="w-20 h-20 bg-primary-dark rounded-full flex items-center justify-center mb-6">
+                <svg className="w-10 h-10 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.477-3.716M9 20H4v-2a4 4 0 015.477-3.716M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 3a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h2 className="font-display text-3xl font-bold text-primary-dark mb-3">
+                Raising Bulls <span className="text-accent">Roster</span>
+              </h2>
+              <p className="text-gray-500 mb-8 max-w-md">
+                View the full Raising Bulls squad, stats, and profiles on CricHeroes — our official league platform.
+              </p>
+              <a
+                href="https://cricheroes.com/team-profile/12480147/raising-bulls/members"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-primary-dark text-accent font-bold px-8 py-3 rounded-full hover:bg-primary transition-colors text-base"
+              >
+                View Squad on CricHeroes
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+            </motion.div>
+          ) : (
+          <>
           <div className="text-sm text-gray-400 mb-6">{filtered.length} player{filtered.length !== 1 ? 's' : ''}</div>
           <AnimatePresence>
             {filtered.length === 0 ? (
@@ -159,6 +192,8 @@ export default function Players() {
               </div>
             )}
           </AnimatePresence>
+          </>
+          )}
         </div>
       </section>
     </div>

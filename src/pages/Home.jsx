@@ -46,7 +46,8 @@ const teamData = {
 }
 
 export default function Home() {
-  const upcomingFixtures = fixtures.filter(f => f.status !== 'completed').slice(0, 3)
+  const upcomingRB = fixtures.filter(f => f.status !== 'completed' && f.team === 'raising-bulls').slice(0, 3)
+  const upcomingRY = fixtures.filter(f => f.status !== 'completed' && f.team === 'royal-bulls').slice(0, 3)
   const completedFixtures = fixtures.filter(f => f.status === 'completed')
   const latestResults = [...completedFixtures].reverse().slice(0, 3)
   const latestNews = news.slice(0, 3)
@@ -151,28 +152,58 @@ export default function Home() {
               View All →
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {upcomingFixtures.map((f, i) => (
-              <motion.div
-                key={f.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
-                    {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
-                  </span>
-                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">{f.type}</span>
-                </div>
-                <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
-                <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
-                <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
-              </motion.div>
-            ))}
-          </div>
+
+          {/* Raising Bulls row */}
+          {upcomingRB.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-primary-dark text-accent text-xs font-bold px-3 py-1 rounded-full">Raising Bulls</span>
+                <span className="text-xs text-gray-400">{upcomingRB[0].type}</span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {upcomingRB.map((f, i) => (
+                  <motion.div
+                    key={f.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all"
+                  >
+                    <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
+                    <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
+                    <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Royal Bulls row */}
+          {upcomingRY.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">Royal Bulls</span>
+                <span className="text-xs text-gray-400">{upcomingRY[0].type}</span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {upcomingRY.map((f, i) => (
+                  <motion.div
+                    key={f.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all"
+                  >
+                    <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
+                    <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
+                    <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

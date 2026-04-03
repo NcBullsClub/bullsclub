@@ -2,9 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import logo from '../assets/images/logo_without_background.png'
-import fixtures from '../data/fixtures.json'
-import results from '../data/results.json'
+import baseFixtures from '../data/fixtures.json'
 import news from '../data/news.json'
+
+function loadFixtures() {
+  try {
+    const overrides = JSON.parse(localStorage.getItem('ncb_fixture_overrides') || '{}')
+    return baseFixtures.map(f => ({ ...f, ...(overrides[f.id] || {}) }))
+  } catch { return baseFixtures }
+}
+
+function isWon(f) {
+  if (!f.result) return false
+  const label = f.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
+  return f.result.toLowerCase().includes(label.toLowerCase())
+}
 
 function CountUp({ end, duration = 2000, suffix = '' }) {
   const [count, setCount] = useState(0)
@@ -41,8 +53,10 @@ const teamData = {
 }
 
 export default function Home() {
-  const upcomingFixtures = fixtures.slice(0, 3)
-  const latestResults = results.slice(0, 3)
+  const allFixtures = loadFixtures()
+  const upcomingFixtures = allFixtures.filter(f => f.status !== 'completed').slice(0, 3)
+  const completedFixtures = allFixtures.filter(f => f.status === 'completed')
+  const latestResults = [...completedFixtures].reverse().slice(0, 3)
   const latestNews = news.slice(0, 3)
 
   return (
@@ -95,8 +109,7 @@ export default function Home() {
             >
               {['raising-bulls', 'royal-bulls'].map((teamId) => {
                 const team = teamData[teamId]
-                const teamResults = results.filter(r => r.team === teamId)
-                const wins = teamResults.filter(r => r.result === 'Won').length
+                const wins = completedFixtures.filter(f => f.team === teamId && isWon(f)).length
                 return (
                   <Link
                     key={teamId}
@@ -187,10 +200,10 @@ export default function Home() {
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                className={`flex items-center gap-4 p-4 rounded-xl border-l-4 bg-white shadow-sm ${r.result === 'Won' ? 'border-green-500' : 'border-red-400'}`}
+                className={`flex items-center gap-4 p-4 rounded-xl border-l-4 bg-white shadow-sm ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
               >
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${r.result === 'Won' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                  {r.result === 'Won' ? 'W' : 'L'}
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                  {isWon(r) ? 'W' : 'L'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-gray-800 truncate">
@@ -202,8 +215,8 @@ export default function Home() {
                   <div className="text-sm text-gray-400">{new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-primary text-sm">{r.ncbScore}</div>
-                  <div className="text-gray-400 text-sm">{r.oppScore}</div>
+                  <div className="font-bold text-primary text-xs font-mono">{r.homeScore}</div>
+                  <div className="text-gray-400 text-xs font-mono">{r.awayScore}</div>
                 </div>
               </motion.div>
             ))}

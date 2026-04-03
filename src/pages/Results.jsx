@@ -1,6 +1,19 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import results from '../data/results.json'
+import baseFixtures from '../data/fixtures.json'
+
+function loadFixtures() {
+  try {
+    const overrides = JSON.parse(localStorage.getItem('ncb_fixture_overrides') || '{}')
+    return baseFixtures.map(f => ({ ...f, ...(overrides[f.id] || {}) }))
+  } catch { return baseFixtures }
+}
+
+function isWon(f) {
+  if (!f.result) return false
+  const label = f.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
+  return f.result.toLowerCase().includes(label.toLowerCase())
+}
 
 const teamsFilter = [
   { id: 'all', label: 'All Teams' },
@@ -11,11 +24,12 @@ const teamsFilter = [
 export default function Results() {
   const [teamFilter, setTeamFilter] = useState('all')
 
-  const filtered = results.filter(
-    (r) => teamFilter === 'all' || r.team === teamFilter
+  const completedFixtures = loadFixtures().filter(f => f.status === 'completed')
+  const filtered = completedFixtures.filter(
+    (f) => teamFilter === 'all' || f.team === teamFilter
   )
-  const wins = filtered.filter((r) => r.result === 'Won').length
-  const losses = filtered.filter((r) => r.result === 'Lost').length
+  const wins = filtered.filter(isWon).length
+  const losses = filtered.filter(f => !isWon(f) && !!f.result).length
 
   return (
     <div>
@@ -67,16 +81,16 @@ export default function Results() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.07 }}
                 className={`bg-white rounded-2xl border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all ${
-                  r.result === 'Won' ? 'border-green-500' : 'border-red-400'
+                  isWon(r) ? 'border-green-500' : 'border-red-400'
                 }`}
               >
                 <div className="p-5 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     {/* Result badge */}
                     <div className={`w-14 h-14 rounded-full flex items-center justify-center font-display font-bold text-lg flex-shrink-0 ${
-                      r.result === 'Won' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                      isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
                     }`}>
-                      {r.result === 'Won' ? 'W' : 'L'}
+                      {isWon(r) ? 'W' : 'L'}
                     </div>
 
                     {/* Match details */}
@@ -88,7 +102,7 @@ export default function Results() {
                         <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.format}</span>
                       </div>
                       <h3 className="font-display font-bold text-primary text-xl mb-1">
-                        NC Bulls vs {r.opponent}
+                        {r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'} vs {r.opponent}
                       </h3>
                       <div className="text-sm text-gray-400">
                         {new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {r.venue}
@@ -96,12 +110,26 @@ export default function Results() {
                     </div>
 
                     {/* Scores */}
-                    <div className="text-right flex-shrink-0">
-                      <div className="font-display font-bold text-primary text-xl">{r.ncbScore}</div>
-                      <div className="text-gray-400 text-sm">{r.oppScore}</div>
-                      <div className={`text-xs font-bold mt-1 ${r.result === 'Won' ? 'text-green-600' : 'text-red-500'}`}>
-                        {r.result}
-                      </div>
+                    <div className="text-right flex-shrink-0 space-y-0.5">
+                      {r.homeScore && (
+                        <div className="text-xs font-mono font-semibold text-gray-800">
+                          {r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {r.homeScore}
+                        </div>
+                      )}
+                      {r.awayScore && (
+                        <div className="text-xs font-mono text-gray-500">{r.opponent}: {r.awayScore}</div>
+                      )}
+                      {r.result && (
+                        <div className={`text-xs font-bold mt-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>
+                          {isWon(r) ? 'Won' : 'Lost'}
+                        </div>
+                      )}
+                      {r.scorecardUrl && (
+                        <a href={r.scorecardUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline inline-block mt-0.5">
+                          Scorecard ↗
+                        </a>
+                      )}
                     </div>
                   </div>
 

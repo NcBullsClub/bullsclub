@@ -193,7 +193,12 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "Mega Bash"
+    "type": "Mega Bash",
+    "status": "completed",
+    "result": "Markhors won by 51 runs",
+    "homeScore": "90/7",
+    "awayScore": "141/9",
+    "scorecardUrl": "https://cricheroes.in/scorecard/23249462/mega-bash/markhors-vs-royal-bulls"
   },
   {
     "id": 17,

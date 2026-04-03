@@ -8,7 +8,11 @@
     "venue": "Century Fields 3",
     "venueAddress": "7720 Barefoot Rd, Fuquay-Varina, NC 27526",
     "format": "T20",
-    "type": "Mega Bash"
+    "type": "Mega Bash",
+    "status": "completed",
+    "result": "Raising Bulls won by 2 wickets",
+    "homeScore": "96/8",
+    "awayScore": "95/5"
   },
   {
     "id": 2,
@@ -19,7 +23,11 @@
     "venue": "RTP 1",
     "venueAddress": "223 E Institute Dr, Durham, NC 22709",
     "format": "T20",
-    "type": "Mega Bash"
+    "type": "Mega Bash",
+    "status": "completed",
+    "result": "Raising Bulls won by 47 runs",
+    "homeScore": "106/10",
+    "awayScore": "59/10"
   },
   {
     "id": 3,

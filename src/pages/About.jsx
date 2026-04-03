@@ -79,7 +79,7 @@ export default function About() {
       </section>
 
       {/* Honours Board */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-accent">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -87,9 +87,9 @@ export default function About() {
             viewport={{ once: true }}
             className="text-center mb-10"
           >
-            <div className="text-primary text-xs font-bold uppercase tracking-[0.3em] mb-2">Trophy Cabinet</div>
+            <div className="text-primary-dark/60 text-xs font-bold uppercase tracking-[0.3em] mb-2">Trophy Cabinet</div>
             <h2 className="font-display text-4xl md:text-5xl font-bold text-primary-dark">
-              CLUB <span className="text-accent" style={{WebkitTextStroke: '1px #b8960a'}}>HONOURS</span>
+              CLUB <span className="text-primary">HONOURS</span>
             </h2>
           </motion.div>
 
@@ -99,7 +99,7 @@ export default function About() {
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="bg-primary-dark rounded-2xl p-8 shadow-lg"
+              className="bg-primary-dark rounded-2xl p-8 shadow-xl"
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center font-display font-bold text-primary-dark text-sm">RB</div>
@@ -111,8 +111,8 @@ export default function About() {
               <div className="space-y-3">
                 {[
                   { icon: '🏆', count: '3×', label: 'Champions', countColor: 'text-accent' },
-                  { icon: '🔝', count: '4×', label: 'Table Toppers', countColor: 'text-blue-300' },
-                  { icon: '🥈', count: '2×', label: 'Runners-Up', countColor: 'text-gray-300' },
+                  { icon: '🔝', count: '4×', label: 'Table Toppers', countColor: 'text-accent' },
+                  { icon: '🥈', count: '2×', label: 'Runners-Up', countColor: 'text-accent' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3">
                     <span className="text-xl w-7 text-center flex-shrink-0">{item.icon}</span>
@@ -130,33 +130,33 @@ export default function About() {
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="bg-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg"
+              className="bg-primary-dark rounded-2xl p-8 shadow-xl"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-primary-dark rounded-full flex items-center justify-center font-display font-bold text-accent text-sm">RY</div>
+                <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center font-display font-bold text-primary-dark text-sm">RY</div>
                 <div>
-                  <div className="font-display font-bold text-primary-dark text-xl leading-none">Royal Bulls</div>
+                  <div className="font-display font-bold text-white text-xl leading-none">Royal Bulls</div>
                   <div className="text-gray-400 text-xs mt-0.5">Est. 2022 · League</div>
                 </div>
               </div>
               <div className="space-y-3">
                 {[
-                  { icon: '🏆', count: '1×', label: 'Champions', note: 'Debut Season', countColor: 'text-primary-dark' },
+                  { icon: '🏆', count: '1×', label: 'Champions', note: 'Debut Season' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3">
                     <span className="text-xl w-7 text-center flex-shrink-0">{item.icon}</span>
-                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <div className="flex-1 bg-white/10 rounded-xl px-4 py-2.5 flex items-center justify-between">
                       <div>
-                        <span className="text-gray-700 text-sm font-medium">{item.label}</span>
+                        <span className="text-gray-200 text-sm font-medium">{item.label}</span>
                         {item.note && <span className="text-gray-400 text-xs ml-2">— {item.note}</span>}
                       </div>
-                      <span className={`font-display font-bold text-xl ${item.countColor}`}>{item.count}</span>
+                      <span className="font-display font-bold text-xl text-accent">{item.count}</span>
                     </div>
                   </div>
                 ))}
-                <div className="mt-4 bg-primary-dark/5 border border-primary-dark/10 rounded-xl p-4 text-center">
-                  <div className="text-primary-dark text-sm font-semibold">Growing force in the Triangle</div>
-                  <div className="text-gray-500 text-xs mt-1">Semi-finalists 2025 · Competing at the highest level</div>
+                <div className="mt-4 bg-white/10 rounded-xl p-4 text-center">
+                  <div className="text-accent text-sm font-semibold">Growing force in the Triangle</div>
+                  <div className="text-gray-400 text-xs mt-1">Semi-finalists 2025 · Competing at the highest level</div>
                 </div>
               </div>
             </motion.div>

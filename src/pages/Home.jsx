@@ -163,18 +163,19 @@ export default function Home() {
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {upcomingRB.map((f, i) => (
-                  <motion.div
-                    key={f.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.08 }}
-                    className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all"
-                  >
-                    <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
-                    <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
-                    <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
-                  </motion.div>
+                  <Link key={f.id} to="/fixtures">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.08 }}
+                      className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
+                      <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
+                      <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
+                    </motion.div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -189,18 +190,19 @@ export default function Home() {
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {upcomingRY.map((f, i) => (
-                  <motion.div
-                    key={f.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.08 }}
-                    className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all"
-                  >
-                    <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
-                    <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
-                    <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
-                  </motion.div>
+                  <Link key={f.id} to="/fixtures">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.08 }}
+                      className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
+                      <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
+                      <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
+                    </motion.div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -240,13 +242,13 @@ export default function Home() {
                 ) : (
                   <div className="space-y-3">
                     {results.map((r, i) => (
+                      <Link key={r.id} to="/results">
                       <motion.div
-                        key={r.id}
                         initial={{ opacity: 0, x: -16 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: i * 0.07 }}
-                        className={`flex items-center gap-4 bg-white rounded-xl border-l-4 px-4 py-3 shadow-sm ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
+                        className={`flex items-center gap-4 bg-white rounded-xl border-l-4 px-4 py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
                       >
                         {/* W / L badge */}
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
@@ -273,6 +275,7 @@ export default function Home() {
                           </div>
                         )}
                       </motion.div>
+                      </Link>
                     ))}
                   </div>
                 )}

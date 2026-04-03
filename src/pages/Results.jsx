@@ -9,18 +9,15 @@ function isWon(f) {
 }
 
 const teamsFilter = [
-  { id: 'all', label: 'All Teams' },
   { id: 'raising-bulls', label: 'Raising Bulls' },
   { id: 'royal-bulls', label: 'Royal Bulls' },
 ]
 
 export default function Results() {
-  const [teamFilter, setTeamFilter] = useState('all')
+  const [teamFilter, setTeamFilter] = useState('raising-bulls')
 
   const completedFixtures = fixtures.filter(f => f.status === 'completed')
-  const filtered = completedFixtures.filter(
-    (f) => teamFilter === 'all' || f.team === teamFilter
-  )
+  const filtered = completedFixtures.filter((f) => f.team === teamFilter)
   const wins = filtered.filter(isWon).length
   const losses = filtered.filter(f => !isWon(f) && !!f.result).length
 

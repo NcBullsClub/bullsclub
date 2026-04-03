@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import fixtures from '../data/fixtures.json'
 
 const teamsFilter = [
-  { id: 'all', label: 'All Teams' },
   { id: 'raising-bulls', label: 'Raising Bulls' },
   { id: 'royal-bulls', label: 'Royal Bulls' },
 ]
@@ -66,11 +65,9 @@ function VenueActions({ venue, venueAddress }) {
 }
 
 export default function Fixtures() {
-  const [teamFilter, setTeamFilter] = useState('all')
+  const [teamFilter, setTeamFilter] = useState('raising-bulls')
 
-  const filtered = fixtures.filter(
-    (f) => teamFilter === 'all' || f.team === teamFilter
-  )
+  const filtered = fixtures.filter((f) => f.team === teamFilter)
 
   return (
     <div>

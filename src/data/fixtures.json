@@ -177,7 +177,12 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "Mega Bash"
+    "type": "Mega Bash",
+    "status": "completed",
+    "result": "Royal Bulls won by 2 wickets",
+    "homeScore": "103/8",
+    "awayScore": "102/8",
+    "scorecardUrl": "https://cricheroes.in/scorecard/23249470/mega-bash/bhaukal-army-vs-royal-bulls”
   },
   {
     "id": 16,

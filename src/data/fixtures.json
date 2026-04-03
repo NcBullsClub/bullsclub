@@ -161,7 +161,12 @@
     "venue": "C R Woods Park",
     "venueAddress": "417 Commonwealth St, Durham, NC 27703",
     "format": "HT",
-    "type": "Mega Bash"
+    "type": "Mega Bash",
+    "status": "completed",
+    "result": "CT Titans HT won by 6 wickets",
+    "homeScore": "66/10",
+    "awayScore": "70/4",
+    "scorecardUrl": "https://cricheroes.in/scorecard/23101566/mega-bash/royal-bulls-vs-ct-titans---ht"
   },
   {
     "id": 15,

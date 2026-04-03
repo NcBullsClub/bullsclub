@@ -80,7 +80,7 @@ export default function Home() {
                 CLUB
               </h1>
               <p className="text-gray-300 text-lg mb-8 max-w-lg leading-relaxed">
-                Home of the <strong className="text-accent">Raising Bulls</strong> &amp; <strong className="text-accent">Royal Bulls</strong> — North Carolina's premier cricket club based in Cary, NC.
+                Home of the <strong className="text-accent">Raising Bulls</strong> &amp; <strong className="text-accent">Royal Bulls</strong> — representing the spirit of cricket across the Research Triangle (RTP) region of North Carolina.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link to="/teams" className="btn-primary text-base">

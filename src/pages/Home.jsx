@@ -49,7 +49,8 @@ export default function Home() {
   const upcomingRB = fixtures.filter(f => f.status !== 'completed' && f.team === 'raising-bulls').slice(0, 3)
   const upcomingRY = fixtures.filter(f => f.status !== 'completed' && f.team === 'royal-bulls').slice(0, 3)
   const completedFixtures = fixtures.filter(f => f.status === 'completed')
-  const latestResults = [...completedFixtures].reverse().slice(0, 3)
+  const latestRBResults = completedFixtures.filter(f => f.team === 'raising-bulls').slice(-3).reverse()
+  const latestRYResults = completedFixtures.filter(f => f.team === 'royal-bulls').slice(-3).reverse()
   const latestNews = news.slice(0, 3)
 
   return (
@@ -216,32 +217,66 @@ export default function Home() {
               View All →
             </Link>
           </div>
-          <div className="space-y-3">
-            {latestResults.map((r) => (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className={`flex items-center gap-4 p-4 rounded-xl border-l-4 bg-white shadow-sm ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
-              >
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                  {isWon(r) ? 'W' : 'L'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-800 truncate">
-                    <span className={`text-xs mr-2 px-2 py-0.5 rounded-full ${r.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
-                      {r.team === 'raising-bulls' ? 'RB' : 'RY'}
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {[
+              { label: 'Raising Bulls', id: 'raising-bulls', results: latestRBResults, badgeBg: 'bg-primary-dark', badgeText: 'text-accent' },
+              { label: 'Royal Bulls',   id: 'royal-bulls',   results: latestRYResults, badgeBg: 'bg-primary',      badgeText: 'text-white'  },
+            ].map(({ label, id, results, badgeBg, badgeText }) => (
+              <div key={id}>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className={`${badgeBg} ${badgeText} text-xs font-bold px-3 py-1 rounded-full`}>{label}</span>
+                  {results.length > 0 && (
+                    <span className="text-xs text-gray-400">
+                      {results.filter(isWon).length}W – {results.filter(r => !isWon(r)).length}L last {results.length} matches
                     </span>
-                    vs {r.opponent}
+                  )}
+                </div>
+
+                {results.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-gray-100 p-6 text-center text-gray-400 text-sm">
+                    No results yet this season
                   </div>
-                  <div className="text-sm text-gray-400">{new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-primary text-xs font-mono">{r.homeScore}</div>
-                  <div className="text-gray-400 text-xs font-mono">{r.awayScore}</div>
-                </div>
-              </motion.div>
+                ) : (
+                  <div className="space-y-3">
+                    {results.map((r, i) => (
+                      <motion.div
+                        key={r.id}
+                        initial={{ opacity: 0, x: -16 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.07 }}
+                        className={`flex items-center gap-4 bg-white rounded-xl border-l-4 px-4 py-3 shadow-sm ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
+                      >
+                        {/* W / L badge */}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                          {isWon(r) ? 'W' : 'L'}
+                        </div>
+
+                        {/* Match info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-800 text-sm truncate">vs {r.opponent}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {r.venue && <span> · {r.venue}</span>}
+                          </div>
+                          {r.result && (
+                            <div className={`text-xs font-medium mt-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
+                          )}
+                        </div>
+
+                        {/* Scores */}
+                        {(r.homeScore || r.awayScore) && (
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-xs font-mono font-semibold text-gray-700">{r.homeScore}</div>
+                            <div className="text-xs font-mono text-gray-400">{r.awayScore}</div>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

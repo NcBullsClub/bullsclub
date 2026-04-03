@@ -12,6 +12,7 @@ import Article from './pages/Article'
 import Contact from './pages/Contact'
 import Sponsors from './pages/Sponsors'
 import Events from './pages/Events'
+import Admin from './pages/Admin'
 
 function NotFound() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/news" element={<News />} />
         <Route path="/news/:slug" element={<Article />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/sponsors" element={<Sponsors />} />
         <Route path="*" element={<NotFound />} />

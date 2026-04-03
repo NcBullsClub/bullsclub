@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import fixtures from '../data/fixtures.json'
+import baseFixtures from '../data/fixtures.json'
+
+function loadFixtures() {
+  try {
+    const overrides = JSON.parse(localStorage.getItem('ncb_fixture_overrides') || '{}')
+    return baseFixtures.map(f => ({ ...f, ...(overrides[f.id] || {}) }))
+  } catch {
+    return baseFixtures
+  }
+}
 
 const teamsFilter = [
   { id: 'all', label: 'All Teams' },
@@ -67,6 +76,7 @@ function VenueActions({ venue, venueAddress }) {
 
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('all')
+  const fixtures = loadFixtures()
 
   const filtered = fixtures.filter(
     (f) => teamFilter === 'all' || f.team === teamFilter
@@ -154,12 +164,30 @@ export default function Fixtures() {
                     <VenueActions venue={f.venue} venueAddress={f.venueAddress} />
                   </div>
 
-                  {/* Upcoming pill */}
-                  <div className="flex-shrink-0">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      Upcoming
-                    </span>
+                  {/* Status / result */}
+                  <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                    {f.status === 'completed' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200">
+                        ✓ Completed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                        Upcoming
+                      </span>
+                    )}
+                    {f.status === 'completed' && (f.homeScore || f.result) && (
+                      <div className="text-right">
+                        {f.homeScore && f.awayScore && (
+                          <div className="text-xs font-mono font-semibold text-gray-700">
+                            {f.homeScore} &nbsp;/&nbsp; {f.awayScore}
+                          </div>
+                        )}
+                        {f.result && (
+                          <div className="text-xs text-gray-500 mt-0.5 max-w-[160px]">{f.result}</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>

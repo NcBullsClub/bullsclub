@@ -141,7 +141,7 @@ export default function Teams() {
               {
                 id: 'raising-bulls',
                 label: 'Raising Bulls',
-                sub: 'Mega Bash · T20',
+                sub: 'Mega Bash',
                 url: 'https://cricheroes.com/team-profile/12480147/raising-bulls/members',
                 bg: 'from-primary-dark to-primary',
                 badge: 'RB',
@@ -149,7 +149,7 @@ export default function Teams() {
               {
                 id: 'royal-bulls',
                 label: 'Royal Bulls',
-                sub: 'League · T20',
+                sub: 'Mega Bash',
                 url: 'https://cricheroes.com/team-profile/12480151/royal-bulls/members',
                 bg: 'from-primary to-primary-light',
                 badge: 'RY',

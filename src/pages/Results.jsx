@@ -1,13 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import baseFixtures from '../data/fixtures.json'
-
-function loadFixtures() {
-  try {
-    const overrides = JSON.parse(localStorage.getItem('ncb_fixture_overrides') || '{}')
-    return baseFixtures.map(f => ({ ...f, ...(overrides[f.id] || {}) }))
-  } catch { return baseFixtures }
-}
+import fixtures from '../data/fixtures.json'
 
 function isWon(f) {
   if (!f.result) return false
@@ -24,7 +17,7 @@ const teamsFilter = [
 export default function Results() {
   const [teamFilter, setTeamFilter] = useState('all')
 
-  const completedFixtures = loadFixtures().filter(f => f.status === 'completed')
+  const completedFixtures = fixtures.filter(f => f.status === 'completed')
   const filtered = completedFixtures.filter(
     (f) => teamFilter === 'all' || f.team === teamFilter
   )

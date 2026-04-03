@@ -2,15 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import logo from '../assets/images/logo_without_background.png'
-import baseFixtures from '../data/fixtures.json'
+import fixtures from '../data/fixtures.json'
 import news from '../data/news.json'
-
-function loadFixtures() {
-  try {
-    const overrides = JSON.parse(localStorage.getItem('ncb_fixture_overrides') || '{}')
-    return baseFixtures.map(f => ({ ...f, ...(overrides[f.id] || {}) }))
-  } catch { return baseFixtures }
-}
 
 function isWon(f) {
   if (!f.result) return false
@@ -53,9 +46,8 @@ const teamData = {
 }
 
 export default function Home() {
-  const allFixtures = loadFixtures()
-  const upcomingFixtures = allFixtures.filter(f => f.status !== 'completed').slice(0, 3)
-  const completedFixtures = allFixtures.filter(f => f.status === 'completed')
+  const upcomingFixtures = fixtures.filter(f => f.status !== 'completed').slice(0, 3)
+  const completedFixtures = fixtures.filter(f => f.status === 'completed')
   const latestResults = [...completedFixtures].reverse().slice(0, 3)
   const latestNews = news.slice(0, 3)
 

@@ -1,15 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import baseFixtures from '../data/fixtures.json'
-
-function loadFixtures() {
-  try {
-    const overrides = JSON.parse(localStorage.getItem('ncb_fixture_overrides') || '{}')
-    return baseFixtures.map(f => ({ ...f, ...(overrides[f.id] || {}) }))
-  } catch {
-    return baseFixtures
-  }
-}
+import fixtures from '../data/fixtures.json'
 
 const teamsFilter = [
   { id: 'all', label: 'All Teams' },
@@ -76,7 +67,6 @@ function VenueActions({ venue, venueAddress }) {
 
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('all')
-  const fixtures = loadFixtures()
 
   const filtered = fixtures.filter(
     (f) => teamFilter === 'all' || f.team === teamFilter

@@ -36,6 +36,7 @@ export default function Admin() {
       result: f.result || '',
       homeScore: f.homeScore || '',
       awayScore: f.awayScore || '',
+      scorecardUrl: f.scorecardUrl || '',
     })
   }
 
@@ -200,10 +201,20 @@ export default function Admin() {
                           {f.result && (
                             <span className="text-xs text-gray-500 truncate max-w-[220px]">{f.result}</span>
                           )}
-                          {f.homeScore && f.awayScore && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-mono">
-                              {f.homeScore} / {f.awayScore}
+                          {f.homeScore && (
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-mono">
+                              {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {f.homeScore}
                             </span>
+                          )}
+                          {f.awayScore && (
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-mono">
+                              {f.opponent}: {f.awayScore}
+                            </span>
+                          )}
+                          {f.scorecardUrl && (
+                            <a href={f.scorecardUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline">
+                              Scorecard ↗
+                            </a>
                           )}
                           {hasOverride && (
                             <span className="text-xs bg-accent/20 text-yellow-900 px-2 py-0.5 rounded-full">edited</span>
@@ -280,6 +291,16 @@ export default function Admin() {
                             value={form.awayScore}
                             onChange={e => setForm(p => ({ ...p, awayScore: e.target.value }))}
                             placeholder="e.g. 130/8 (20)"
+                            className="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-semibold text-gray-500 block mb-1">Scorecard Link (CricHeroes URL)</label>
+                          <input
+                            value={form.scorecardUrl}
+                            onChange={e => setForm(p => ({ ...p, scorecardUrl: e.target.value }))}
+                            placeholder="e.g. https://cricheroes.com/scorecard/..."
                             className="w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                           />
                         </div>

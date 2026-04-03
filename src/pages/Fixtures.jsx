@@ -177,14 +177,29 @@ export default function Fixtures() {
                       </span>
                     )}
                     {f.status === 'completed' && (f.homeScore || f.result) && (
-                      <div className="text-right">
-                        {f.homeScore && f.awayScore && (
+                      <div className="text-right space-y-0.5">
+                        {f.homeScore && (
                           <div className="text-xs font-mono font-semibold text-gray-700">
-                            {f.homeScore} &nbsp;/&nbsp; {f.awayScore}
+                            {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {f.homeScore}
+                          </div>
+                        )}
+                        {f.awayScore && (
+                          <div className="text-xs font-mono font-semibold text-gray-700">
+                            {f.opponent}: {f.awayScore}
                           </div>
                         )}
                         {f.result && (
                           <div className="text-xs text-gray-500 mt-0.5 max-w-[160px]">{f.result}</div>
+                        )}
+                        {f.scorecardUrl && (
+                          <a
+                            href={f.scorecardUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors mt-1"
+                          >
+                            📋 Scorecard ↗
+                          </a>
                         )}
                       </div>
                     )}

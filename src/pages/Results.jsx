@@ -107,6 +107,11 @@ export default function Results() {
                       <div className="text-sm text-gray-400">
                         {new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {r.venue}
                       </div>
+                      {r.result && (
+                        <div className={`inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                          {r.result}
+                        </div>
+                      )}
                     </div>
 
                     {/* Scores */}
@@ -118,11 +123,6 @@ export default function Results() {
                       )}
                       {r.awayScore && (
                         <div className="text-xs font-mono text-gray-500">{r.opponent}: {r.awayScore}</div>
-                      )}
-                      {r.result && (
-                        <div className={`text-xs font-bold mt-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>
-                          {isWon(r) ? 'Won' : 'Lost'}
-                        </div>
                       )}
                       {r.scorecardUrl && (
                         <a href={r.scorecardUrl} target="_blank" rel="noopener noreferrer"

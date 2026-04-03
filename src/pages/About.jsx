@@ -24,7 +24,7 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="font-display text-5xl md:text-6xl font-bold mb-4">
-              ABOUT <span className="text-accent">NC BULLS</span>
+              ABOUT <span className="text-accent">NC BULLS CRICKET CLUB</span>
             </h1>
             <p className="text-gray-300 text-xl max-w-2xl mx-auto">
               Our story, our values, our people — the heart of NC Bulls Cricket Club
@@ -51,7 +51,7 @@ export default function About() {
                   The <strong className="text-primary">Raising Bulls</strong> have been the standout side from day one — winning titles across Spring, Summer, Fall, and Winter seasons, cementing themselves as one of the most consistent teams in the region.
                 </p>
                 <p>
-                  With 9 titles and finals appearances since 2022, and a growing squad of 16+ active players, NC Bulls has established itself as a powerhouse of cricket in North Carolina.
+                  With 9 titles and finals appearances since 2022, and a growing squad of 16+ active players, NC Bulls Cricket Club has established itself as a powerhouse of cricket in North Carolina.
                 </p>
               </div>
               <div className="mt-8">

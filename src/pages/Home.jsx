@@ -161,7 +161,7 @@ export default function Home() {
                 <span className="bg-primary-dark text-accent text-xs font-bold px-3 py-1 rounded-full">Raising Bulls</span>
                 <span className="text-xs text-gray-400">{upcomingRB[0].type}</span>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRB.map((f, i) => (
                   <Link key={f.id} to="/fixtures">
                     <motion.div
@@ -169,11 +169,15 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: i * 0.08 }}
-                      className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all cursor-pointer"
+                      className="bg-white border border-gray-200 border-t-4 border-t-accent rounded-2xl p-6 hover:shadow-lg hover:border-accent transition-all cursor-pointer h-full"
                     >
-                      <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
-                      <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
-                      <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
+                      <div className="text-xs font-bold uppercase tracking-widest text-accent mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                      <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
+                      <div className="text-sm text-gray-500 mb-3">{f.time} &middot; {f.format}</div>
+                      <div className="flex items-start gap-1.5 text-xs text-gray-400">
+                        <span className="mt-0.5">📍</span>
+                        <span className="truncate">{f.venue}</span>
+                      </div>
                     </motion.div>
                   </Link>
                 ))}
@@ -188,7 +192,7 @@ export default function Home() {
                 <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">Royal Bulls</span>
                 <span className="text-xs text-gray-400">{upcomingRY[0].type}</span>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRY.map((f, i) => (
                   <Link key={f.id} to="/fixtures">
                     <motion.div
@@ -196,11 +200,15 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: i * 0.08 }}
-                      className="border border-gray-200 rounded-xl p-5 hover:border-accent hover:shadow-md transition-all cursor-pointer"
+                      className="bg-white border border-gray-200 border-t-4 border-t-primary rounded-2xl p-6 hover:shadow-lg hover:border-primary transition-all cursor-pointer h-full"
                     >
-                      <div className="font-display font-bold text-primary text-xl mb-1">vs {f.opponent}</div>
-                      <div className="text-sm text-gray-500">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {f.time}</div>
-                      <div className="text-sm text-gray-400 mt-1 truncate">📍 {f.venue}</div>
+                      <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                      <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
+                      <div className="text-sm text-gray-500 mb-3">{f.time} &middot; {f.format}</div>
+                      <div className="flex items-start gap-1.5 text-xs text-gray-400">
+                        <span className="mt-0.5">📍</span>
+                        <span className="truncate">{f.venue}</span>
+                      </div>
                     </motion.div>
                   </Link>
                 ))}

@@ -59,7 +59,7 @@ export default function Contact() {
               <div className="space-y-5">
                 {[
                   { icon: '📍', label: 'Location', value: 'Apex, North Carolina' },
-                  { icon: '✉️', label: 'Email', value: 'sivab4usai@gmail.com' },
+                  { icon: '✉️', label: 'Email', value: 'ncbullscricketclub@gmail.com' },
                   { icon: '🕐', label: 'Training', value: 'Weekends — contact us for schedule' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-4">
@@ -68,7 +68,11 @@ export default function Contact() {
                     </div>
                     <div>
                       <div className="font-medium text-primary text-sm">{item.label}</div>
-                      <div className="text-gray-500">{item.value}</div>
+                      {item.label === 'Email' ? (
+                        <a href={`mailto:${item.value}`} className="text-primary hover:text-accent transition-colors">{item.value}</a>
+                      ) : (
+                        <div className="text-gray-500">{item.value}</div>
+                      )}
                     </div>
                   </div>
                 ))}

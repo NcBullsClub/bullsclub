@@ -110,15 +110,15 @@ export default function About() {
               </div>
               <div className="space-y-3">
                 {[
-                  { icon: '🏆', count: '3×', label: 'Champions', countColor: 'text-accent' },
-                  { icon: '🔝', count: '4×', label: 'Table Toppers', countColor: 'text-accent' },
-                  { icon: '🥈', count: '2×', label: 'Runners-Up', countColor: 'text-accent' },
+                  { icon: '🏆', count: '4', label: 'Champions', countColor: 'text-accent' },
+                  { icon: '⭐', count: '4', label: 'Table Toppers', countColor: 'text-accent' },
+                  { icon: '🥈', count: '2', label: 'Runners-Up', countColor: 'text-accent' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3">
                     <span className="text-xl w-7 text-center flex-shrink-0">{item.icon}</span>
-                    <div className="flex-1 bg-white/10 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <div className="flex-1 bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <span className={`font-display font-bold text-xl ${item.countColor}`}>{item.count}<span className="text-xs font-normal ml-0.5">times</span></span>
                       <span className="text-gray-200 text-sm font-medium">{item.label}</span>
-                      <span className={`font-display font-bold text-xl ${item.countColor}`}>{item.count}</span>
                     </div>
                   </div>
                 ))}
@@ -141,16 +141,16 @@ export default function About() {
               </div>
               <div className="space-y-3">
                 {[
-                  { icon: '🏆', count: '1×', label: 'Champions', note: 'Debut Season' },
+                  { icon: '🏆', count: '1', label: 'Champions', note: 'Debut Season' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3">
                     <span className="text-xl w-7 text-center flex-shrink-0">{item.icon}</span>
-                    <div className="flex-1 bg-white/10 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <div className="flex-1 bg-white/10 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                      <span className="font-display font-bold text-xl text-accent">{item.count}<span className="text-xs font-normal ml-0.5">times</span></span>
                       <div>
                         <span className="text-gray-200 text-sm font-medium">{item.label}</span>
                         {item.note && <span className="text-gray-400 text-xs ml-2">— {item.note}</span>}
                       </div>
-                      <span className="font-display font-bold text-xl text-accent">{item.count}</span>
                     </div>
                   </div>
                 ))}

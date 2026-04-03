@@ -78,6 +78,92 @@ export default function About() {
         </div>
       </section>
 
+      {/* Honours Board */}
+      <section className="py-16 bg-primary-dark">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <div className="text-accent text-xs font-bold uppercase tracking-[0.3em] mb-2">Trophy Cabinet</div>
+            <h2 className="font-display text-4xl md:text-5xl font-bold text-white">
+              CLUB <span className="text-accent">HONOURS</span>
+            </h2>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {/* Raising Bulls */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-white/5 border border-accent/20 rounded-2xl p-8"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center font-display font-bold text-primary-dark text-sm">RB</div>
+                <div>
+                  <div className="font-display font-bold text-white text-xl leading-none">Raising Bulls</div>
+                  <div className="text-gray-400 text-xs mt-0.5">Est. 2021 · Mega Bash</div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { icon: '🏆', count: '3×', label: 'Champions', color: 'text-accent' },
+                  { icon: '🔝', count: '4×', label: 'Table Toppers', color: 'text-blue-300' },
+                  { icon: '🥈', count: '2×', label: "Runners-Up", color: 'text-gray-300' },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-4">
+                    <span className="text-2xl w-8 text-center">{item.icon}</span>
+                    <div className="flex-1 bg-white/5 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                      <span className="text-gray-300 text-sm font-medium">{item.label}</span>
+                      <span className={`font-display font-bold text-xl ${item.color}`}>{item.count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Royal Bulls */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-white/5 border border-accent/20 rounded-2xl p-8"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-white/20 border border-accent/40 rounded-full flex items-center justify-center font-display font-bold text-white text-sm">RY</div>
+                <div>
+                  <div className="font-display font-bold text-white text-xl leading-none">Royal Bulls</div>
+                  <div className="text-gray-400 text-xs mt-0.5">Est. 2022 · League</div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { icon: '🏆', count: '1×', label: 'Champions', color: 'text-accent', note: 'Debut Season' },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-4">
+                    <span className="text-2xl w-8 text-center">{item.icon}</span>
+                    <div className="flex-1 bg-white/5 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                      <div>
+                        <span className="text-gray-300 text-sm font-medium">{item.label}</span>
+                        {item.note && <span className="text-gray-500 text-xs ml-2">— {item.note}</span>}
+                      </div>
+                      <span className={`font-display font-bold text-xl ${item.color}`}>{item.count}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-4 bg-accent/10 border border-accent/20 rounded-xl p-4 text-center">
+                  <div className="text-accent text-sm font-semibold">Growing force in the Triangle</div>
+                  <div className="text-gray-400 text-xs mt-1">Semi-finalists 2025 · Competing at the highest level</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Timeline */}
       <section className="py-16 bg-surface">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

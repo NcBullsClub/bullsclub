@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import playersData from '../data/players.json'
-import results from '../data/results.json'
 
 const teams = {
   'raising-bulls': {
@@ -38,10 +36,6 @@ const teams = {
 export default function Teams() {
   const [activeTeam, setActiveTeam] = useState('raising-bulls')
   const team = teams[activeTeam]
-  const players = playersData.filter((p) => p.team === activeTeam)
-  const teamResults = results.filter((r) => r.team === activeTeam)
-  const wins = teamResults.filter((r) => r.result === 'Won').length
-  const captain = players.find((p) => p.captain)
 
   return (
     <div>
@@ -91,14 +85,6 @@ export default function Teams() {
                   <div className="text-gray-300 text-xs uppercase tracking-wider mt-1">Founded</div>
                 </div>
                 <div>
-                  <div className="font-display text-3xl font-bold text-accent">{players.length}</div>
-                  <div className="text-gray-300 text-xs uppercase tracking-wider mt-1">Players</div>
-                </div>
-                <div>
-                  <div className="font-display text-3xl font-bold text-accent">{wins}</div>
-                  <div className="text-gray-300 text-xs uppercase tracking-wider mt-1">Wins (Season)</div>
-                </div>
-                <div>
                   <div className="font-display text-3xl font-bold text-accent">{team.titles}</div>
                   <div className="text-gray-300 text-xs uppercase tracking-wider mt-1">Titles</div>
                 </div>
@@ -118,16 +104,16 @@ export default function Teams() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="grid lg:grid-cols-3 gap-10"
+              className="grid lg:grid-cols-1 gap-10"
             >
               {/* About */}
-              <div className="lg:col-span-2">
+              <div>
                 <h2 className="section-heading mb-4">About the Team</h2>
                 <p className="text-gray-600 leading-relaxed text-lg mb-6">{team.description}</p>
 
                 {/* Team Colors */}
                 <h3 className="font-display font-bold text-primary uppercase tracking-wider text-sm mb-3">Team Colors</h3>
-                <div className="flex gap-3">
+                <div className="flex gap-3 mb-8">
                   {team.colors.map((color, i) => (
                     <div key={color} className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full border-2 border-gray-200" style={{ backgroundColor: color }} />
@@ -136,71 +122,62 @@ export default function Teams() {
                   ))}
                 </div>
 
-                <div className="mt-8 flex gap-4">
-                  <Link to="/players" className="btn-primary">View Full Roster</Link>
-                  <Link to="/fixtures" className="btn-outline">Upcoming Fixtures</Link>
+                <div className="flex gap-4">
+                  <Link to="/fixtures" className="btn-primary">Upcoming Fixtures</Link>
+                  <Link to="/results" className="btn-outline">Results</Link>
                 </div>
               </div>
-
-              {/* Captain Card */}
-              {captain && (
-                <div>
-                  <h3 className="font-display font-bold text-primary uppercase tracking-wider text-sm mb-4">Captain</h3>
-                  <div className="bg-surface border border-gray-200 rounded-2xl p-6 text-center">
-                    <div className="w-20 h-20 mx-auto mb-4 bg-primary-dark rounded-full flex items-center justify-center font-display font-bold text-accent text-2xl">
-                      {captain.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div className="font-display font-bold text-primary text-xl">{captain.name}</div>
-                    <div className="text-gray-400 text-sm mt-1">{captain.role}</div>
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="bg-white rounded-lg p-2 border border-gray-100">
-                        <div className="font-bold text-primary text-base">{captain.stats.matches}</div>
-                        <div className="text-gray-400">Matches</div>
-                      </div>
-                      <div className="bg-white rounded-lg p-2 border border-gray-100">
-                        <div className="font-bold text-primary text-base">{captain.stats.runs}</div>
-                        <div className="text-gray-400">Runs</div>
-                      </div>
-                      <div className="bg-white rounded-lg p-2 border border-gray-100">
-                        <div className="font-bold text-primary text-base">{captain.stats.avg}</div>
-                        <div className="text-gray-400">Avg</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </motion.div>
           </AnimatePresence>
         </div>
       </section>
 
-      {/* Squad Preview */}
+      {/* Squad — Both Rosters */}
       <section className="py-16 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="section-heading">Squad</h2>
-            <Link to="/players" className="text-primary font-medium hover:text-accent transition-colors text-sm">
-              Full Roster →
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {players.map((p, i) => (
+          <h2 className="section-heading mb-10 text-center">Our Squads</h2>
+          <div className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {[
+              {
+                id: 'raising-bulls',
+                label: 'Raising Bulls',
+                sub: 'Mega Bash · T20',
+                url: 'https://cricheroes.com/team-profile/12480147/raising-bulls/members',
+                bg: 'from-primary-dark to-primary',
+                badge: 'RB',
+              },
+              {
+                id: 'royal-bulls',
+                label: 'Royal Bulls',
+                sub: 'League · T20',
+                url: 'https://cricheroes.com/team-profile/12480151/royal-bulls/members',
+                bg: 'from-primary to-primary-light',
+                badge: 'RY',
+              },
+            ].map((squad) => (
               <motion.div
-                key={p.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                key={squad.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white border border-gray-200 rounded-xl p-4 text-center hover:shadow-md hover:border-accent transition-all"
+                className={`bg-gradient-to-br ${squad.bg} rounded-2xl p-8 text-center text-white shadow-lg`}
               >
-                <div className="w-14 h-14 mx-auto mb-3 bg-primary-dark rounded-full flex items-center justify-center font-display font-bold text-accent">
-                  {p.name.split(' ').map(n => n[0]).join('')}
+                <div className="w-16 h-16 mx-auto mb-4 bg-white/10 border-2 border-accent rounded-full flex items-center justify-center font-display font-bold text-accent text-xl">
+                  {squad.badge}
                 </div>
-                <div className="font-semibold text-gray-800 text-sm leading-tight">{p.name}</div>
-                <div className="text-xs text-gray-400 mt-1">{p.role}</div>
-                {p.captain && (
-                  <span className="inline-block mt-2 text-xs bg-accent text-primary-dark font-bold px-2 py-0.5 rounded-full">Captain</span>
-                )}
+                <h3 className="font-display font-bold text-2xl mb-1">{squad.label}</h3>
+                <p className="text-gray-300 text-sm mb-6">{squad.sub}</p>
+                <a
+                  href={squad.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-accent text-primary-dark font-bold px-6 py-2.5 rounded-full hover:bg-yellow-300 transition-colors text-sm"
+                >
+                  View Roster on CricHeroes
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </a>
               </motion.div>
             ))}
           </div>

@@ -174,10 +174,17 @@ export default function Home() {
                       <div className="text-xs font-bold uppercase tracking-widest text-accent mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
                       <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
                       <div className="text-sm text-gray-500 mb-3">{f.time} &middot; {f.format}</div>
-                      <div className="flex items-start gap-1.5 text-xs text-gray-400">
+                      <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
                       </div>
+                      <Link
+                        to={`/availability?fixture=${f.id}&team=raising-bulls`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-xs font-semibold bg-accent/20 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-full hover:bg-accent hover:border-accent transition-colors"
+                      >
+                        🏏 Mark Availability
+                      </Link>
                     </motion.div>
                   </Link>
                 ))}
@@ -205,10 +212,17 @@ export default function Home() {
                       <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
                       <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
                       <div className="text-sm text-gray-500 mb-3">{f.time} &middot; {f.format}</div>
-                      <div className="flex items-start gap-1.5 text-xs text-gray-400">
+                      <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
                       </div>
+                      <Link
+                        to={`/availability?fixture=${f.id}&team=royal-bulls`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-full hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                      >
+                        🏏 Mark Availability
+                      </Link>
                     </motion.div>
                   </Link>
                 ))}

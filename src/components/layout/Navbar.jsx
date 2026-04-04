@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import logo from '../../assets/images/logo_without_background.png'
+import { useAuth } from '../../contexts/AuthContext'
 
 const navLinks = [
   { path: '/', label: 'Home' },
@@ -13,6 +14,7 @@ const navLinks = [
   { path: '/events', label: 'Events' },
   { path: '/news', label: 'News' },
   { path: '/sponsors', label: 'Sponsors' },
+  { path: '/availability', label: 'Availability' },
   { path: '/contact', label: 'Join Us' },
 ]
 
@@ -20,6 +22,8 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, profile, isAdmin, signOut } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -30,6 +34,11 @@ export default function Navbar() {
   useEffect(() => {
     setMenuOpen(false)
   }, [location])
+
+  async function handleSignOut() {
+    await signOut()
+    navigate('/')
+  }
 
   return (
     <header
@@ -76,6 +85,42 @@ export default function Navbar() {
                 </Link>
               )
             })}
+
+            {/* Auth section */}
+            {user ? (
+              <div className="flex items-center gap-2 ml-3 pl-3 border-l border-white/20">
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="px-3 py-1.5 rounded-md text-xs font-semibold bg-accent/20 text-accent border border-accent/30 hover:bg-accent hover:text-primary-dark transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
+                {/* User avatar pill */}
+                <div className="flex items-center gap-2 bg-white/10 rounded-full px-3 py-1.5">
+                  <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-primary-dark font-bold text-xs">
+                    {profile?.full_name?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <span className="text-sm text-white font-medium max-w-[100px] truncate">
+                    {profile?.full_name?.split(' ')[0] || 'Player'}
+                  </span>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="ml-3 px-4 py-1.5 rounded-md text-sm font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
 
           {/* Mobile Hamburger */}
@@ -124,6 +169,32 @@ export default function Navbar() {
                     </Link>
                   )
                 })}
+                {/* Mobile auth */}
+                <div className="border-t border-white/10 pt-3 mt-2 space-y-1">
+                  {user ? (
+                    <>
+                      <div className="px-4 py-2 text-sm text-gray-400">
+                        Signed in as <span className="text-white font-medium">{profile?.full_name}</span>
+                      </div>
+                      {isAdmin && (
+                        <Link to="/admin" className="block px-4 py-2.5 rounded-md text-sm font-medium text-accent hover:bg-white/10">
+                          Admin Dashboard
+                        </Link>
+                      )}
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-left px-4 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/login"  className="block px-4 py-2.5 rounded-md text-sm font-medium text-gray-200 hover:bg-white/10 hover:text-white">Sign In</Link>
+                      <Link to="/signup" className="block px-4 py-2.5 rounded-md text-sm font-medium bg-accent text-primary-dark">Create Account</Link>
+                    </>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}

@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import fixtures from '../data/fixtures.json'
+import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
 
 const teamsFilter = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -66,6 +68,12 @@ function VenueActions({ venue, venueAddress }) {
 
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
+  const [availRecords, setAvailRecords] = useState([])
+
+  useEffect(() => {
+    if (!isSheetConfigured()) return
+    fetchAvailability().then(setAvailRecords).catch(() => {})
+  }, [])
 
   const filtered = fixtures.filter((f) => f.team === teamFilter)
 
@@ -113,20 +121,24 @@ export default function Fixtures() {
                 transition={{ delay: i * 0.07 }}
                 className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 hover:border-accent hover:shadow-md transition-all"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {/* Date block — horizontal: "Sun, Mar 22, 2026" */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  {/* Date block — vertical calendar tile */}
                   {(() => {
                     const [year, month, day] = f.date.split('-').map(Number)
                     const d = new Date(year, month - 1, day)
                     return (
-                      <div className="bg-primary-dark text-white rounded-xl px-4 py-2.5 flex items-center gap-2 flex-shrink-0">
-                        <span className="text-xs text-gray-400 font-medium">
+                      <div className="flex-shrink-0 w-full sm:w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
+                        <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
                           {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                        </span>
-                        <span className="text-accent font-display font-bold text-base leading-none">
-                          {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
-                        <span className="text-xs text-gray-400">{d.getFullYear()}</span>
+                        </div>
+                        <div className="bg-primary-dark text-white text-center py-3">
+                          <div className="font-display font-black text-4xl leading-none text-accent">
+                            {String(day).padStart(2, '0')}
+                          </div>
+                          <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
+                            {d.toLocaleDateString('en-US', { month: 'short' })} {year}
+                          </div>
+                        </div>
                       </div>
                     )
                   })()}
@@ -156,10 +168,37 @@ export default function Fixtures() {
                         ✓ Completed
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                        Upcoming
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          Upcoming
+                        </span>
+                        {/* Availability count */}
+                        {isSheetConfigured() && (() => {
+                          const avail = getFixtureAvailability(availRecords, buildFixtureId(f))
+                          const total = avail.inCount + avail.maybeCount + avail.outCount
+                          return total > 0 ? (
+                            <div className="flex flex-wrap gap-1 justify-end">
+                              {avail.inCount > 0 && (
+                                <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">✅ {avail.inCount}</span>
+                              )}
+                              {avail.maybeCount > 0 && (
+                                <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">🤔 {avail.maybeCount}</span>
+                              )}
+                              {avail.outCount > 0 && (
+                                <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">❌ {avail.outCount}</span>
+                              )}
+                            </div>
+                          ) : null
+                        })()}
+                        {/* Mark availability CTA */}
+                        <Link
+                          to={`/availability?fixture=${f.id}&team=${f.team}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent text-primary-dark px-3 py-1.5 rounded-full hover:bg-accent-dark transition-colors"
+                        >
+                          🏏 Mark Availability
+                        </Link>
+                      </>
                     )}
                     {f.status === 'completed' && (f.homeScore || f.result) && (
                       <div className="text-right space-y-0.5">

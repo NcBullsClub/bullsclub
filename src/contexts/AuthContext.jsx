@@ -1,0 +1,78 @@
+import { createContext, useContext, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+const AuthContext = createContext(null)
+
+export function AuthProvider({ children }) {
+  const [user, setUser]       = useState(null)   // supabase auth user
+  const [profile, setProfile] = useState(null)   // row from profiles table
+  const [loading, setLoading] = useState(true)   // initial session check
+
+  // Fetch the profile row for a given auth user id
+  async function fetchProfile(userId) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    if (!error && data) setProfile(data)
+    else setProfile(null)
+  }
+
+  useEffect(() => {
+    // Check active session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) fetchProfile(session.user.id)
+      setLoading(false)
+    })
+
+    // Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) fetchProfile(session.user.id)
+      else setProfile(null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function signUp(email, password, fullName, team) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName, team },
+      },
+    })
+    if (error) throw error
+    // Profile row is created automatically by the handle_new_user DB trigger
+    return data
+  }
+
+  async function signIn(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return data
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+  }
+
+  const isAdmin = profile?.role === 'admin'
+
+  return (
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, signUp, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
+  return ctx
+}

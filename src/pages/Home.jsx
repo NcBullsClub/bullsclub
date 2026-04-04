@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import logo from '../assets/images/logo_without_background.png'
 import fixtures from '../data/fixtures.json'
+import { supabase } from '../lib/supabase'
 import news from '../data/news.json'
+import sponsors from '../data/sponsors.json'
 
-function isWon(f) {
-  if (!f.result) return false
-  const label = f.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
-  return f.result.toLowerCase().includes(label.toLowerCase())
+function isWon(r) {
+  if (!r.result) return false
+  const label = r.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
+  return r.result.toLowerCase().includes(label.toLowerCase())
 }
 
 function CountUp({ end, duration = 2000, suffix = '' }) {
@@ -46,11 +48,33 @@ const teamData = {
 }
 
 export default function Home() {
-  const upcomingRB = fixtures.filter(f => f.status !== 'completed' && f.team === 'raising-bulls').slice(0, 3)
-  const upcomingRY = fixtures.filter(f => f.status !== 'completed' && f.team === 'royal-bulls').slice(0, 3)
-  const completedFixtures = fixtures.filter(f => f.status === 'completed')
-  const latestRBResults = completedFixtures.filter(f => f.team === 'raising-bulls').slice(-3).reverse()
-  const latestRYResults = completedFixtures.filter(f => f.team === 'royal-bulls').slice(-3).reverse()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const upcomingRB = fixtures.filter(f => new Date(f.date + 'T00:00:00') >= today && f.team === 'raising-bulls').slice(0, 3)
+  const upcomingRY = fixtures.filter(f => new Date(f.date + 'T00:00:00') >= today && f.team === 'royal-bulls').slice(0, 3)
+
+  const [latestRBResults, setLatestRBResults] = useState([])
+  const [latestRYResults, setLatestRYResults] = useState([])
+  const [rbWins, setRbWins] = useState(0)
+  const [ryWins, setRyWins] = useState(0)
+
+  useEffect(() => {
+    supabase
+      .from('match_results')
+      .select('id, fixture_date, team, opponent, venue, result, ncb_score, opp_score')
+      .order('fixture_date', { ascending: false })
+      .then(({ data }) => {
+        const all = data || []
+        const rb = all.filter(r => r.team === 'raising-bulls')
+        const ry = all.filter(r => r.team === 'royal-bulls')
+        setLatestRBResults(rb.slice(0, 3))
+        setLatestRYResults(ry.slice(0, 3))
+        setRbWins(rb.filter(isWon).length)
+        setRyWins(ry.filter(isWon).length)
+      })
+  }, [])
+
   const latestNews = news.slice(0, 3)
 
   return (
@@ -103,7 +127,7 @@ export default function Home() {
             >
               {['raising-bulls', 'royal-bulls'].map((teamId) => {
                 const team = teamData[teamId]
-                const wins = completedFixtures.filter(f => f.team === teamId && isWon(f)).length
+                const wins = teamId === 'raising-bulls' ? rbWins : ryWins
                 return (
                   <Link
                     key={teamId}
@@ -272,28 +296,23 @@ export default function Home() {
                         transition={{ delay: i * 0.07 }}
                         className={`flex items-center gap-4 bg-white rounded-xl border-l-4 px-4 py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
                       >
-                        {/* W / L badge */}
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                           {isWon(r) ? 'W' : 'L'}
                         </div>
-
-                        {/* Match info */}
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-gray-800 text-sm truncate">vs {r.opponent}</div>
                           <div className="text-xs text-gray-400 mt-0.5">
-                            {new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             {r.venue && <span> · {r.venue}</span>}
                           </div>
                           {r.result && (
                             <div className={`text-xs font-medium mt-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
                           )}
                         </div>
-
-                        {/* Scores */}
-                        {(r.homeScore || r.awayScore) && (
+                        {(r.ncb_score || r.opp_score) && (
                           <div className="text-right flex-shrink-0">
-                            <div className="text-xs font-mono font-semibold text-gray-700">{r.homeScore}</div>
-                            <div className="text-xs font-mono text-gray-400">{r.awayScore}</div>
+                            <div className="text-xs font-mono font-semibold text-gray-700">{r.ncb_score}</div>
+                            <div className="text-xs font-mono text-gray-400">{r.opp_score}</div>
                           </div>
                         )}
                       </motion.div>
@@ -303,6 +322,62 @@ export default function Home() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Proud Sponsors */}
+      <section className="py-8 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h4 className="font-display font-bold text-primary text-lg">Proud Sponsors</h4>
+              <p className="text-gray-500 text-xs mt-0.5">Partners who make NC Bulls Cricket Club possible</p>
+            </div>
+            <Link to="/sponsors" className="text-primary font-medium hover:text-accent transition-colors text-sm">
+              View All →
+            </Link>
+          </div>
+
+          {/* Gold + Silver in one row */}
+          <div className="flex flex-wrap justify-center gap-4">
+            {sponsors
+              .filter(s => s.tier === 'Gold' || s.tier === 'Silver')
+              .map((s, i) => (
+                <motion.div
+                  key={s.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  className={`flex items-center gap-3 rounded-2xl px-5 py-3 hover:shadow-md transition-all ${
+                    s.tier === 'Gold'
+                      ? 'bg-amber-50 border-2 border-amber-200'
+                      : 'bg-gray-50 border-2 border-gray-200'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-lg flex-shrink-0 ${
+                    s.tier === 'Gold' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    {s.name[0]}
+                  </div>
+                  <div>
+                    <div className="font-display font-bold text-primary-dark text-sm leading-tight">{s.name}</div>
+                    <div className={`text-xs font-medium mt-0.5 ${s.tier === 'Gold' ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {s.tier === 'Gold' ? '🥇 Gold' : '🥈 Silver'}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+          </div>
+
+          <div className="mt-5 text-center">
+            <Link
+              to="/sponsors"
+              className="inline-flex items-center gap-2 border-2 border-primary text-primary font-semibold px-6 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all text-sm"
+            >
+              Become a Sponsor →
+            </Link>
           </div>
         </div>
       </section>

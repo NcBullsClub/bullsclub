@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import fixtures from '../data/fixtures.json'
+import { supabase } from '../lib/supabase'
 
-function isWon(f) {
-  if (!f.result) return false
-  const label = f.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
-  return f.result.toLowerCase().includes(label.toLowerCase())
+function isWon(r) {
+  if (!r.result) return false
+  const label = r.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
+  return r.result.toLowerCase().includes(label.toLowerCase())
 }
 
 const teamsFilter = [
@@ -15,11 +15,24 @@ const teamsFilter = [
 
 export default function Results() {
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
+  const [results, setResults]       = useState([])
+  const [loading, setLoading]       = useState(true)
 
-  const completedFixtures = fixtures.filter(f => f.status === 'completed')
-  const filtered = completedFixtures.filter((f) => f.team === teamFilter)
-  const wins = filtered.filter(isWon).length
-  const losses = filtered.filter(f => !isWon(f) && !!f.result).length
+  useEffect(() => {
+    setLoading(true)
+    supabase
+      .from('match_results')
+      .select('*')
+      .eq('team', teamFilter)
+      .order('fixture_date', { ascending: false })
+      .then(({ data }) => {
+        setResults(data || [])
+        setLoading(false)
+      })
+  }, [teamFilter])
+
+  const wins   = results.filter(isWon).length
+  const losses = results.filter((r) => !isWon(r)).length
 
   return (
     <div>
@@ -54,7 +67,7 @@ export default function Results() {
           <div className="flex gap-4 text-sm font-medium">
             <span className="text-green-600">W {wins}</span>
             <span className="text-red-500">L {losses}</span>
-            <span className="text-gray-400">| {filtered.length} matches</span>
+            <span className="text-gray-400">| {results.length} matches</span>
           </div>
         </div>
       </section>
@@ -62,8 +75,13 @@ export default function Results() {
       {/* Results */}
       <section className="py-12 bg-surface min-h-[60vh]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="flex justify-center py-24">
+              <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
           <div className="space-y-4">
-            {filtered.map((r, i) => (
+            {results.map((r, i) => (
               <motion.div
                 key={r.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -89,13 +107,18 @@ export default function Results() {
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${r.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
                           {r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
                         </span>
-                        <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.format}</span>
+                        {r.format && (
+                          <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.format}</span>
+                        )}
                       </div>
                       <h3 className="font-display font-bold text-primary text-xl mb-1">
                         {r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'} vs {r.opponent}
                       </h3>
                       <div className="text-sm text-gray-400">
-                        {new Date(r.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} · {r.venue}
+                        {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', {
+                          weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+                        })}
+                        {r.venue && ` · ${r.venue}`}
                       </div>
                       {r.result && (
                         <div className={`inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
@@ -106,16 +129,16 @@ export default function Results() {
 
                     {/* Scores */}
                     <div className="text-right flex-shrink-0 space-y-0.5">
-                      {r.homeScore && (
+                      {r.ncb_score && (
                         <div className="text-xs font-mono font-semibold text-gray-800">
-                          {r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {r.homeScore}
+                          {r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {r.ncb_score}
                         </div>
                       )}
-                      {r.awayScore && (
-                        <div className="text-xs font-mono text-gray-500">{r.opponent}: {r.awayScore}</div>
+                      {r.opp_score && (
+                        <div className="text-xs font-mono text-gray-500">{r.opponent}: {r.opp_score}</div>
                       )}
-                      {r.scorecardUrl && (
-                        <a href={r.scorecardUrl} target="_blank" rel="noopener noreferrer"
+                      {r.scorecard_url && (
+                        <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
                           className="text-xs text-blue-600 hover:underline inline-block mt-0.5">
                           Scorecard ↗
                         </a>
@@ -129,17 +152,18 @@ export default function Results() {
                       <span className="text-accent text-base">🏆</span>
                       <span className="text-gray-500">Man of the Match:</span>
                       <span className="font-semibold text-primary">{r.mom}</span>
-                      <span className="text-gray-400">— {r.momStat}</span>
+                      {r.mom_stat && <span className="text-gray-400">— {r.mom_stat}</span>}
                     </div>
                   )}
                 </div>
               </motion.div>
             ))}
 
-            {filtered.length === 0 && (
-              <div className="text-center py-20 text-gray-400">No results for the selected team.</div>
+            {results.length === 0 && (
+              <div className="text-center py-20 text-gray-400">No results for the selected team yet.</div>
             )}
           </div>
+          )}
         </div>
       </section>
     </div>

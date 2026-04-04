@@ -8,12 +8,7 @@
     "venue": "Century Fields 3",
     "venueAddress": "7720 Barefoot Rd, Fuquay-Varina, NC 27526",
     "format": "T20",
-    "type": "Mega Bash",
-    "status": "completed",
-    "result": "Raising Bulls won by 2 wickets",
-    "homeScore": "96/8",
-    "awayScore": "95/5",
-    "scorecardUrl": "https://cricheroes.com/scorecard/23248839/mega-bash/ncjordans-vs-raising-bulls/summary"
+    "type": "Mega Bash"
   },
   {
     "id": 2,
@@ -24,12 +19,7 @@
     "venue": "RTP 1",
     "venueAddress": "223 E Institute Dr, Durham, NC 22709",
     "format": "T20",
-    "type": "Mega Bash",
-    "status": "completed",
-    "result": "Raising Bulls won by 47 runs",
-    "homeScore": "106/10",
-    "awayScore": "59/10",
-    "scorecardUrl": "https://cricheroes.in/scorecard/23248833/mega-bash/raising-bulls-vs-knockout-kings"
+    "type": "Mega Bash"
   },
   {
     "id": 3,
@@ -161,12 +151,7 @@
     "venue": "C R Woods Park",
     "venueAddress": "417 Commonwealth St, Durham, NC 27703",
     "format": "HT",
-    "type": "Mega Bash",
-    "status": "completed",
-    "result": "CT Titans HT won by 6 wickets",
-    "homeScore": "66/10",
-    "awayScore": "70/4",
-    "scorecardUrl": "https://cricheroes.in/scorecard/23101566/mega-bash/royal-bulls-vs-ct-titans---ht"
+    "type": "Mega Bash"
   },
   {
     "id": 15,
@@ -177,12 +162,7 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "Mega Bash",
-    "status": "completed",
-    "result": "Royal Bulls won by 2 wickets",
-    "homeScore": "103/8",
-    "awayScore": "102/8",
-    "scorecardUrl": "https://cricheroes.in/scorecard/23249470/mega-bash/bhaukal-army-vs-royal-bulls"
+    "type": "Mega Bash"
   },
   {
     "id": 16,
@@ -193,12 +173,7 @@
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
     "format": "HT",
-    "type": "Mega Bash",
-    "status": "completed",
-    "result": "Markhors won by 51 runs",
-    "homeScore": "90/7",
-    "awayScore": "141/9",
-    "scorecardUrl": "https://cricheroes.in/scorecard/23249462/mega-bash/markhors-vs-royal-bulls"
+    "type": "Mega Bash"
   },
   {
     "id": 17,

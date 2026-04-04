@@ -68,9 +68,14 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-xs text-primary hover:text-accent transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 name="password"
@@ -86,6 +91,14 @@ export default function Login() {
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
                 {error}
+                {error.toLowerCase().includes('invalid login credentials') && (
+                  <p className="mt-1.5">
+                    Forgot your password?{' '}
+                    <Link to="/forgot-password" className="font-semibold underline hover:text-red-900 transition-colors">
+                      Reset it here
+                    </Link>
+                  </p>
+                )}
               </div>
             )}
 

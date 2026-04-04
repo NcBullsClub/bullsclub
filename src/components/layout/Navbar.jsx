@@ -1,18 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import logo from '../../assets/images/logo_without_background.png'
 import { useAuth } from '../../contexts/AuthContext'
 
-const navLinks = [
+const navItems = [
   { path: '/', label: 'Home' },
   { path: '/about', label: 'About' },
   { path: '/teams', label: 'Teams' },
   { path: '/fixtures', label: 'Fixtures' },
   { path: '/results', label: 'Results' },
-  { path: '/gallery', label: 'Gallery' },
-  { path: '/events', label: 'Events' },
-  { path: '/news', label: 'News' },
+  {
+    label: 'Clubhouse',
+    group: true,
+    children: [
+      { path: '/gallery', label: 'Gallery' },
+      { path: '/events', label: 'Events' },
+      { path: '/news', label: 'News' },
+    ],
+  },
   { path: '/sponsors', label: 'Sponsors' },
   { path: '/availability', label: 'Availability' },
   { path: '/contact', label: 'Join Us' },
@@ -24,6 +30,19 @@ export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, profile, isAdmin, signOut } = useAuth()
+  const [clubhouseOpen, setClubhouseOpen] = useState(false)
+  const [mobileClubhouseOpen, setMobileClubhouseOpen] = useState(false)
+  const clubhouseRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (clubhouseRef.current && !clubhouseRef.current.contains(e.target)) {
+        setClubhouseOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -69,19 +88,68 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const active = location.pathname === link.path
+            {navItems.map((item) => {
+              if (item.group) {
+                const isGroupActive = item.children.some(c => location.pathname === c.path)
+                return (
+                  <div key={item.label} className="relative" ref={clubhouseRef}>
+                    <button
+                      onClick={() => setClubhouseOpen(o => !o)}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex items-center gap-1 ${
+                        isGroupActive
+                          ? 'bg-accent text-primary-dark'
+                          : 'text-gray-200 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {item.label}
+                      <svg
+                        className={`w-3 h-3 transition-transform duration-200 ${clubhouseOpen ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <AnimatePresence>
+                      {clubhouseOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-0 mt-1 bg-primary-dark rounded-md shadow-lg py-1 min-w-[130px] border border-white/10 z-50"
+                        >
+                          {item.children.map(child => {
+                            const active = location.pathname === child.path
+                            return (
+                              <Link
+                                key={child.path}
+                                to={child.path}
+                                className={`block px-4 py-2 text-sm font-medium transition-colors ${
+                                  active ? 'text-accent bg-white/10' : 'text-gray-200 hover:text-white hover:bg-white/10'
+                                }`}
+                              >
+                                {child.label}
+                              </Link>
+                            )
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )
+              }
+              const active = location.pathname === item.path
               return (
                 <Link
-                  key={link.path}
-                  to={link.path}
+                  key={item.path}
+                  to={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
                     active
                       ? 'bg-accent text-primary-dark'
                       : 'text-gray-200 hover:text-white hover:bg-white/10'
-                  } ${link.label === 'Join Us' ? '!bg-accent !text-primary-dark hover:!bg-accent-dark ml-2' : ''}`}
+                  } ${item.label === 'Join Us' ? '!bg-accent !text-primary-dark hover:!bg-accent-dark ml-2' : ''}`}
                 >
-                  {link.label}
+                  {item.label}
                 </Link>
               )
             })}
@@ -153,19 +221,65 @@ export default function Navbar() {
               className="lg:hidden overflow-hidden"
             >
               <div className="py-3 space-y-1 border-t border-white/10">
-                {navLinks.map((link) => {
-                  const active = location.pathname === link.path
+                {navItems.map((item) => {
+                  if (item.group) {
+                    const isGroupActive = item.children.some(c => location.pathname === c.path)
+                    return (
+                      <div key={item.label}>
+                        <button
+                          onClick={() => setMobileClubhouseOpen(o => !o)}
+                          className={`w-full text-left flex items-center justify-between px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                            isGroupActive ? 'bg-accent text-primary-dark' : 'text-gray-200 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {item.label}
+                          <svg
+                            className={`w-3 h-3 transition-transform duration-200 ${mobileClubhouseOpen ? 'rotate-180' : ''}`}
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <AnimatePresence>
+                          {mobileClubhouseOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden pl-4"
+                            >
+                              {item.children.map(child => {
+                                const active = location.pathname === child.path
+                                return (
+                                  <Link
+                                    key={child.path}
+                                    to={child.path}
+                                    className={`block px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                      active ? 'text-accent bg-white/10' : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                )
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )
+                  }
+                  const active = location.pathname === item.path
                   return (
                     <Link
-                      key={link.path}
-                      to={link.path}
+                      key={item.path}
+                      to={item.path}
                       className={`block px-4 py-2.5 rounded-md text-sm font-medium transition-colors ${
                         active
                           ? 'bg-accent text-primary-dark'
                           : 'text-gray-200 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      {link.label}
+                      {item.label}
                     </Link>
                   )
                 })}

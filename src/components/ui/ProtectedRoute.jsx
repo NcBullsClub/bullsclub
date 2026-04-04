@@ -26,7 +26,7 @@ export function ProtectedRoute({ children }) {
 }
 
 /**
- * Wraps a route that requires admin role.
+ * Wraps a route that requires admin or superadmin role.
  * Non-admins are redirected to home.
  */
 export function AdminRoute({ children }) {

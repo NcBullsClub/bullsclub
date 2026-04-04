@@ -1,0 +1,20 @@
+[
+  { "id": 1, "name": "Bethesda Lower", "address": "2009 South Miami Blvd, Durham, NC 27703" },
+  { "id": 2, "name": "Bethesda Upper", "address": "2009 South Miami Blvd, Durham, NC 27703" },
+  { "id": 3, "name": "Cedar Fork Community Center", "address": "1050 Town Hall Dr, Morrisville, NC 27560" },
+  { "id": 4, "name": "Cedar Fork District Park", "address": "288 Aviation Pkwy, Morrisville, NC 27560" },
+  { "id": 5, "name": "Century Fields 1", "address": "7700 Barefoot Rd, Fuquay-Varina, NC 27526" },
+  { "id": 6, "name": "Century Fields 2", "address": "7712 Barefoot Rd, Fuquay-Varina, NC 27526" },
+  { "id": 7, "name": "Century Fields 3", "address": "7720 Barefoot Rd, Fuquay-Varina, NC 27526" },
+  { "id": 8, "name": "Church Street Park", "address": "5800 Cricket Pitch Way, Morrisville, NC 27560" },
+  { "id": 9, "name": "Crabtree Creek Nature Park", "address": "151 KeyBridge Dr, Morrisville, NC 27560" },
+  { "id": 10, "name": "FVAA Lower", "address": "Bakertown Rd, Fuquay Varina, NC 27526" },
+  { "id": 11, "name": "FVAA Upper", "address": "Bakertown Rd, Fuquay Varina, NC 27526" },
+  { "id": 12, "name": "Shiloh Baseball Field", "address": "917 Church Street, Morrisville, NC 27560" },
+  { "id": 13, "name": "Shiloh Cricket Ground", "address": "917 Church Street, Morrisville, NC 27560" },
+  { "id": 14, "name": "RTP 1", "address": "223 E Institute Dr, Durham, NC 22709" },
+  { "id": 15, "name": "RTP 3", "address": "2500 S Tricenter Blvd, Durham, NC 27714" },
+  { "id": 16, "name": "RTP 4", "address": "2500 S Tricenter Blvd, Durham, NC 27714" },
+  { "id": 17, "name": "River Forest Park", "address": "1000 Windermere Dr, Durham, NC 27712" },
+  { "id": 18, "name": "C R Woods Park", "address": "417 Commonwealth St, Durham, NC 27703" }
+]

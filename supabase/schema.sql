@@ -10,6 +10,7 @@
 CREATE TABLE IF NOT EXISTS profiles (
   id          UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name   TEXT        NOT NULL,
+  email       TEXT,
   team        TEXT        NOT NULL CHECK (team IN ('raising-bulls', 'royal-bulls')),
   role        TEXT        NOT NULL DEFAULT 'player' CHECK (role IN ('player', 'admin')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()

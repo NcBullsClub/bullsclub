@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabase'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)   // supabase auth user
-  const [profile, setProfile] = useState(null)   // row from profiles table
-  const [loading, setLoading] = useState(true)   // initial session check
+  const [user, setUser]         = useState(null)   // supabase auth user
+  const [profile, setProfile]   = useState(null)   // row from profiles table
+  const [loading, setLoading]   = useState(true)   // initial session check
+  const [lastAuthEvent, setLastAuthEvent] = useState(null)
 
   // Fetch the profile row for a given auth user id
   async function fetchProfile(userId) {
@@ -28,7 +29,8 @@ export function AuthProvider({ children }) {
     })
 
     // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setLastAuthEvent(event)
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else setProfile(null)
@@ -37,12 +39,12 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signUp(email, password, fullName, team) {
+  async function signUp(email, password, fullName, team, extra = {}) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, team },
+        data: { full_name: fullName, team, ...extra },
       },
     })
     if (error) throw error
@@ -62,10 +64,13 @@ export function AuthProvider({ children }) {
     setProfile(null)
   }
 
-  const isAdmin = profile?.role === 'admin'
+  const isSuperAdmin = profile?.role === 'superadmin'
+  const isAdmin = profile?.role === 'admin' || isSuperAdmin
+  // For team-scoped operations: null means "all teams" (superadmin); string means one team (admin)
+  const adminTeam = isSuperAdmin ? null : profile?.team
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isSuperAdmin, adminTeam, lastAuthEvent, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

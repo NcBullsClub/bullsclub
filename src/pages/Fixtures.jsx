@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import fixtures from '../data/fixtures.json'
+import { supabase } from '../lib/supabase'
 import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
 
 const teamsFilter = [
@@ -69,13 +70,32 @@ function VenueActions({ venue, venueAddress }) {
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [availRecords, setAvailRecords] = useState([])
+  const [resultMap, setResultMap] = useState({})  // "date::team" -> result row
 
   useEffect(() => {
     if (!isSheetConfigured()) return
     fetchAvailability().then(setAvailRecords).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    supabase
+      .from('match_results')
+      .select('fixture_date, team, result, ncb_score, opp_score, scorecard_url')
+      .then(({ data }) => {
+        const map = {}
+        ;(data || []).forEach((r) => { map[`${r.fixture_date}::${r.team}`] = r })
+        setResultMap(map)
+      })
+  }, [])
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   const filtered = fixtures.filter((f) => f.team === teamFilter)
+
+  function isPast(f) {
+    return new Date(f.date + 'T00:00:00') < today
+  }
 
   return (
     <div>
@@ -112,7 +132,11 @@ export default function Fixtures() {
       <section className="py-12 bg-surface min-h-[60vh]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-4">
-            {filtered.map((f, i) => (
+            {filtered.map((f, i) => {
+              const past   = isPast(f)
+              const dbResult = resultMap[`${f.date}::${f.team}`]
+
+              return (
               <motion.div
                 key={f.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -163,7 +187,7 @@ export default function Fixtures() {
 
                   {/* Status / result */}
                   <div className="flex-shrink-0 flex flex-col items-end gap-2">
-                    {f.status === 'completed' ? (
+                    {past ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200">
                         ✓ Completed
                       </span>
@@ -200,24 +224,24 @@ export default function Fixtures() {
                         </Link>
                       </>
                     )}
-                    {f.status === 'completed' && (f.homeScore || f.result) && (
+                    {past && dbResult && (
                       <div className="text-right space-y-0.5">
-                        {f.homeScore && (
+                        {dbResult.ncb_score && (
                           <div className="text-xs font-mono font-semibold text-gray-700">
-                            {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {f.homeScore}
+                            {f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}: {dbResult.ncb_score}
                           </div>
                         )}
-                        {f.awayScore && (
+                        {dbResult.opp_score && (
                           <div className="text-xs font-mono font-semibold text-gray-700">
-                            {f.opponent}: {f.awayScore}
+                            {f.opponent}: {dbResult.opp_score}
                           </div>
                         )}
-                        {f.result && (
-                          <div className="text-xs text-gray-500 mt-0.5 max-w-[160px]">{f.result}</div>
+                        {dbResult.result && (
+                          <div className="text-xs text-gray-500 mt-0.5 max-w-[160px]">{dbResult.result}</div>
                         )}
-                        {f.scorecardUrl && (
+                        {dbResult.scorecard_url && (
                           <a
-                            href={f.scorecardUrl}
+                            href={dbResult.scorecard_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors mt-1"
@@ -230,7 +254,8 @@ export default function Fixtures() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+            )
+          })}
 
             {filtered.length === 0 && (
               <div className="text-center py-20 text-gray-400">No fixtures for the selected team.</div>

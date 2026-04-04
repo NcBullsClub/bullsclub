@@ -17,7 +17,13 @@ const TABS = [
 
 export default function AdminDashboard() {
   const { profile, isSuperAdmin } = useAuth()
-  const [activeTab, setActiveTab]  = useState('availability')
+  const [activeTab, setActiveTab]           = useState('availability')
+  const [selectedFixtureKey, setSelectedFixtureKey] = useState('')
+
+  function handleSelectFixture(key) {
+    setSelectedFixtureKey(key)
+    setActiveTab('whatsapp')
+  }
 
   const roleLabel = isSuperAdmin ? 'Super Admin' : 'Admin'
   const roleColor = isSuperAdmin
@@ -82,8 +88,8 @@ export default function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
           >
-            {activeTab === 'availability' && <AvailabilityTab />}
-            {activeTab === 'whatsapp'     && <WhatsAppSummaryTab />}
+            {activeTab === 'availability' && <AvailabilityTab onSelectFixture={handleSelectFixture} />}
+            {activeTab === 'whatsapp'     && <WhatsAppSummaryTab initialFixtureKey={selectedFixtureKey} />}
             {activeTab === 'results'      && <ResultsTab />}
             {activeTab === 'access'       && <AllowedEmailsTab />}
             {activeTab === 'roster'       && <PlayerRosterTab />}

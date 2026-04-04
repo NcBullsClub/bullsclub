@@ -7,6 +7,7 @@ import About from './pages/About'
 import Teams from './pages/Teams'
 import Players from './pages/Players'
 import Fixtures from './pages/Fixtures'
+import FixtureDetail from './pages/FixtureDetail'
 import Results from './pages/Results'
 import Gallery from './pages/Gallery'
 import News from './pages/News'
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/teams" element={<Teams />} />
           <Route path="/players" element={<Players />} />
           <Route path="/fixtures" element={<Fixtures />} />
+          <Route path="/fixtures/:id" element={<FixtureDetail />} />
           <Route path="/results" element={<Results />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/news" element={<News />} />

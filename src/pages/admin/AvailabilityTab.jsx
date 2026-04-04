@@ -22,7 +22,7 @@ const STATUS_COLORS = {
 }
 const STATUS_EMOJI = { in: '✅', out: '❌', maybe: '🤔' }
 
-export default function AvailabilityTab() {
+export default function AvailabilityTab({ onSelectFixture }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
   // team filter: superadmin can switch; admin is locked to their team
@@ -170,7 +170,15 @@ export default function AvailabilityTab() {
                     {fixture?.time && ` · ${fixture.time}`}
                   </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
+                  {onSelectFixture && (
+                    <button
+                      onClick={() => onSelectFixture(key)}
+                      className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all whitespace-nowrap"
+                    >
+                      🏏 Select Players
+                    </button>
+                  )}
                   {[
                     { label: 'In',    count: inList.length,    bg: 'bg-green-500' },
                     { label: 'Maybe', count: maybeList.length, bg: 'bg-amber-400' },

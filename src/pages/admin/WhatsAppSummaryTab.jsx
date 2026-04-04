@@ -28,7 +28,7 @@ function formatDate(dateStr) {
   return `${month} ${ordinal(dt.getDate())}, ${y}`
 }
 
-export default function WhatsAppSummaryTab() {
+export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
   const visibleFixtures = fixtures
@@ -38,16 +38,20 @@ export default function WhatsAppSummaryTab() {
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 
-  const [selectedKey, setSelectedKey] = useState('')
+  const [selectedKey, setSelectedKey] = useState(initialFixtureKey)
   const [availability, setAvailability] = useState([])
   const [loading, setLoading]           = useState(false)
   const [selected, setSelected]         = useState([])
+
+  // Sync when parent navigates here with a pre-selected fixture
+  useEffect(() => {
+    if (initialFixtureKey) setSelectedKey(initialFixtureKey)
+  }, [initialFixtureKey])
 
   const [season,     setSeason]     = useState('2026 HT Mega Bash - Division 5')
   const [gameNumber, setGameNumber] = useState('')
   const [umpires,    setUmpires]    = useState('')
   const [arriveBy,   setArriveBy]   = useState('')
-  const [copied, setCopied]         = useState(false)
 
   const selectedFixture = visibleFixtures.find(
     (f) => `${f.date}::${f.team}` === selectedKey,
@@ -112,6 +116,7 @@ export default function WhatsAppSummaryTab() {
       `Venue: ${selectedFixture.venue}`,
     ]
     if (selectedFixture.venueAddress) lines.push(`*Ground Address: ${selectedFixture.venueAddress}*`)
+    lines.push(`📍 Maps & Details: https://ncbullscricketclub.com/#/fixtures/${selectedFixture.id}`)
     if (umpires) lines.push(`Umpires: ${umpires}`)
     lines.push('', playerLines, '')
     lines.push(`Please come by ${arriveBy || 'on time'} and acknowledge!!!`)
@@ -119,13 +124,6 @@ export default function WhatsAppSummaryTab() {
   }
 
   const message = buildMessage()
-
-  async function handleCopy() {
-    if (!message) return
-    await navigator.clipboard.writeText(message)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
-  }
 
   const inPlayers    = availability.filter((r) => r.status === 'in')
   const maybePlayers = availability.filter((r) => r.status === 'maybe')
@@ -352,14 +350,18 @@ export default function WhatsAppSummaryTab() {
           )}
 
           {message && (
-            <button
-              onClick={handleCopy}
-              className={`w-full btn-primary px-8 py-3 text-sm flex items-center justify-center gap-2 transition-all ${
-                copied ? 'bg-green-600 hover:bg-green-600' : ''
-              }`}
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-[#25D366] hover:bg-[#1ebe59] text-white transition-colors"
             >
-              {copied ? '✓ Copied!' : '📋 Copy Message'}
-            </button>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.852L.057 23.428a.75.75 0 00.914.914l5.638-1.47A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.708 9.708 0 01-4.943-1.35l-.355-.21-3.676.958.978-3.589-.23-.368A9.75 9.75 0 1112 21.75z"/>
+              </svg>
+              Post on WhatsApp
+            </a>
           )}
 
           {selectedKey && !loading && selected.length === 0 && availability.length > 0 && (

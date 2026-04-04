@@ -67,18 +67,25 @@ export default function AllowedEmailsTab() {
     const email = confirmEmail
     setConfirmEmail(null)
     setRemovingEmail(email)
-    await supabase.from('allowed_emails').delete().eq('email', email)
+    await Promise.all([
+      supabase.from('allowed_emails').delete().eq('email', email),
+      supabase.from('profiles').delete().eq('email', email),
+    ])
     setRemovingEmail(null)
     loadAllowlist()
   }
 
-  const filtered = allowlist.filter((row) => {
-    const q = search.toLowerCase()
-    return (
-      row.email.toLowerCase().includes(q) ||
-      (row.full_name || '').toLowerCase().includes(q)
+  const filtered = allowlist
+    .filter((row) => {
+      const q = search.toLowerCase()
+      return (
+        row.email.toLowerCase().includes(q) ||
+        (row.full_name || '').toLowerCase().includes(q)
+      )
+    })
+    .sort((a, b) =>
+      (a.full_name || a.email).localeCompare(b.full_name || b.email)
     )
-  })
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -148,81 +155,141 @@ export default function AllowedEmailsTab() {
           {search ? 'No players match your search.' : 'No approved emails yet.'}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Name</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Team</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Added</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map((row) => (
-                <tr key={row.email} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 font-medium text-gray-800">{row.email}</td>
-                  <td className="px-5 py-3 text-gray-600">{row.full_name || <span className="text-gray-300">—</span>}</td>
-                  <td className="px-5 py-3">
-                    {updatingTeam === row.email ? (
-                      <span className="text-xs text-gray-400 italic">Saving…</span>
-                    ) : (
-                      <select
-                        value={row.team || ''}
-                        onChange={(e) => handleTeamChange(row.email, e.target.value)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${
-                          row.team === 'raising-bulls'
-                            ? 'bg-primary-dark text-accent'
-                            : row.team === 'royal-bulls'
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        <option value="">No team</option>
-                        {TEAM_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
+        <>
+          {/* ── Mobile cards ── */}
+          <div className="sm:hidden space-y-3">
+            {filtered.map((row) => (
+              <div key={row.email} className="bg-white border border-gray-200 rounded-2xl p-4">
+                {/* Email + remove */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm leading-tight">
+                      {row.full_name || <span className="text-gray-400 italic">No name</span>}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5 break-all">{row.email}</p>
+                  </div>
+                  {confirmEmail === row.email ? (
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={handleRemoveConfirmed}
+                        className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 font-medium"
+                      >Yes</button>
+                      <button
+                        onClick={() => setConfirmEmail(null)}
+                        className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-300 font-medium"
+                      >No</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmEmail(row.email)}
+                      disabled={removingEmail === row.email}
+                      className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-40"
+                    >{removingEmail === row.email ? 'Removing…' : 'Remove'}</button>
+                  )}
+                </div>
+                {/* Team + date */}
+                <div className="flex items-center justify-between gap-2">
+                  {updatingTeam === row.email ? (
+                    <span className="text-xs text-gray-400 italic">Saving…</span>
+                  ) : (
+                    <select
+                      value={row.team || ''}
+                      onChange={(e) => handleTeamChange(row.email, e.target.value)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${
+                        row.team === 'raising-bulls'
+                          ? 'bg-primary-dark text-accent'
+                          : row.team === 'royal-bulls'
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      <option value="">No team</option>
+                      {TEAM_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  )}
+                  <span className="text-xs text-gray-400">
                     {new Date(row.added_at).toLocaleDateString('en-US', {
                       month: 'short', day: 'numeric', year: 'numeric',
                     })}
-                  </td>
-                  <td className="px-5 py-3 text-right whitespace-nowrap">
-                    {confirmEmail === row.email ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Remove?</span>
-                        <button
-                          onClick={handleRemoveConfirmed}
-                          className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 font-medium transition-colors"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setConfirmEmail(null)}
-                          className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-300 font-medium transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmEmail(row.email)}
-                        disabled={removingEmail === row.email}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors disabled:opacity-40"
-                      >
-                        {removingEmail === row.email ? 'Removing…' : 'Remove'}
-                      </button>
-                    )}
-                  </td>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Desktop table ── */}
+          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-gray-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Name</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Team</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Added</th>
+                  <th className="px-5 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((row) => (
+                  <tr key={row.email} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3 font-medium text-gray-800">{row.email}</td>
+                    <td className="px-5 py-3 text-gray-600">{row.full_name || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-5 py-3">
+                      {updatingTeam === row.email ? (
+                        <span className="text-xs text-gray-400 italic">Saving…</span>
+                      ) : (
+                        <select
+                          value={row.team || ''}
+                          onChange={(e) => handleTeamChange(row.email, e.target.value)}
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${
+                            row.team === 'raising-bulls'
+                              ? 'bg-primary-dark text-accent'
+                              : row.team === 'royal-bulls'
+                              ? 'bg-primary text-white'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          <option value="">No team</option>
+                          {TEAM_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
+                      {new Date(row.added_at).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      {confirmEmail === row.email ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Remove?</span>
+                          <button
+                            onClick={handleRemoveConfirmed}
+                            className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 font-medium transition-colors"
+                          >Yes</button>
+                          <button
+                            onClick={() => setConfirmEmail(null)}
+                            className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                          >Cancel</button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmEmail(row.email)}
+                          disabled={removingEmail === row.email}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors disabled:opacity-40"
+                        >{removingEmail === row.email ? 'Removing…' : 'Remove'}</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )

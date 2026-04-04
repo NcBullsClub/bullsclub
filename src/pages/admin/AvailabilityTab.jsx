@@ -142,6 +142,8 @@ export default function AvailabilityTab({ onSelectFixture }) {
 
           const [y, m, d] = date.split('-').map(Number)
           const dateObj   = new Date(y, m - 1, d)
+          const today     = new Date(); today.setHours(0, 0, 0, 0)
+          const isPast    = dateObj < today
           const isRaising = team === 'raising-bulls'
 
           return (
@@ -173,8 +175,14 @@ export default function AvailabilityTab({ onSelectFixture }) {
                 <div className="flex items-center gap-3">
                   {onSelectFixture && (
                     <button
-                      onClick={() => onSelectFixture(key)}
-                      className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all whitespace-nowrap"
+                      onClick={() => !isPast && onSelectFixture(key)}
+                      disabled={isPast}
+                      title={isPast ? 'Cannot select players for a past match' : ''}
+                      className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap ${
+                        isPast
+                          ? 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
+                          : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                      }`}
                     >
                       🏏 Select Players
                     </button>
@@ -192,52 +200,88 @@ export default function AvailabilityTab({ onSelectFixture }) {
                 </div>
               </div>
 
-              <div className="px-6 py-5">
+              <div className="px-4 sm:px-6 py-4">
                 {rows.length === 0 ? (
                   <p className="text-gray-400 text-sm text-center py-4">No responses yet.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100">
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Player</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Email</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Team</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Status</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Notes</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Updated</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {rows
-                          .sort((a, b) => {
-                            const order = { in: 0, maybe: 1, out: 2 }
-                            return (order[a.status] ?? 3) - (order[b.status] ?? 3)
-                          })
-                          .map((r) => (
-                            <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="py-2.5 pr-4 font-medium text-gray-800">{r.profiles?.full_name || '—'}</td>
-                              <td className="py-2.5 pr-4 text-gray-500 text-xs">{r.profiles?.email || '—'}</td>
-                              <td className="py-2.5 pr-4 text-gray-500 text-xs">
-                                {r.profiles?.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
-                              </td>
-                              <td className="py-2.5 pr-4">
-                                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[r.status]}`}>
-                                  {STATUS_EMOJI[r.status]} {r.status}
-                                </span>
-                              </td>
-                              <td className="py-2.5 pr-4 text-gray-400 text-xs max-w-[200px] truncate">{r.notes || '—'}</td>
-                              <td className="py-2.5 text-gray-400 text-xs whitespace-nowrap">
-                                {new Date(r.updated_at).toLocaleDateString('en-US', {
-                                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                                })}
-                              </td>
+                ) : (() => {
+                  const sorted = [...rows].sort((a, b) => {
+                    const order = { in: 0, maybe: 1, out: 2 }
+                    return (order[a.status] ?? 3) - (order[b.status] ?? 3)
+                  })
+                  return (
+                    <>
+                      {/* ── Mobile cards ── */}
+                      <div className="sm:hidden space-y-1">
+                        {sorted.map((r) => (
+                          <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50">
+                            {/* Status dot */}
+                            <span className={`flex-shrink-0 w-2 h-2 rounded-full ${
+                              r.status === 'in' ? 'bg-green-500' : r.status === 'maybe' ? 'bg-amber-400' : 'bg-red-400'
+                            }`} />
+                            {/* Name — first name only on mobile */}
+                            <span className="flex-1 text-xs font-medium text-gray-800 truncate">
+                              {(r.profiles?.full_name || '—').split(' ')[0]}
+                            </span>
+                            {/* Notes indicator */}
+                            {r.notes && (
+                              <span className="flex-shrink-0 text-[10px] text-gray-400 italic truncate max-w-[80px]" title={r.notes}>
+                                {r.notes}
+                              </span>
+                            )}
+                            {/* Team name */}
+                            {r.profiles?.team && (
+                              <span className="flex-shrink-0 text-[9px] text-gray-400 font-normal leading-tight text-right">
+                                {r.profiles.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
+                              </span>
+                            )}
+                            {/* Status label */}
+                            <span className={`flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${STATUS_COLORS[r.status]}`}>
+                              {r.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* ── Desktop table ── */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-100">
+                              <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Player</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Email</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Team</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Status</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Notes</th>
+                              <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Updated</th>
                             </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {sorted.map((r) => (
+                              <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="py-2.5 pr-4 font-medium text-gray-800">{r.profiles?.full_name || '—'}</td>
+                                <td className="py-2.5 pr-4 text-gray-500 text-xs">{r.profiles?.email || '—'}</td>
+                                <td className="py-2.5 pr-4 text-gray-500 text-xs">
+                                  {r.profiles?.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
+                                </td>
+                                <td className="py-2.5 pr-4">
+                                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[r.status]}`}>
+                                    {STATUS_EMOJI[r.status]} {r.status}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 pr-4 text-gray-400 text-xs max-w-[200px] truncate">{r.notes || '—'}</td>
+                                <td className="py-2.5 text-gray-400 text-xs whitespace-nowrap">
+                                  {new Date(r.updated_at).toLocaleDateString('en-US', {
+                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                                  })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             </motion.div>
           )

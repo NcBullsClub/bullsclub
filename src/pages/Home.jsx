@@ -169,9 +169,9 @@ export default function Home() {
       </section>
 
       {/* Upcoming Fixtures */}
-      <section className="py-16 bg-white">
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="section-heading">Upcoming Fixtures</h2>
             <Link to="/fixtures" className="text-primary font-medium hover:text-accent transition-colors text-sm">
               View All →
@@ -180,19 +180,48 @@ export default function Home() {
 
           {/* Raising Bulls row */}
           {upcomingRB.length > 0 && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
                 <span className="bg-primary-dark text-accent text-xs font-bold px-3 py-1 rounded-full">Raising Bulls</span>
                 <span className="text-xs text-gray-400">{upcomingRB[0].type}</span>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+              {/* Mobile: compact list */}
+              <div className="sm:hidden space-y-2.5">
+                {upcomingRB.map((f, i) => {
+                  const d = new Date(f.date.replace(/-/g, '/'))
+                  return (
+                    <motion.div key={f.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                      className="bg-white border border-gray-100 border-l-4 border-l-accent rounded-xl px-3.5 py-3 shadow-sm"
+                    >
+                      {/* Row 1: date · opponent · format */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="flex-shrink-0 text-[10px] font-bold uppercase text-white bg-primary-dark px-2 py-0.5 rounded-md tracking-wide">
+                          {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        <span className="font-bold text-primary-dark text-sm leading-tight truncate">vs {f.opponent}</span>
+                        <span className="ml-auto flex-shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{f.format}</span>
+                      </div>
+                      {/* Row 2: venue · time */}
+                      <div className="text-xs text-gray-400 truncate mb-2.5">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
+                      {/* Row 3: CTA */}
+                      <Link
+                        to={`/availability?fixture=${f.id}&team=raising-bulls`}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent/15 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-lg hover:bg-accent hover:border-accent transition-colors"
+                      >
+                        🏏 Mark Availability
+                      </Link>
+                    </motion.div>
+                  )
+                })}
+              </div>
+
+              {/* Desktop: grid cards */}
+              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRB.map((f, i) => (
                   <Link key={f.id} to="/fixtures">
                     <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.08 }}
+                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                       className="bg-white border border-gray-200 border-t-4 border-t-accent rounded-2xl p-6 hover:shadow-lg hover:border-accent transition-all cursor-pointer h-full"
                     >
                       <div className="text-xs font-bold uppercase tracking-widest text-accent mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
@@ -219,18 +248,47 @@ export default function Home() {
           {/* Royal Bulls row */}
           {upcomingRY.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">Royal Bulls</span>
                 <span className="text-xs text-gray-400">{upcomingRY[0].type}</span>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+              {/* Mobile: compact list */}
+              <div className="sm:hidden space-y-2.5">
+                {upcomingRY.map((f, i) => {
+                  const d = new Date(f.date.replace(/-/g, '/'))
+                  return (
+                    <motion.div key={f.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                      className="bg-white border border-gray-100 border-l-4 border-l-primary rounded-xl px-3.5 py-3 shadow-sm"
+                    >
+                      {/* Row 1: date · opponent · format */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="flex-shrink-0 text-[10px] font-bold uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-md tracking-wide">
+                          {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        <span className="font-bold text-primary-dark text-sm leading-tight truncate">vs {f.opponent}</span>
+                        <span className="ml-auto flex-shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{f.format}</span>
+                      </div>
+                      {/* Row 2: venue · time */}
+                      <div className="text-xs text-gray-400 truncate mb-2.5">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
+                      {/* Row 3: CTA */}
+                      <Link
+                        to={`/availability?fixture=${f.id}&team=royal-bulls`}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                      >
+                        🏏 Mark Availability
+                      </Link>
+                    </motion.div>
+                  )
+                })}
+              </div>
+
+              {/* Desktop: grid cards */}
+              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRY.map((f, i) => (
                   <Link key={f.id} to="/fixtures">
                     <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.08 }}
+                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                       className="bg-white border border-gray-200 border-t-4 border-t-primary rounded-2xl p-6 hover:shadow-lg hover:border-primary transition-all cursor-pointer h-full"
                     >
                       <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>

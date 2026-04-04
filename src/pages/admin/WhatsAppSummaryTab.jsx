@@ -11,6 +11,13 @@ function isRelevantFixture(f) {
   return d >= cutoff
 }
 
+function isPastFixture(f) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const [y, m, d] = f.date.split('-').map(Number)
+  return new Date(y, m - 1, d) < today
+}
+
 function teamLabel(t) {
   return t === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
 }
@@ -126,20 +133,22 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   const message = buildMessage()
 
   const inPlayers    = availability.filter((r) => r.status === 'in')
+    .sort((a, b) => (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
   const maybePlayers = availability.filter((r) => r.status === 'maybe')
+    .sort((a, b) => (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <h2 className="font-display font-bold text-primary text-2xl mb-1">Team Selection</h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 hidden sm:block">
           Pick your Playing XI from available players and generate the announcement message.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* ── Left column ── fixture + meta + player picker */}
-        <div className="space-y-5">
+        <div className="space-y-3 sm:space-y-5">
           {/* Fixture selector */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Fixture</label>
@@ -157,9 +166,14 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
                   const label = new Date(y, m - 1, d).toLocaleDateString('en-US', {
                     month: 'short', day: 'numeric',
                   })
+                  const past = isPastFixture(f)
                   return (
-                    <option key={`${f.date}::${f.team}`} value={`${f.date}::${f.team}`}>
-                      {label} — vs {f.opponent} ({teamLabel(f.team)})
+                    <option
+                      key={`${f.date}::${f.team}`}
+                      value={`${f.date}::${f.team}`}
+                      disabled={past}
+                    >
+                      {past ? '⛔ ' : ''}{label} — vs {f.opponent} ({teamLabel(f.team)}){past ? ' (Past)' : ''}
                     </option>
                   )
                 })}
@@ -168,53 +182,52 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
           </div>
 
           {/* Match detail fields */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Match Details</h3>
+          <div className="bg-white border border-gray-200 rounded-2xl p-3 sm:p-5 space-y-2.5 sm:space-y-4">
+            <h3 className="text-xs sm:text-sm font-bold text-gray-700 uppercase tracking-wide">Match Details</h3>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Season / Division</label>
+              <label className="block text-[10px] sm:text-xs font-semibold text-gray-500 mb-1">Season / Division</label>
               <input
                 type="text"
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
                 placeholder="e.g. 2026 HT Mega Bash - Division 5"
-                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Game Number</label>
+                <label className="block text-[10px] sm:text-xs font-semibold text-gray-500 mb-1">Game #</label>
                 <input
                   type="number"
                   min="1"
                   value={gameNumber}
                   onChange={(e) => setGameNumber(e.target.value)}
-                  placeholder="e.g. 3"
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                  placeholder="3"
+                  className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Arrive By</label>
+                <label className="block text-[10px] sm:text-xs font-semibold text-gray-500 mb-1">Arrive By</label>
                 <input
                   type="text"
                   value={arriveBy}
                   onChange={(e) => setArriveBy(e.target.value)}
-                  placeholder="e.g. 12:30 PM"
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                  placeholder="12:30 PM"
+                  className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Umpires</label>
-              <input
-                type="text"
-                value={umpires}
-                onChange={(e) => setUmpires(e.target.value)}
-                placeholder="e.g. Triangle Troopers HT"
-                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
+              <div>
+                <label className="block text-[10px] sm:text-xs font-semibold text-gray-500 mb-1">Umpires</label>
+                <input
+                  type="text"
+                  value={umpires}
+                  onChange={(e) => setUmpires(e.target.value)}
+                  placeholder="Team HT"
+                  className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 sm:py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
             </div>
           </div>
 
@@ -242,23 +255,24 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
                       <div className="space-y-1">
                         {inPlayers.map((r) => {
                           const name = r.profiles?.full_name || 'Unknown'
+                          const displayName = name.split(' ')[0]
                           const isSel = selected.includes(name)
                           return (
                             <button
                               key={r.id}
                               onClick={() => togglePlayer(name)}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-left transition-all ${
                                 isSel
                                   ? 'bg-primary-dark text-white font-medium'
                                   : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                               }`}
                             >
-                              <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs ${
+                              <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-[10px] ${
                                 isSel ? 'border-accent bg-accent text-primary-dark' : 'border-gray-300'
                               }`}>
                                 {isSel && '✓'}
                               </span>
-                              {name}
+                              {displayName}
                             </button>
                           )
                         })}
@@ -272,23 +286,24 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
                       <div className="space-y-1">
                         {maybePlayers.map((r) => {
                           const name = r.profiles?.full_name || 'Unknown'
+                          const displayName = name.split(' ')[0]
                           const isSel = selected.includes(name)
                           return (
                             <button
                               key={r.id}
                               onClick={() => togglePlayer(name)}
-                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-left transition-all ${
+                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-left transition-all ${
                                 isSel
                                   ? 'bg-primary-dark text-white font-medium'
                                   : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
                               }`}
                             >
-                              <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs ${
+                              <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-[10px] ${
                                 isSel ? 'border-accent bg-accent text-primary-dark' : 'border-gray-300'
                               }`}>
                                 {isSel && '✓'}
                               </span>
-                              {name}
+                              {displayName}
                             </button>
                           )
                         })}
@@ -312,10 +327,10 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
                 {selected.map((name, idx) => (
                   <div
                     key={name}
-                    className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2"
+                    className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5"
                   >
-                    <span className="w-6 text-center text-xs font-bold text-gray-400">{idx + 1}</span>
-                    <span className="flex-1 text-sm font-medium text-gray-800">{name}</span>
+                    <span className="w-5 text-center text-xs font-bold text-gray-400">{idx + 1}</span>
+                    <span className="flex-1 text-sm font-medium text-gray-800">{name.split(' ')[0]}</span>
                     <div className="flex gap-1">
                       <button
                         onClick={() => moveUp(idx)}

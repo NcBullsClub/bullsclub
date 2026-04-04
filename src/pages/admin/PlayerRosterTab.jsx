@@ -43,14 +43,16 @@ export default function PlayerRosterTab() {
     loadProfiles()
   }
 
-  const filtered = profiles.filter((p) => {
-    const q = search.toLowerCase()
-    const matchesSearch =
-      (p.full_name || '').toLowerCase().includes(q) ||
-      (p.email || '').toLowerCase().includes(q)
-    const matchesTeam = teamFilter === 'all' || p.team === teamFilter
-    return matchesSearch && matchesTeam
-  })
+  const filtered = profiles
+    .filter((p) => {
+      const q = search.toLowerCase()
+      const matchesSearch =
+        (p.full_name || '').toLowerCase().includes(q) ||
+        (p.email || '').toLowerCase().includes(q)
+      const matchesTeam = teamFilter === 'all' || p.team === teamFilter
+      return matchesSearch && matchesTeam
+    })
+    .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -100,27 +102,90 @@ export default function PlayerRosterTab() {
         <div className="flex justify-center py-8">
           <div className="w-6 h-6 border-4 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-gray-400 py-8 text-sm">
+          {search ? 'No players match your search.' : 'No signed-up players yet.'}
+        </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Name</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Team</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Role</th>
-                <th className="text-left px-5 py-3 font-semibold text-gray-600">Joined</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-gray-400 text-sm">
-                    {search ? 'No players match your search.' : 'No signed-up players yet.'}
-                  </td>
+        <>
+          {/* ── Mobile cards ── */}
+          <div className="sm:hidden space-y-3">
+            {filtered.map((p) => {
+              const saving = updatingProfile === p.id
+              return (
+                <div key={p.id} className="bg-white border border-gray-200 rounded-2xl p-4">
+                  {/* Name + role */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-800 text-sm">{p.full_name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 break-all">{p.email || '—'}</p>
+                    </div>
+                    {saving ? (
+                      <span className="text-xs text-gray-400 italic flex-shrink-0">Saving…</span>
+                    ) : p.role === 'superadmin' ? (
+                      <span className="flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                        ★ Super Admin
+                      </span>
+                    ) : (
+                      <select
+                        value={p.role}
+                        onChange={(e) => handleProfileUpdate(p.id, { role: e.target.value })}
+                        className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${ROLE_COLORS[p.role] || 'bg-gray-100 text-gray-600'}`}
+                      >
+                        <option value="player">Player</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    )}
+                  </div>
+                  {/* Team + joined */}
+                  <div className="flex items-center justify-between gap-2">
+                    {saving ? (
+                      <span className="text-xs text-gray-400 italic">Saving…</span>
+                    ) : (
+                      <select
+                        value={p.team || ''}
+                        onChange={(e) => handleProfileUpdate(p.id, { team: e.target.value })}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${
+                          p.team === 'raising-bulls'
+                            ? 'bg-primary-dark text-accent'
+                            : p.team === 'royal-bulls'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        <option value="">No team</option>
+                        {TEAM_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    )}
+                    <span className="text-xs text-gray-400">
+                      {p.created_at
+                        ? new Date(p.created_at).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric',
+                          })
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Desktop table ── */}
+          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-gray-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Name</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Team</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Role</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Joined</th>
                 </tr>
-              ) : (
-                filtered.map((p) => {
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((p) => {
                   const saving = updatingProfile === p.id
                   return (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
@@ -175,11 +240,11 @@ export default function PlayerRosterTab() {
                       </td>
                     </tr>
                   )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )

@@ -12,12 +12,53 @@ function teamLabel(t) {
   return t === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
 }
 
+function CoinIcon({ className = 'w-4 h-4 flex-shrink-0' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="9" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="6.5" stroke="#D97706" strokeWidth="0.75" fill="none" />
+      <circle cx="10" cy="10" r="2" fill="#D97706" />
+    </svg>
+  )
+}
+
+function parseMatchDateTime(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (!timeStr) return new Date(y, m - 1, d)
+  const mt = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  if (!mt) return new Date(y, m - 1, d)
+  let h = parseInt(mt[1])
+  const min = parseInt(mt[2])
+  const ap = mt[3].toUpperCase()
+  if (ap === 'PM' && h !== 12) h += 12
+  if (ap === 'AM' && h === 12) h = 0
+  return new Date(y, m - 1, d, h, min)
+}
+
+function getMatchStatus(fixture) {
+  const now = new Date()
+  const start = parseMatchDateTime(fixture.date, fixture.time)
+  const end = new Date(start.getTime() + 4 * 60 * 60 * 1000)
+  if (now >= end) return 'completed'
+  if (now >= start) return 'live'
+  return 'upcoming'
+}
+
 const EMPTY_FORM = {
-  result: '', ncb_score: '', opp_score: '', mom: '', mom_stat: '', scorecard_url: '',
+  result: '', toss_winner: '', toss_choice: '', ncb_score: '', opp_score: '', mom: '', mom_stat: '', scorecard_url: '',
+}
+
+function parseToss(tossStr) {
+  if (!tossStr) return { toss_winner: '', toss_choice: '' }
+  const m = tossStr.match(/^(.+?)\s+won the toss(?:\s+and elected to\s+(bat|bowl))?/i)
+  if (m) return { toss_winner: m[1].trim(), toss_choice: (m[2] || '').toLowerCase() }
+  return { toss_winner: '', toss_choice: '' }
 }
 
 export default function ResultsTab() {
   const { isSuperAdmin, adminTeam } = useAuth()
+
+  const [teamFilter, setTeamFilter] = useState('raising-bulls')
 
   const [dbResults, setDbResults] = useState([])
   const [loading, setLoading]     = useState(true)
@@ -30,7 +71,7 @@ export default function ResultsTab() {
 
   // Superadmin sees all fixtures from both teams; regular admin sees only their team
   const visibleFixtures = fixtures
-    .filter((f) => isSuperAdmin || f.team === adminTeam)
+    .filter((f) => isSuperAdmin ? f.team === teamFilter : f.team === adminTeam)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 
   async function loadResults() {
@@ -57,12 +98,13 @@ export default function ResultsTab() {
     setForm(
       existing
         ? {
-            result:        existing.result       || '',
-            ncb_score:     existing.ncb_score     || '',
-            opp_score:     existing.opp_score     || '',
-            mom:           existing.mom           || '',
-            mom_stat:      existing.mom_stat      || '',
-            scorecard_url: existing.scorecard_url || '',
+            result:        existing.result        || '',
+            ...parseToss(existing.toss),
+            ncb_score:     existing.ncb_score      || '',
+            opp_score:     existing.opp_score      || '',
+            mom:           existing.mom            || '',
+            mom_stat:      existing.mom_stat       || '',
+            scorecard_url: existing.scorecard_url  || '',
           }
         : { ...EMPTY_FORM },
     )
@@ -79,6 +121,11 @@ export default function ResultsTab() {
       venue:         fixture.venue,
       format:        fixture.format,
       result:        form.result.trim()        || null,
+      toss:          form.toss_winner && form.toss_choice
+                       ? `${form.toss_winner} won the toss and elected to ${form.toss_choice}`
+                       : form.toss_winner
+                       ? `${form.toss_winner} won the toss`
+                       : null,
       ncb_score:     form.ncb_score.trim()     || null,
       opp_score:     form.opp_score.trim()     || null,
       mom:           form.mom.trim()           || null,
@@ -114,7 +161,7 @@ export default function ResultsTab() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
+      <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
           <h2 className="font-display font-bold text-primary text-2xl mb-1">Match Results</h2>
           <p className="text-sm text-gray-500">
@@ -130,6 +177,25 @@ export default function ResultsTab() {
         )}
       </div>
 
+      {/* Team filter — superAdmin only */}
+      {isSuperAdmin && (
+        <div className="flex gap-2 mb-6">
+          {TEAMS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTeamFilter(t.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                teamFilter === t.id
+                  ? t.id === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
@@ -137,12 +203,13 @@ export default function ResultsTab() {
       ) : (
         <div className="space-y-4">
           {visibleFixtures.map((fixture) => {
-            const result    = getResult(fixture)
-            const key       = `${fixture.date}::${fixture.team}`
-            const isEditing = editingKey === key
-            const isPast    = new Date(fixture.date + 'T00:00:00') < new Date()
-            const hasResult = !!result
-            const isRaising = fixture.team === 'raising-bulls'
+            const result      = getResult(fixture)
+            const key         = `${fixture.date}::${fixture.team}`
+            const isEditing   = editingKey === key
+            const matchStatus = getMatchStatus(fixture)
+            const isPast      = matchStatus === 'completed'
+            const hasResult   = !!result
+            const isRaising   = fixture.team === 'raising-bulls'
 
             return (
               <div
@@ -168,13 +235,15 @@ export default function ResultsTab() {
                         </span>
                       )}
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                        !isPast
+                        matchStatus === 'live'
+                          ? 'bg-red-100 text-red-700'
+                          : matchStatus === 'upcoming'
                           ? 'bg-blue-100 text-blue-700'
                           : hasResult
                           ? 'bg-green-100 text-green-700'
                           : 'bg-amber-100 text-amber-700'
                       }`}>
-                        {!isPast ? 'Upcoming' : hasResult ? 'Result Entered' : 'Awaiting Result'}
+                        {matchStatus === 'live' ? '🔴 Live' : matchStatus === 'upcoming' ? 'Upcoming' : hasResult ? 'Result Entered' : 'Awaiting Result'}
                       </span>
                       {fixture.format && (
                         <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{fixture.format}</span>
@@ -187,7 +256,12 @@ export default function ResultsTab() {
                     </p>
                     {hasResult && !isEditing && (
                       <div className="mt-2 flex flex-wrap gap-3 text-sm">
-                        <span className="font-semibold text-gray-700">{result.result}</span>
+                        {result.toss && (
+                          <span className="inline-flex items-center gap-1 text-gray-500"><CoinIcon className="w-3.5 h-3.5" /> Toss: <strong>{result.toss}</strong></span>
+                        )}
+                        {result.result && (
+                          <span className="font-semibold text-gray-700">{result.result}</span>
+                        )}
                         {result.ncb_score && (
                           <span className="text-gray-500">{teamLabel(fixture.team)}: <strong>{result.ncb_score}</strong></span>
                         )}
@@ -200,40 +274,110 @@ export default function ResultsTab() {
                       </div>
                     )}
                   </div>
-                  {isPast && (
-                    <div className="flex gap-2 shrink-0">
-                      {!isEditing ? (
-                        <>
-                          <button
-                            onClick={() => startEdit(fixture)}
-                            className="text-sm font-medium text-blue-500 hover:text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 hover:border-blue-400 transition-all"
-                          >
-                            {hasResult ? 'Edit Result' : 'Enter Result'}
-                          </button>
-                          {hasResult && (
-                            <button
-                              onClick={() => handleDeleteResult(fixture)}
-                              className="text-sm font-medium text-red-400 hover:text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all"
-                            >
-                              Clear
-                            </button>
-                          )}
-                        </>
-                      ) : (
+                  <div className="flex gap-2 shrink-0">
+                    {!isEditing ? (
+                      <>
                         <button
-                          onClick={() => setEditingKey(null)}
-                          className="text-sm font-medium text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 transition-all"
+                          onClick={() => startEdit(fixture)}
+                          className="text-sm font-medium text-blue-500 hover:text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 hover:border-blue-400 transition-all"
                         >
-                          Cancel
+                          {hasResult ? 'Edit' : matchStatus === 'live' ? 'Live Update' : 'Enter Result'}
                         </button>
-                      )}
-                    </div>
-                  )}
+                        {hasResult && (
+                          <button
+                            onClick={() => handleDeleteResult(fixture)}
+                            className="text-sm font-medium text-red-400 hover:text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setEditingKey(null)}
+                        className="text-sm font-medium text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Edit form */}
                 {isEditing && (
                   <div className="border-t border-gray-200 px-5 py-4 bg-white">
+                    {/* ── Toss widget ── */}
+                    <div className="sm:col-span-2 border border-gray-200 rounded-2xl p-4 bg-gray-50 mb-3">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                        <CoinIcon className="w-4 h-4" /> Toss
+                      </p>
+
+                      {/* Step 1 — who won */}
+                      <p className="text-xs font-medium text-gray-500 mb-1.5">Who won the toss?</p>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {[teamLabel(fixture.team), fixture.opponent].map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setForm((f) => ({
+                              ...f,
+                              toss_winner: f.toss_winner === opt ? '' : opt,
+                              toss_choice: f.toss_winner === opt ? '' : f.toss_choice,
+                            }))}
+                            className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                              form.toss_winner === opt
+                                ? 'bg-primary-dark text-accent border-primary-dark shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-300 hover:border-primary-dark hover:text-primary-dark'
+                            }`}
+                          >
+                            {form.toss_winner === opt && <span className="mr-1">✓</span>}{opt}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Step 2 — bat or bowl (only after winner chosen) */}
+                      {form.toss_winner && (
+                        <>
+                          <p className="text-xs font-medium text-gray-500 mb-1.5">
+                            <span className="font-bold text-primary-dark">{form.toss_winner}</span> elected to…
+                          </p>
+                          <div className="flex gap-2">
+                            {[
+                              { value: 'bat',  icon: '🏏', label: 'Bat',  active: 'bg-amber-500 text-white border-amber-500' },
+                              { value: 'bowl', icon: '⚡', label: 'Bowl', active: 'bg-blue-600 text-white border-blue-600' },
+                            ].map(({ value, icon, label, active }) => (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => setForm((f) => ({
+                                  ...f,
+                                  toss_choice: f.toss_choice === value ? '' : value,
+                                }))}
+                                className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold border transition-all ${
+                                  form.toss_choice === value
+                                    ? active + ' shadow-sm'
+                                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                }`}
+                              >
+                                {icon} {label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Preview */}
+                      {form.toss_winner && (
+                        <div className="mt-3 text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2 leading-relaxed">
+                          <span className="text-gray-400">Preview: </span>
+                          <em className="text-gray-700">
+                            {form.toss_winner} won the toss
+                            {form.toss_choice ? ` and elected to ${form.toss_choice}` : ''}
+                          </em>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <input
                         placeholder={`Result (e.g. "${teamLabel(fixture.team)} won by 47 runs")`}

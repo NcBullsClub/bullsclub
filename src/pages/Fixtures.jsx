@@ -14,6 +14,28 @@ function firstName(name) {
   return (name || '').split(' ')[0]
 }
 
+function parseMatchDateTime(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  if (!timeStr) return new Date(y, m - 1, d)
+  const mt = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  if (!mt) return new Date(y, m - 1, d)
+  let h = parseInt(mt[1])
+  const min = parseInt(mt[2])
+  const ap = mt[3].toUpperCase()
+  if (ap === 'PM' && h !== 12) h += 12
+  if (ap === 'AM' && h === 12) h = 0
+  return new Date(y, m - 1, d, h, min)
+}
+
+function getMatchStatus(f) {
+  const now = new Date()
+  const start = parseMatchDateTime(f.date, f.time)
+  const end = new Date(start.getTime() + 4 * 60 * 60 * 1000)
+  if (now >= end) return 'completed'
+  if (now >= start) return 'live'
+  return 'upcoming'
+}
+
 function VenueActions({ venue, venueAddress }) {
   const [copied, setCopied] = useState(false)
 
@@ -72,6 +94,62 @@ function VenueActions({ venue, venueAddress }) {
   )
 }
 
+function CoinIcon({ className = 'w-3 h-3 flex-shrink-0' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="9" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="6.5" stroke="#D97706" strokeWidth="0.75" fill="none" />
+      <circle cx="10" cy="10" r="2" fill="#D97706" />
+    </svg>
+  )
+}
+
+function ScorePanel({ teamLabel, opponent, dbResult, align = 'left' }) {
+  const hasScores = dbResult.ncb_score || dbResult.opp_score
+  const isRight = align === 'right'
+  return (
+    <div className="space-y-1.5 w-full">
+      {dbResult.toss && (
+        <div className={`flex items-center gap-1 text-[11px] text-gray-400 italic ${isRight ? 'justify-end' : ''}`}>
+          <CoinIcon className="w-3 h-3 flex-shrink-0" />
+          <span className="truncate">{dbResult.toss}</span>
+        </div>
+      )}
+      {hasScores && (
+        <div className="rounded-xl overflow-hidden border border-gray-200">
+          {dbResult.ncb_score && (
+            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-primary-dark/5">
+              <span className="text-[11px] font-semibold text-gray-700 truncate flex-1">{teamLabel}</span>
+              <span className="text-xs font-mono font-black text-gray-900 tabular-nums flex-shrink-0">{dbResult.ncb_score}</span>
+            </div>
+          )}
+          {dbResult.opp_score && (
+            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white border-t border-gray-100">
+              <span className="text-[11px] font-semibold text-gray-700 truncate flex-1">{opponent}</span>
+              <span className="text-xs font-mono font-black text-gray-900 tabular-nums flex-shrink-0">{dbResult.opp_score}</span>
+            </div>
+          )}
+        </div>
+      )}
+      {dbResult.result && (
+        <p className={`text-[11px] text-gray-600 font-medium leading-snug ${isRight ? 'text-right' : ''}`}>{dbResult.result}</p>
+      )}
+      {dbResult.scorecard_url && (
+        <div className={isRight ? 'flex justify-end' : ''}>
+          <a
+            href={dbResult.scorecard_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
+          >
+            📋 Scorecard ↗
+          </a>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [availRecords, setAvailRecords] = useState([])
@@ -85,7 +163,7 @@ export default function Fixtures() {
   useEffect(() => {
     supabase
       .from('match_results')
-      .select('fixture_date, team, result, ncb_score, opp_score, scorecard_url')
+      .select('fixture_date, team, result, toss, ncb_score, opp_score, scorecard_url')
       .then(({ data }) => {
         const map = {}
         ;(data || []).forEach((r) => { map[`${r.fixture_date}::${r.team}`] = r })
@@ -99,7 +177,7 @@ export default function Fixtures() {
   const filtered = fixtures.filter((f) => f.team === teamFilter)
 
   function isPast(f) {
-    return new Date(f.date + 'T00:00:00') < today
+    return getMatchStatus(f) === 'completed'
   }
 
   return (
@@ -139,9 +217,10 @@ export default function Fixtures() {
           <div className="space-y-3 md:space-y-4">
             {filtered.map((f, i) => {
               const past      = isPast(f)
+              const matchStatus = getMatchStatus(f)
+              const isLive    = matchStatus === 'live'
               const dbResult  = resultMap[`${f.date}::${f.team}`]
               const teamLabel = f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
-              const teamShort = f.team === 'raising-bulls' ? 'RB' : 'RY'
 
               const [year, month, day] = f.date.split('-').map(Number)
               const d = new Date(year, month - 1, day)
@@ -185,6 +264,10 @@ export default function Fixtures() {
                       {/* Status */}
                       {past ? (
                         <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✓ Completed</span>
+                      ) : isLive ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />🔴 Live
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />Upcoming
@@ -223,32 +306,15 @@ export default function Fixtures() {
                       </a>
                     </div>
 
-                    {/* Availability / result */}
-                    {past ? (
-                      dbResult && (
-                        <div className="border-t border-gray-100 px-3 py-2 space-y-0.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {dbResult.ncb_score && (
-                              <span className="text-[11px] font-mono font-semibold text-gray-700">{teamShort}: {dbResult.ncb_score}</span>
-                            )}
-                            {dbResult.opp_score && (
-                              <span className="text-[11px] font-mono font-semibold text-gray-700">Opp: {dbResult.opp_score}</span>
-                            )}
-                          </div>
-                          {dbResult.result && (
-                            <div className="text-[11px] text-gray-500">{dbResult.result}</div>
-                          )}
-                          {dbResult.scorecard_url && (
-                            <a href={dbResult.scorecard_url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600">
-                              📋 Scorecard ↗
-                            </a>
-                          )}
-                        </div>
-                      )
-                    ) : (
+                    {/* Results — always show when any data available */}
+                    {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
+                      <div className="border-t border-gray-100 px-3 py-2.5">
+                        <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                      </div>
+                    )}
+                    {/* Availability — only for non-past */}
+                    {!past && (
                       <div className="border-t border-gray-100 px-3 py-2 space-y-2">
-                        {/* Player names */}
                         {hasAvail && (
                           <div className="space-y-1">
                             {avail.inNames.length > 0 && (
@@ -327,6 +393,11 @@ export default function Fixtures() {
                           <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200">
                             ✓ Completed
                           </span>
+                        ) : isLive ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-700 px-3 py-1.5 rounded-full border border-red-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            🔴 Live
+                          </span>
                         ) : (
                           <>
                             <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
@@ -369,23 +440,9 @@ export default function Fixtures() {
                             </Link>
                           </>
                         )}
-                        {past && dbResult && (
-                          <div className="text-right space-y-0.5">
-                            {dbResult.ncb_score && (
-                              <div className="text-xs font-mono font-semibold text-gray-700">{teamLabel}: {dbResult.ncb_score}</div>
-                            )}
-                            {dbResult.opp_score && (
-                              <div className="text-xs font-mono font-semibold text-gray-700">{f.opponent}: {dbResult.opp_score}</div>
-                            )}
-                            {dbResult.result && (
-                              <div className="text-xs text-gray-500 mt-0.5 max-w-[160px]">{dbResult.result}</div>
-                            )}
-                            {dbResult.scorecard_url && (
-                              <a href={dbResult.scorecard_url} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors mt-1">
-                                📋 Scorecard ↗
-                              </a>
-                            )}
+                        {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
+                          <div className="w-52">
+                            <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} align="right" />
                           </div>
                         )}
                       </div>

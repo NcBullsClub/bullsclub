@@ -9,31 +9,39 @@ const TEAM_OPTIONS = [
 
 
 
+const ROLE_META = {
+  superadmin: { label: 'Super Admin', className: 'bg-purple-100 text-purple-700 border border-purple-200' },
+  admin:      { label: 'Admin',       className: 'bg-accent/20 text-primary-dark border border-accent/40' },
+  player:     { label: 'Player',      className: 'bg-gray-100 text-gray-600 border border-gray-200' },
+}
+
 export default function AllowedEmailsTab({ onPlayerDeleted }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
   // ── Allowlist state ──────────────────────────────────────────────────────
-  const [allowlist, setAllowlist]       = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [search, setSearch]             = useState('')
-  const [newEmail, setNewEmail]         = useState('')
-  const [newName, setNewName]           = useState('')
-  const [newTeam, setNewTeam]           = useState('')
-  const [adding, setAdding]             = useState(false)
-  const [addError, setAddError]         = useState('')
-  const [confirmEmail, setConfirmEmail] = useState(null)
-  const [removingEmail, setRemovingEmail] = useState(null)
-  const [updatingTeam, setUpdatingTeam]   = useState(null)
-
-
+  const [allowlist, setAllowlist]           = useState([])
+  const [profilesByEmail, setProfilesByEmail] = useState({})
+  const [loading, setLoading]               = useState(true)
+  const [search, setSearch]                 = useState('')
+  const [newEmail, setNewEmail]             = useState('')
+  const [newName, setNewName]               = useState('')
+  const [newTeam, setNewTeam]               = useState('')
+  const [adding, setAdding]                 = useState(false)
+  const [addError, setAddError]             = useState('')
+  const [confirmEmail, setConfirmEmail]     = useState(null)
+  const [removingEmail, setRemovingEmail]   = useState(null)
+  const [updatingTeam, setUpdatingTeam]     = useState(null)
 
   async function loadAllowlist() {
     setLoading(true)
-    const { data } = await supabase
-      .from('allowed_emails')
-      .select('*')
-      .order('added_at', { ascending: false })
-    setAllowlist(data || [])
+    const [{ data: emails }, { data: profiles }] = await Promise.all([
+      supabase.from('allowed_emails').select('*').order('added_at', { ascending: false }),
+      supabase.from('profiles').select('email, role'),
+    ])
+    setAllowlist(emails || [])
+    const map = {}
+    for (const p of profiles || []) if (p.email) map[p.email.toLowerCase()] = p
+    setProfilesByEmail(map)
     setLoading(false)
   }
 
@@ -159,15 +167,25 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
         <>
           {/* ── Mobile cards ── */}
           <div className="sm:hidden space-y-3">
-            {filtered.map((row) => (
+            {filtered.map((row) => {
+              const profile = profilesByEmail[row.email?.toLowerCase()]
+              const roleMeta = ROLE_META[profile?.role] || null
+              return (
               <div key={row.email} className="bg-white border border-gray-200 rounded-2xl p-4">
                 {/* Email + remove */}
-                <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-start justify-between gap-3 mb-2.5">
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-800 text-sm leading-tight">
-                      {row.full_name || <span className="text-gray-400 italic">No name</span>}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5 break-all">{row.email}</p>
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <p className="font-semibold text-gray-800 text-sm leading-tight">
+                        {row.full_name || <span className="text-gray-400 italic">No name</span>}
+                      </p>
+                      {roleMeta && (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${roleMeta.className}`}>
+                          {roleMeta.label}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 break-all">{row.email}</p>
                   </div>
                   {confirmEmail === row.email ? (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -217,7 +235,8 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
                   </span>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* ── Desktop table ── */}
@@ -227,16 +246,29 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Name</th>
+                  <th className="text-left px-5 py-3 font-semibold text-gray-600">Role</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Team</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Added</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((row) => (
+                {filtered.map((row) => {
+                  const profile = profilesByEmail[row.email?.toLowerCase()]
+                  const roleMeta = ROLE_META[profile?.role] || null
+                  return (
                   <tr key={row.email} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3 font-medium text-gray-800">{row.email}</td>
                     <td className="px-5 py-3 text-gray-600">{row.full_name || <span className="text-gray-300">—</span>}</td>
+                    <td className="px-5 py-3">
+                      {roleMeta ? (
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${roleMeta.className}`}>
+                          {roleMeta.label}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">Not signed up</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3">
                       {updatingTeam === row.email ? (
                         <span className="text-xs text-gray-400 italic">Saving…</span>
@@ -286,7 +318,8 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
                       )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

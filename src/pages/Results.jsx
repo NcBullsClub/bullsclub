@@ -100,7 +100,6 @@ export default function Results() {
               {results.map((r, i) => {
                 const won       = isWon(r)
                 const teamLabel = r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
-                const teamShort = r.team === 'raising-bulls' ? 'RB' : 'RY'
                 const dt        = formatDate(r.fixture_date)
 
                 return (
@@ -112,34 +111,36 @@ export default function Results() {
                     transition={{ delay: i * 0.05 }}
                   >
                     {/* ── Mobile card ── */}
-                    <div className={`sm:hidden bg-white rounded-2xl border-l-4 overflow-hidden shadow-sm ${won ? 'border-green-500' : 'border-red-400'}`}>
+                    <div className={`sm:hidden bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 border-l-4 ${won ? 'border-l-green-500' : 'border-l-red-400'}`}>
 
-                      {/* Top row: W/L + team + date */}
-                      <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-display font-bold text-sm ${won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                          {won ? 'W' : 'L'}
+                      {/* Header: W/L + team name + date */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-display font-bold text-base flex-shrink-0 ${won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                            {won ? 'W' : 'L'}
+                          </div>
+                          <div>
+                            <div className={`text-[11px] font-bold leading-tight ${r.team === 'raising-bulls' ? 'text-primary-dark' : 'text-primary'}`}>{teamLabel}</div>
+                            {r.format && <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{r.format}</div>}
+                          </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
-                          {teamShort}
-                        </span>
-                        {r.format && (
-                          <span className="text-[10px] text-gray-400 font-medium">{r.format}</span>
-                        )}
-                        <div className="flex-1" />
                         <div className="text-right">
-                          <div className="text-[10px] font-semibold text-gray-600">{dt.day} {dt.month} {dt.year}</div>
-                          <div className="text-[9px] text-gray-400">{dt.weekday}</div>
+                          <div className="text-xs font-semibold text-gray-700">{dt.day} {dt.month} {dt.year}</div>
+                          <div className="text-[10px] text-gray-400">{dt.weekday}</div>
                         </div>
                       </div>
 
-                      {/* Match title */}
-                      <div className="px-3 pb-2">
-                        <h3 className="font-display font-bold text-primary text-base leading-tight">
-                          {teamLabel} <span className="font-normal text-gray-400 text-sm">vs</span> {r.opponent}
+                      {/* Divider */}
+                      <div className="mx-4 border-t border-gray-100" />
+
+                      {/* Match title + venue */}
+                      <div className="px-4 py-2.5">
+                        <h3 className="font-display font-bold text-primary text-[13px] leading-snug">
+                          {teamLabel} <span className="font-normal text-gray-400 text-xs">vs</span> {r.opponent}
                         </h3>
                         {r.venue && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <svg className="w-2.5 h-2.5 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <svg className="w-3 h-3 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                               <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
                             </svg>
                             <span className="text-[10px] text-gray-400 truncate">{r.venue}</span>
@@ -149,16 +150,16 @@ export default function Results() {
 
                       {/* Score block */}
                       {(r.ncb_score || r.opp_score) && (
-                        <div className="mx-3 mb-2 grid grid-cols-2 gap-1.5">
+                        <div className="mx-4 mb-2.5 grid grid-cols-2 gap-2">
                           {r.ncb_score && (
-                            <div className="bg-gray-50 rounded-xl px-2.5 py-1.5">
-                              <div className="text-[9px] text-gray-400 font-medium uppercase tracking-wide mb-0.5">{teamShort}</div>
+                            <div className="bg-gray-50 rounded-xl px-3 py-2">
+                              <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mb-1 truncate">{teamLabel}</div>
                               <div className="font-mono font-bold text-sm text-gray-800 leading-none">{r.ncb_score}</div>
                             </div>
                           )}
                           {r.opp_score && (
-                            <div className="bg-gray-50 rounded-xl px-2.5 py-1.5">
-                              <div className="text-[9px] text-gray-400 font-medium uppercase tracking-wide mb-0.5 truncate">{r.opponent?.split(' ')[0]}</div>
+                            <div className="bg-gray-50 rounded-xl px-3 py-2">
+                              <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mb-1 truncate">{r.opponent}</div>
                               <div className="font-mono font-bold text-sm text-gray-500 leading-none">{r.opp_score}</div>
                             </div>
                           )}
@@ -167,8 +168,8 @@ export default function Results() {
 
                       {/* Result pill */}
                       {r.result && (
-                        <div className="px-3 pb-2">
-                          <span className={`inline-block text-[10px] font-semibold px-2.5 py-1 rounded-full ${won ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                        <div className="px-4 pb-2.5">
+                          <span className={`inline-block text-[10px] font-semibold px-3 py-1 rounded-full ${won ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                             {r.result}
                           </span>
                         </div>
@@ -176,18 +177,20 @@ export default function Results() {
 
                       {/* MoM + Scorecard footer */}
                       {(r.mom || r.scorecard_url) && (
-                        <div className="border-t border-gray-100 px-3 py-2 flex items-center gap-2 flex-wrap">
-                          {r.mom && (
-                            <div className="flex items-center gap-1 flex-1 min-w-0">
-                              <span className="text-xs">🏆</span>
-                              <span className="text-[10px] font-semibold text-primary truncate">{r.mom}</span>
-                              {r.mom_stat && <span className="text-[10px] text-gray-400 truncate">— {r.mom_stat}</span>}
+                        <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between gap-2">
+                          {r.mom ? (
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-xs flex-shrink-0">🏆</span>
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-semibold text-primary truncate">{r.mom}</div>
+                                {r.mom_stat && <div className="text-[9px] text-gray-400 truncate">{r.mom_stat}</div>}
+                              </div>
                             </div>
-                          )}
+                          ) : <div />}
                           {r.scorecard_url && (
                             <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
-                              className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                              📋 Scorecard ↗
+                              className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                              Scorecard ↗
                             </a>
                           )}
                         </div>
@@ -238,7 +241,7 @@ export default function Results() {
                           <div className="flex-shrink-0 text-right space-y-1 min-w-[140px]">
                             {r.ncb_score && (
                               <div className="bg-gray-50 rounded-xl px-3 py-1.5">
-                                <div className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">{teamShort}</div>
+                                <div className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5 truncate">{teamLabel}</div>
                                 <div className="font-mono font-bold text-sm text-gray-800">{r.ncb_score}</div>
                               </div>
                             )}

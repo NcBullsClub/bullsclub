@@ -1,14 +1,26 @@
 -- Fix allowed_emails RLS to allow both admin and superadmin roles.
 -- Run this in the Supabase SQL editor.
+-- Safe to re-run at any time.
 
--- Enable RLS (safe to run even if already enabled)
+-- 1. Enable RLS (idempotent)
 ALTER TABLE allowed_emails ENABLE ROW LEVEL SECURITY;
 
--- Drop any existing policies to start clean
-DROP POLICY IF EXISTS "allowed_emails_select_admin" ON allowed_emails;
-DROP POLICY IF EXISTS "allowed_emails_insert_admin" ON allowed_emails;
-DROP POLICY IF EXISTS "allowed_emails_update_admin" ON allowed_emails;
-DROP POLICY IF EXISTS "allowed_emails_delete_admin" ON allowed_emails;
+-- 2. Drop ALL existing policies on allowed_emails regardless of name,
+--    so no legacy policy from the Supabase dashboard can block inserts.
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'allowed_emails'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON allowed_emails', pol.policyname);
+  END LOOP;
+END $$;
+
+-- 3. Recreate clean policies for admin + superadmin
 
 -- SELECT: admin or superadmin can read all rows
 CREATE POLICY "allowed_emails_select_admin"

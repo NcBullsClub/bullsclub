@@ -43,6 +43,14 @@ export default function PlayerRosterTab() {
     loadProfiles()
   }
 
+  async function handleDelete(player) {
+    if (!window.confirm(`Remove "${player.full_name}" from the roster?\n\nThis deletes their profile record. They will no longer appear in the roster.`)) return
+    setUpdatingProfile(player.id)
+    await supabase.from('profiles').delete().eq('id', player.id)
+    setProfiles((prev) => prev.filter((p) => p.id !== player.id))
+    setUpdatingProfile(null)
+  }
+
   const filtered = profiles
     .filter((p) => {
       const q = search.toLowerCase()
@@ -167,6 +175,18 @@ export default function PlayerRosterTab() {
                         : '—'}
                     </span>
                   </div>
+                  {/* Delete */}
+                  {p.role !== 'superadmin' && (
+                    <div className="mt-3 pt-2.5 border-t border-gray-100 flex justify-end">
+                      <button
+                        onClick={() => handleDelete(p)}
+                        disabled={saving}
+                        className="text-[11px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-full transition-colors disabled:opacity-40"
+                      >
+                        Remove from roster
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -182,6 +202,7 @@ export default function PlayerRosterTab() {
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Team</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Role</th>
                   <th className="text-left px-5 py-3 font-semibold text-gray-600">Joined</th>
+                  <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -237,6 +258,17 @@ export default function PlayerRosterTab() {
                               month: 'short', day: 'numeric', year: 'numeric',
                             })
                           : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {p.role !== 'superadmin' && (
+                          <button
+                            onClick={() => handleDelete(p)}
+                            disabled={saving}
+                            className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-full transition-colors disabled:opacity-40"
+                          >
+                            Remove
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )

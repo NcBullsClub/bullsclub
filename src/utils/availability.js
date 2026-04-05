@@ -94,11 +94,11 @@ export async function fetchAvailability() {
 export function groupByFixture(records) {
   return records.reduce((acc, r) => {
     const key = r.fixtureDate
-    if (!acc[key]) acc[key] = { inCount: 0, outCount: 0, maybeCount: 0, names: [] }
+    if (!acc[key]) acc[key] = { inCount: 0, outCount: 0, maybeCount: 0, names: [], inNames: [], maybeNames: [], outNames: [] }
     const s = r.availability.toLowerCase()
-    if (s === 'in')    acc[key].inCount    += 1
-    if (s === 'out')   acc[key].outCount   += 1
-    if (s === 'maybe') acc[key].maybeCount += 1
+    if (s === 'in')    { acc[key].inCount    += 1; if (r.playerName) acc[key].inNames.push(r.playerName) }
+    if (s === 'out')   { acc[key].outCount   += 1; if (r.playerName) acc[key].outNames.push(r.playerName) }
+    if (s === 'maybe') { acc[key].maybeCount += 1; if (r.playerName) acc[key].maybeNames.push(r.playerName) }
     if (r.playerName)  acc[key].names.push(r.playerName)
     return acc
   }, {})
@@ -113,7 +113,7 @@ export function groupByFixture(records) {
  */
 export function getFixtureAvailability(records, fixtureDate) {
   const grouped = groupByFixture(records)
-  return grouped[fixtureDate] ?? { inCount: 0, outCount: 0, maybeCount: 0, names: [] }
+  return grouped[fixtureDate] ?? { inCount: 0, outCount: 0, maybeCount: 0, names: [], inNames: [], maybeNames: [], outNames: [] }
 }
 
 /**

@@ -7,7 +7,7 @@
     "team": "raising-bulls",
     "venue": "Century Fields 3",
     "venueAddress": "7720 Barefoot Rd, Fuquay-Varina, NC 27526",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -18,7 +18,7 @@
     "team": "raising-bulls",
     "venue": "RTP 1",
     "venueAddress": "223 E Institute Dr, Durham, NC 22709",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -29,7 +29,7 @@
     "team": "raising-bulls",
     "venue": "RTP 4",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -40,7 +40,7 @@
     "team": "raising-bulls",
     "venue": "C R Woods Park",
     "venueAddress": "417 Commonwealth St, Durham, NC 27703",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -51,7 +51,7 @@
     "team": "raising-bulls",
     "venue": "Bethesda Upper",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -62,7 +62,7 @@
     "team": "raising-bulls",
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -73,7 +73,7 @@
     "team": "raising-bulls",
     "venue": "RTP 3",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -84,7 +84,7 @@
     "team": "raising-bulls",
     "venue": "Century Fields 3",
     "venueAddress": "7720 Barefoot Rd, Fuquay-Varina, NC 27526",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -95,7 +95,7 @@
     "team": "raising-bulls",
     "venue": "Bethesda Lower",
     "venueAddress": "2009 South Miami Blvd, Durham, NC 27703",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -106,7 +106,7 @@
     "team": "raising-bulls",
     "venue": "Apex Jaycee Park",
     "venueAddress": "Apex, NC",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -117,7 +117,7 @@
     "team": "raising-bulls",
     "venue": "RTP 1",
     "venueAddress": "223 E Institute Dr, Durham, NC 22709",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -128,7 +128,7 @@
     "team": "raising-bulls",
     "venue": "RTP 1",
     "venueAddress": "223 E Institute Dr, Durham, NC 22709",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {
@@ -139,7 +139,7 @@
     "team": "raising-bulls",
     "venue": "RTP 4",
     "venueAddress": "2500 S Tricenter Blvd, Durham, NC 27714",
-    "format": "T20",
+    "format": "HT",
     "type": "Mega Bash"
   },
   {

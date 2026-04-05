@@ -223,60 +223,72 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSave
           </form>
         )}
 
-        {/* ── SECTION 2: Counts */}
-        {user && (counts.in > 0 || counts.out > 0 || counts.maybe > 0) && (
-          <div className="flex gap-2">
-            {counts.in > 0 && (
-              <div className="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-                ✅ {counts.in} In
-              </div>
-            )}
-            {counts.maybe > 0 && (
-              <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-                🤔 {counts.maybe} Maybe
-              </div>
-            )}
-            {counts.out > 0 && (
-              <div className="flex items-center gap-1.5 bg-red-50 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full">
-                ❌ {counts.out} Out
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── SECTION 3: Available players list */}
+        {/* ── SECTION 2 & 3: Player list grouped by status */}
         {user && counts.players.length > 0 && (
-          <div>
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-              Available Players
-            </div>
-            <div className="space-y-1">
-              {availablePlayers.map((p, i) => (
-                <div key={i} className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
-                  p.status === 'in' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'
-                }`}>
-                  <span className="flex-shrink-0">{p.status === 'in' ? '✅' : '🤔'}</span>
-                  <span className="font-medium truncate">{p.name}</span>
-                  {p.status === 'maybe' && <span className="ml-auto text-amber-500 text-xs">maybe</span>}
-                </div>
-              ))}
-              {outPlayers.length > 0 && (
-                <details className="mt-1">
-                  <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 select-none">
-                    {outPlayers.length} not available
-                  </summary>
-                  <div className="mt-1 space-y-1">
-                    {outPlayers.map((p, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700">
-                        <span>❌</span>
-                        <span className="truncate">{p.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </details>
+          <details open={!isPast}>
+            <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Players</span>
+              {counts.in > 0 && (
+                <span className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">
+                  ✅ {counts.in} in
+                </span>
               )}
+              {counts.maybe > 0 && (
+                <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                  🤔 {counts.maybe} maybe
+                </span>
+              )}
+              {counts.out > 0 && (
+                <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full">
+                  ❌ {counts.out} out
+                </span>
+              )}
+            </summary>
+
+            <div className="mt-2">
+            {/* In — alphabetical list */}
+            {availablePlayers.filter((p) => p.status === 'in').length > 0 && (
+              <div className="space-y-0.5 mb-1">
+                {availablePlayers.filter((p) => p.status === 'in').map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-green-50">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                    <span className="text-xs font-medium text-green-800">{p.name.split(' ')[0]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Maybe — alphabetical list */}
+            {availablePlayers.filter((p) => p.status === 'maybe').length > 0 && (
+              <div className="space-y-0.5 mb-1">
+                {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-50">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                    <span className="text-xs font-medium text-amber-800">{p.name.split(' ')[0]}</span>
+                    <span className="ml-auto text-[10px] text-amber-500 font-normal">maybe</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Out — collapsible alphabetical list */}
+            {outPlayers.length > 0 && (
+              <details>
+                <summary className="text-[10px] text-gray-400 cursor-pointer hover:text-gray-600 select-none py-0.5">
+                  {outPlayers.length} not available
+                </summary>
+                <div className="space-y-0.5 mt-1">
+                  {outPlayers.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-red-50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                      <span className="text-xs font-medium text-red-700">{p.name.split(' ')[0]}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
             </div>
-          </div>
+          </details>
         )}
 
       </div>
@@ -356,13 +368,13 @@ export default function Availability() {
 
   return (
     <div>
-      <section className="bg-primary-dark text-white py-16">
+      <section className="bg-primary-dark text-white py-10 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-5xl md:text-6xl font-bold mb-3 text-center">
+            <h1 className="font-display text-3xl md:text-6xl font-bold mb-1 md:mb-3 text-center">
               PLAYER <span className="text-accent">AVAILABILITY</span>
             </h1>
-            <p className="text-gray-300 text-lg max-w-2xl mx-auto text-center">
+            <p className="text-gray-400 text-sm md:text-lg max-w-2xl mx-auto text-center">
               Let your captain know if you can make the next match.
             </p>
             {user && profile && (
@@ -406,8 +418,8 @@ export default function Availability() {
         </div>
       </section>
 
-      <section className="py-12 bg-surface min-h-[60vh]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-6 md:py-12 bg-surface min-h-[60vh]">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
           {loadingData && (
             <div className="flex justify-center py-12">
               <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />

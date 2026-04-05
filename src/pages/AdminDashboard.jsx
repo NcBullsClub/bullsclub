@@ -6,23 +6,31 @@ import WhatsAppSummaryTab from './admin/WhatsAppSummaryTab'
 import ResultsTab         from './admin/ResultsTab'
 import AllowedEmailsTab   from './admin/AllowedEmailsTab'
 import PlayerRosterTab    from './admin/PlayerRosterTab'
+import JoinRequestsTab    from './admin/JoinRequestsTab'
 
 const TABS = [
-  { id: 'availability', label: 'Availability',  icon: '📋', short: 'Availability' },
-  { id: 'whatsapp',     label: 'Selection',      icon: '🏏', short: 'Selection'   },
-  { id: 'results',      label: 'Results',        icon: '🏆', short: 'Results'     },
-  { id: 'access',       label: 'Access',         icon: '🔑', short: 'Access'      },
-  { id: 'roster',       label: 'Player Roster',  icon: '👥', short: 'Roster'      },
+  { id: 'availability', label: 'Availability',   icon: '📋', short: 'Avail.'   },
+  { id: 'whatsapp',     label: 'Selection',       icon: '🏏', short: 'Select.'  },
+  { id: 'results',      label: 'Results',         icon: '🏆', short: 'Results'  },
+  { id: 'access',       label: 'Access',          icon: '🔑', short: 'Access'   },
+  { id: 'roster',       label: 'Player Roster',   icon: '👥', short: 'Roster'   },
+  { id: 'requests',     label: 'Join Requests',   icon: '📩', short: 'Requests' },
 ]
 
 export default function AdminDashboard() {
   const { profile, isSuperAdmin } = useAuth()
   const [activeTab, setActiveTab]                   = useState('availability')
   const [selectedFixtureKey, setSelectedFixtureKey] = useState('')
+  const [pendingRequests, setPendingRequests]       = useState(0)
+  const [rosterRefreshKey, setRosterRefreshKey]     = useState(0)
 
   function handleSelectFixture(key) {
     setSelectedFixtureKey(key)
     setActiveTab('whatsapp')
+  }
+
+  function handlePlayerDeleted() {
+    setRosterRefreshKey((k) => k + 1)
   }
 
   const roleLabel = isSuperAdmin ? 'Super Admin' : 'Admin'
@@ -60,16 +68,17 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ── Mobile tab grid (hidden on md+) ── */}
+      {/* ── Mobile tab grid (hidden on md+) — 3 cols × 2 rows ── */}
       <section className="md:hidden bg-white border-b border-gray-100 shadow-sm px-3 py-3 sticky top-16 z-30">
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5">
           {TABS.map((tab) => {
             const active = activeTab === tab.id
+            const badge  = tab.id === 'requests' && pendingRequests > 0
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-center transition-all ${
+                className={`relative flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-center transition-all ${
                   active
                     ? 'bg-primary-dark text-accent'
                     : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
@@ -77,6 +86,11 @@ export default function AdminDashboard() {
               >
                 <span className="text-lg leading-none">{tab.icon}</span>
                 <span className="text-[10px] font-semibold leading-tight">{tab.short}</span>
+                {badge && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-amber-400 text-primary-dark rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
+                    {pendingRequests}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -87,20 +101,28 @@ export default function AdminDashboard() {
       <section className="hidden md:block bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-1 py-2">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-primary-dark text-accent'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-primary'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const badge = tab.id === 'requests' && pendingRequests > 0
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-primary-dark text-accent'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-primary'
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                  {badge && (
+                    <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">
+                      {pendingRequests}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -112,6 +134,11 @@ export default function AdminDashboard() {
           <div className="md:hidden flex items-center gap-2 mb-5">
             <span className="text-xl">{activeTabObj?.icon}</span>
             <h2 className="font-display font-bold text-primary text-xl">{activeTabObj?.label}</h2>
+            {activeTabObj?.id === 'requests' && pendingRequests > 0 && (
+              <span className="text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                {pendingRequests} pending
+              </span>
+            )}
           </div>
           <motion.div
             key={activeTab}
@@ -122,8 +149,9 @@ export default function AdminDashboard() {
             {activeTab === 'availability' && <AvailabilityTab onSelectFixture={handleSelectFixture} />}
             {activeTab === 'whatsapp'     && <WhatsAppSummaryTab initialFixtureKey={selectedFixtureKey} />}
             {activeTab === 'results'      && <ResultsTab />}
-            {activeTab === 'access'       && <AllowedEmailsTab />}
-            {activeTab === 'roster'       && <PlayerRosterTab />}
+            {activeTab === 'access'       && <AllowedEmailsTab onPlayerDeleted={handlePlayerDeleted} />}
+            {activeTab === 'roster'       && <PlayerRosterTab key={rosterRefreshKey} />}
+            {activeTab === 'requests'     && <JoinRequestsTab onPendingCount={setPendingRequests} />}
           </motion.div>
         </div>
       </section>

@@ -1,33 +1,37 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { supabase } from '../lib/supabase'
+
+const ROLES = [
+  { value: 'batsman',        label: '🏏 Batsman' },
+  { value: 'bowler',         label: '⚡ Bowler' },
+  { value: 'all-rounder',    label: '🌟 All-Rounder' },
+  { value: 'wicket-keeper',  label: '🧤 Wicket-Keeper' },
+  { value: 'beginner',       label: '🌱 Beginner / Learning' },
+]
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', team: '', role: '', message: '' })
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [formData, setFormData]   = useState({ full_name: '', email: '', playing_role: '', message: '' })
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     setLoading(true)
-    try {
-      const response = await fetch('https://formspree.io/f/YOUR_FORM_ID', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(formData),
-      })
-      if (response.ok) {
-        setSubmitted(true)
-      }
-    } catch {
-      // Fallback: show success for demo (replace YOUR_FORM_ID with real Formspree ID)
-      setSubmitted(true)
-    } finally {
-      setLoading(false)
-    }
+    const { error: err } = await supabase.from('join_requests').insert({
+      full_name:    formData.full_name.trim(),
+      email:        formData.email.trim().toLowerCase(),
+      playing_role: formData.playing_role,
+      message:      formData.message.trim() || null,
+    })
+    setLoading(false)
+    if (err) { setError(err.message); return }
+    setSubmitted(true)
   }
 
   return (
@@ -106,9 +110,9 @@ export default function Contact() {
               {submitted ? (
                 <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center h-full flex flex-col items-center justify-center">
                   <div className="text-6xl mb-4">🎉</div>
-                  <h3 className="font-display font-bold text-primary text-2xl mb-3">Message Sent!</h3>
+                  <h3 className="font-display font-bold text-primary text-2xl mb-3">Request Received!</h3>
                   <p className="text-gray-500">
-                    Thanks for reaching out! We'll be in touch soon about joining NC Bulls Cricket Club.
+                    Thanks for your interest! Our admins will review your request and add you to the approved list shortly. Keep an eye on your email.
                   </p>
                 </div>
               ) : (
@@ -118,117 +122,86 @@ export default function Contact() {
                 >
                   <h3 className="font-display font-bold text-primary text-xl">Register Interest</h3>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="name">
-                        Full Name <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                        placeholder="Your full name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
-                        Email <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                        placeholder="your@email.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="phone">
-                        Phone Number
-                      </label>
-                      <input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                        placeholder="(919) 000-0000"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="team">
-                        Preferred Team
-                      </label>
-                      <select
-                        id="team"
-                        name="team"
-                        value={formData.team}
-                        onChange={handleChange}
-                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors bg-white"
-                      >
-                        <option value="">No preference</option>
-                        <option value="raising-bulls">Raising Bulls</option>
-                        <option value="royal-bulls">Royal Bulls</option>
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="full_name">
+                      Full Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      id="full_name"
+                      name="full_name"
+                      type="text"
+                      required
+                      value={formData.full_name}
+                      onChange={handleChange}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                      placeholder="Your full name"
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="role">
-                      Playing Role
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="email">
+                      Email <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="playing_role">
+                      Playing Role <span className="text-red-400">*</span>
                     </label>
                     <select
-                      id="role"
-                      name="role"
-                      value={formData.role}
+                      id="playing_role"
+                      name="playing_role"
+                      required
+                      value={formData.playing_role}
                       onChange={handleChange}
                       className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors bg-white"
                     >
                       <option value="">Select your role</option>
-                      <option value="batsman">Batsman</option>
-                      <option value="bowler">Bowler</option>
-                      <option value="all-rounder">All-Rounder</option>
-                      <option value="wicket-keeper">Wicket-Keeper</option>
-                      <option value="beginner">Beginner / Learning</option>
+                      {ROLES.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="message">
-                      Message
+                      Message <span className="text-gray-400 font-normal text-xs">(optional)</span>
                     </label>
                     <textarea
                       id="message"
                       name="message"
-                      rows={4}
+                      rows={3}
                       value={formData.message}
                       onChange={handleChange}
                       className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-none"
-                      placeholder="Tell us a bit about yourself and your cricket experience..."
+                      placeholder="Tell us a bit about your cricket experience…"
                     />
                   </div>
+
+                  {error && (
+                    <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-2">{error}</p>
+                  )}
 
                   <button
                     type="submit"
                     disabled={loading}
                     className="w-full btn-primary text-center py-3.5 text-base disabled:opacity-60"
                   >
-                    {loading ? 'Sending...' : 'Send Message →'}
+                    {loading ? 'Submitting…' : 'Request to Join →'}
                   </button>
 
                   <p className="text-xs text-gray-400 text-center">
-                    We typically respond within 2–3 business days.
+                    Admins will review and add you to the approved list. You'll then be able to sign up.
                   </p>
                 </form>
               )}

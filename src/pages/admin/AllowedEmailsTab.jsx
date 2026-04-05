@@ -9,7 +9,7 @@ const TEAM_OPTIONS = [
 
 
 
-export default function AllowedEmailsTab() {
+export default function AllowedEmailsTab({ onPlayerDeleted }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
   // ── Allowlist state ──────────────────────────────────────────────────────
@@ -72,6 +72,7 @@ export default function AllowedEmailsTab() {
       supabase.from('profiles').delete().eq('email', email),
     ])
     setRemovingEmail(null)
+    onPlayerDeleted?.()
     loadAllowlist()
   }
 

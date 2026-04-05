@@ -178,13 +178,13 @@ export default function Fixtures() {
                       </div>
                       {/* Team + format */}
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
-                        {teamShort}
+                          {teamLabel}
                       </span>
                       <span className="text-[10px] text-gray-400 font-medium">{f.format}</span>
                       <div className="flex-1" />
                       {/* Status */}
                       {past ? (
-                        <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✓ Done</span>
+                        <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✓ Completed</span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />Upcoming

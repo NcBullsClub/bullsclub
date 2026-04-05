@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,6 +8,16 @@ export default function Login() {
   const navigate   = useNavigate()
   const location   = useLocation()
   const next       = location.state?.next || '/availability'
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+        document.documentElement.scrollTop = 0
+        document.body.scrollTop = 0
+      })
+    })
+  }, [])
 
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [error, setError]       = useState('')
@@ -31,7 +41,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[90vh] bg-surface flex items-center justify-center px-4 py-16">
+    <div className="min-h-[90vh] bg-surface px-4 py-8 md:py-16 md:flex md:items-center md:justify-center">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}

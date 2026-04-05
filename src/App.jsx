@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute, AdminRoute } from './components/ui/ProtectedRoute'
 import Layout from './components/layout/Layout'
@@ -22,6 +23,20 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AdminDashboard from './pages/AdminDashboard'
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+        document.documentElement.scrollTop = 0
+        document.body.scrollTop = 0
+      })
+    })
+  }, [pathname])
+  return null
+}
+
 function NotFound() {
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4">
@@ -36,6 +51,7 @@ function NotFound() {
 export default function App() {
   return (
     <AuthProvider>
+      <ScrollToTop />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />

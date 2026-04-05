@@ -158,7 +158,12 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSave
         {/* ── SECTION 1: Mark availability (always shown for eligible users) */}
         {!user ? (
           <button
-            onClick={() => navigate('/login', { state: { next: '/availability' } })}
+            onClick={() => {
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+              document.documentElement.scrollTop = 0
+              document.body.scrollTop = 0
+              navigate('/login', { state: { next: '/availability' } })
+            }}
             className="w-full text-sm font-semibold text-center border-2 border-accent text-primary-dark rounded-xl px-4 py-2.5 hover:bg-accent transition-all"
           >
             Sign in to mark your availability

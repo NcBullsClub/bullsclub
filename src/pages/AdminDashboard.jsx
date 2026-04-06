@@ -9,19 +9,26 @@ import PlayerRosterTab    from './admin/PlayerRosterTab'
 import JoinRequestsTab    from './admin/JoinRequestsTab'
 import FinancesTab        from './admin/FinancesTab'
 
-const TABS = [
-  { id: 'availability', label: 'Availability',   icon: '📋', short: 'Avail.'   },
-  { id: 'whatsapp',     label: 'Selection',       icon: '🏏', short: 'Select.'  },
-  { id: 'results',      label: 'Results',         icon: '🏆', short: 'Results'  },
-  { id: 'finances',     label: 'Finances',        icon: '💰', short: 'Finances' },
-  { id: 'access',       label: 'Access',          icon: '🔑', short: 'Access'   },
-  { id: 'roster',       label: 'Player Roster',   icon: '👥', short: 'Roster'   },
-  { id: 'requests',     label: 'Join Requests',   icon: '📩', short: 'Requests' },
+// Row 1 — match day tools
+const ROW1 = [
+  { id: 'availability', label: 'Availability', icon: '📋', short: 'Avail.'   },
+  { id: 'whatsapp',     label: 'Selection',    icon: '🏏', short: 'Select.'  },
+  { id: 'results',      label: 'Results',      icon: '🏆', short: 'Results'  },
+  { id: 'finances',     label: 'Finances',     icon: '💰', short: 'Finances' },
 ]
+// Row 2 — management tools
+const ROW2 = [
+  { id: 'access',     label: 'Access',        icon: '🔑', short: 'Access'    },
+  { id: 'roster',     label: 'Player Roster',  icon: '👥', short: 'Roster'    },
+  { id: 'requests',   label: 'Join Requests',  icon: '📩', short: 'Requests'  },
+  { id: 'clubhouse',  label: 'Clubhouse',      icon: '🏠', short: 'Clubhouse' },
+]
+const TABS = [...ROW1, ...ROW2]
 
 export default function AdminDashboard() {
   const { profile, isSuperAdmin } = useAuth()
   const [activeTab, setActiveTab]                   = useState('availability')
+  const [clubhouseTab, setClubhouseTab]             = useState('news')
   const [selectedFixtureKey, setSelectedFixtureKey] = useState('')
   const [pendingRequests, setPendingRequests]       = useState(0)
   const [rosterRefreshKey, setRosterRefreshKey]     = useState(0)
@@ -70,62 +77,68 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* ── Mobile tab grid (hidden on md+) — 3 cols × 2 rows ── */}
+      {/* ── Mobile tab grid — 2 rows of 4 ── */}
       <section className="md:hidden bg-white border-b border-gray-100 shadow-sm px-3 py-3 sticky top-16 z-30">
-        <div className="grid grid-cols-3 gap-1.5">
-          {TABS.map((tab) => {
-            const active = activeTab === tab.id
-            const badge  = tab.id === 'requests' && pendingRequests > 0
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-center transition-all ${
-                  active
-                    ? 'bg-primary-dark text-accent'
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                }`}
-              >
-                <span className="text-lg leading-none">{tab.icon}</span>
-                <span className="text-[10px] font-semibold leading-tight">{tab.short}</span>
-                {badge && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-amber-400 text-primary-dark rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
-                    {pendingRequests}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+        <div className="space-y-1.5">
+          {[ROW1, ROW2].map((row, ri) => (
+            <div key={ri} className="grid grid-cols-4 gap-1.5">
+              {row.map((tab) => {
+                const active = activeTab === tab.id
+                const badge  = tab.id === 'requests' && pendingRequests > 0
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-center transition-all ${
+                      active
+                        ? 'bg-primary-dark text-accent'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-lg leading-none">{tab.icon}</span>
+                    <span className="text-[10px] font-semibold leading-tight">{tab.short}</span>
+                    {badge && (
+                      <span className="absolute top-1 right-1 w-4 h-4 bg-amber-400 text-primary-dark rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
+                        {pendingRequests}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── Desktop tab bar (hidden on mobile) ── */}
+      {/* ── Desktop tab bar — 2 rows ── */}
       <section className="hidden md:block bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-1 py-2">
-            {TABS.map((tab) => {
-              const badge = tab.id === 'requests' && pendingRequests > 0
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'bg-primary-dark text-accent'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-primary'
-                  }`}
-                >
-                  <span>{tab.icon}</span>
-                  {tab.label}
-                  {badge && (
-                    <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">
-                      {pendingRequests}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+          {[ROW1, ROW2].map((row, ri) => (
+            <div key={ri} className={`flex gap-1 ${ri === 0 ? 'pt-2 pb-1' : 'pb-2'} ${ri === 0 ? 'border-b border-gray-100' : ''}`}>
+              {row.map((tab) => {
+                const badge = tab.id === 'requests' && pendingRequests > 0
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'bg-primary-dark text-accent'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-primary'
+                    }`}
+                  >
+                    <span>{tab.icon}</span>
+                    {tab.label}
+                    {badge && (
+                      <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">
+                        {pendingRequests}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -155,6 +168,53 @@ export default function AdminDashboard() {
             {activeTab === 'access'       && <AllowedEmailsTab onPlayerDeleted={handlePlayerDeleted} />}
             {activeTab === 'roster'       && <PlayerRosterTab key={rosterRefreshKey} />}
             {activeTab === 'requests'     && <JoinRequestsTab onPendingCount={setPendingRequests} />}
+            {activeTab === 'clubhouse'    && (
+              <div>
+                {/* Clubhouse sub-nav */}
+                <div className="flex gap-2 mb-6">
+                  {[
+                    { id: 'news',    label: 'News',    icon: '📰' },
+                    { id: 'events',  label: 'Events',  icon: '📅' },
+                    { id: 'gallery', label: 'Gallery', icon: '🖼️' },
+                  ].map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setClubhouseTab(s.id)}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                        clubhouseTab === s.id
+                          ? 'bg-primary-dark text-accent'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{s.icon}</span>{s.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sub-tab placeholders */}
+                {clubhouseTab === 'news' && (
+                  <div className="max-w-2xl mx-auto text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">📰</div>
+                    <h3 className="font-display font-bold text-primary text-2xl mb-2">News</h3>
+                    <p className="text-gray-400 text-sm">Publish and manage club news articles here. Coming soon.</p>
+                  </div>
+                )}
+                {clubhouseTab === 'events' && (
+                  <div className="max-w-2xl mx-auto text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">📅</div>
+                    <h3 className="font-display font-bold text-primary text-2xl mb-2">Events</h3>
+                    <p className="text-gray-400 text-sm">Create and manage club events here. Coming soon.</p>
+                  </div>
+                )}
+                {clubhouseTab === 'gallery' && (
+                  <div className="max-w-2xl mx-auto text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">🖼️</div>
+                    <h3 className="font-display font-bold text-primary text-2xl mb-2">Gallery</h3>
+                    <p className="text-gray-400 text-sm">Upload and manage match photos here. Coming soon.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       </section>

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import logo from '../assets/images/logo_without_background.png'
 import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
-import news from '../data/news.json'
+import { turso } from '../lib/turso'
 import sponsors from '../data/sponsors.json'
 
 function isWon(r) {
@@ -58,6 +58,20 @@ export default function Home() {
   const [latestRYResults, setLatestRYResults] = useState([])
   const [rbWins, setRbWins] = useState(0)
   const [ryWins, setRyWins] = useState(0)
+  const [latestNews, setLatestNews] = useState([])
+
+  useEffect(() => {
+    turso.execute("SELECT id, title, slug, summary, published_at FROM news WHERE status='published' ORDER BY published_at DESC LIMIT 3")
+      .then(({ rows }) => {
+        setLatestNews(rows.map(r => ({
+          id: r.id,
+          title: r.title,
+          slug: r.slug,
+          excerpt: r.summary,
+          date: r.published_at?.split('T')[0] ?? '',
+        })))
+      })
+  }, [])
 
   useEffect(() => {
     supabase
@@ -74,8 +88,6 @@ export default function Home() {
         setRyWins(ry.filter(isWon).length)
       })
   }, [])
-
-  const latestNews = news.slice(0, 3)
 
   return (
     <div>

@@ -1,8 +1,25 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import news from '../data/news.json'
+import { turso } from '../lib/turso'
 
 export default function News() {
+  const [news, setNews] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    turso.execute("SELECT * FROM news WHERE status='published' ORDER BY published_at DESC")
+      .then(({ rows }) => {
+        setNews(rows.map((r) => ({
+          ...r,
+          date: r.published_at?.split('T')[0] ?? '',
+          excerpt: r.summary,
+          tags: r.tags ? JSON.parse(r.tags) : [],
+        })))
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
     <div>
       {/* Header */}
@@ -20,6 +37,11 @@ export default function News() {
       {/* News Grid */}
       <section className="py-16 bg-surface min-h-[60vh]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {news.map((article, i) => (
               <motion.article
@@ -66,6 +88,7 @@ export default function News() {
               </motion.article>
             ))}
           </div>
+          )}
         </div>
       </section>
     </div>

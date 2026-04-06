@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import events from '../data/events.json'
+import { turso } from '../lib/turso'
 
 const categoryMeta = {
   'pre-season': {
@@ -27,11 +27,19 @@ const filters = ['All', 'Upcoming', 'Past']
 
 export default function Events() {
   const [active, setActive] = useState('All')
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    turso.execute('SELECT * FROM events ORDER BY date ASC')
+      .then(({ rows }) => setEvents(rows))
+      .finally(() => setLoading(false))
+  }, [])
 
   const filtered = events.filter((e) => {
     if (active === 'All') return true
     if (active === 'Upcoming') return e.status === 'upcoming'
-    if (active === 'Past') return e.status === 'completed'
+    if (active === 'Past') return e.status === 'past'
     return true
   })
 
@@ -73,7 +81,11 @@ export default function Events() {
       {/* Events List */}
       <section className="py-16 bg-surface min-h-[60vh]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-gray-400 text-lg">No events found.</div>
           ) : (
             <div className="space-y-6">
@@ -122,7 +134,7 @@ export default function Events() {
                       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-500 mb-3">
                         <span>📅 {dateStr}</span>
                         <span>🕐 {event.time}</span>
-                        <span>📍 {event.location}</span>
+                        <span>📍 {event.venue}</span>
                       </div>
 
                       <p className="text-gray-600 text-sm leading-relaxed">{event.description}</p>

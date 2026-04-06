@@ -1,10 +1,35 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import news from '../data/news.json'
+import { turso } from '../lib/turso'
 
 export default function Article() {
   const { slug } = useParams()
-  const article = news.find((a) => a.slug === slug)
+  const [article, setArticle] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    turso.execute({ sql: 'SELECT * FROM news WHERE slug=? LIMIT 1', args: [slug] })
+      .then(({ rows }) => {
+        if (rows.length > 0) {
+          const r = rows[0]
+          setArticle({
+            ...r,
+            date: r.published_at?.split('T')[0] ?? '',
+            tags: r.tags ? JSON.parse(r.tags) : [],
+          })
+        }
+      })
+      .finally(() => setLoading(false))
+  }, [slug])
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (!article) {
     return (

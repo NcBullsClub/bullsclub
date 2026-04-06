@@ -7,7 +7,10 @@ import ResultsTab         from './admin/ResultsTab'
 import AllowedEmailsTab   from './admin/AllowedEmailsTab'
 import PlayerRosterTab    from './admin/PlayerRosterTab'
 import JoinRequestsTab    from './admin/JoinRequestsTab'
-import FinancesTab        from './admin/FinancesTab'
+import FinancesTab           from './admin/FinancesTab'
+import ClubhouseNewsTab    from './admin/ClubhouseNewsTab'
+import ClubhouseEventsTab  from './admin/ClubhouseEventsTab'
+import ClubhouseGalleryTab from './admin/ClubhouseGalleryTab'
 
 // Row 1 — match day tools
 const ROW1 = [
@@ -191,28 +194,9 @@ export default function AdminDashboard() {
                   ))}
                 </div>
 
-                {/* Sub-tab placeholders */}
-                {clubhouseTab === 'news' && (
-                  <div className="max-w-2xl mx-auto text-center py-16">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">📰</div>
-                    <h3 className="font-display font-bold text-primary text-2xl mb-2">News</h3>
-                    <p className="text-gray-400 text-sm">Publish and manage club news articles here. Coming soon.</p>
-                  </div>
-                )}
-                {clubhouseTab === 'events' && (
-                  <div className="max-w-2xl mx-auto text-center py-16">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">📅</div>
-                    <h3 className="font-display font-bold text-primary text-2xl mb-2">Events</h3>
-                    <p className="text-gray-400 text-sm">Create and manage club events here. Coming soon.</p>
-                  </div>
-                )}
-                {clubhouseTab === 'gallery' && (
-                  <div className="max-w-2xl mx-auto text-center py-16">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">🖼️</div>
-                    <h3 className="font-display font-bold text-primary text-2xl mb-2">Gallery</h3>
-                    <p className="text-gray-400 text-sm">Upload and manage match photos here. Coming soon.</p>
-                  </div>
-                )}
+                {clubhouseTab === 'news'    && <ClubhouseNewsTab />}
+                {clubhouseTab === 'events'  && <ClubhouseEventsTab />}
+                {clubhouseTab === 'gallery' && <ClubhouseGalleryTab />}
               </div>
             )}
           </motion.div>

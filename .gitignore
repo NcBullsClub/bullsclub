@@ -15,6 +15,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Sensitive club data
+.clubinfo/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

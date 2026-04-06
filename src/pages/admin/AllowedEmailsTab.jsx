@@ -123,15 +123,24 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
             onChange={(e) => setNewName(e.target.value)}
             className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <select
-            value={newTeam}
-            onChange={(e) => setNewTeam(e.target.value)}
-            className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-white"
-          >
-            <option value="">Team (optional)</option>
-            <option value="raising-bulls">Raising Bulls</option>
-            <option value="royal-bulls">Royal Bulls</option>
-          </select>
+          <div className="flex gap-2 items-center">
+            {TEAM_OPTIONS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setNewTeam(newTeam === t.value ? '' : t.value)}
+                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  newTeam === t.value
+                    ? t.value === 'raising-bulls'
+                      ? 'bg-primary-dark text-accent border-primary-dark'
+                      : 'bg-primary text-white border-primary'
+                    : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
         {addError && <p className="text-red-600 text-sm mb-2">{addError}</p>}
         <button
@@ -186,6 +195,40 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 break-all">{row.email}</p>
+                    {/* Team tag — tappable, opens native picker */}
+                    <div className="mt-1.5 relative inline-block">
+                      {updatingTeam === row.email ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-400">
+                          <span className="w-2.5 h-2.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          Saving…
+                        </span>
+                      ) : (
+                        <select
+                          value={row.team || ''}
+                          onChange={(e) => handleTeamChange(row.email, e.target.value)}
+                          className={`appearance-none text-[10px] font-bold pl-2.5 pr-5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-accent ${
+                            row.team === 'raising-bulls'
+                              ? 'bg-primary-dark text-accent focus:ring-primary-dark'
+                              : row.team === 'royal-bulls'
+                              ? 'bg-primary text-white focus:ring-primary'
+                              : 'bg-gray-100 text-gray-400 focus:ring-gray-300'
+                          }`}
+                        >
+                          <option value="">＋ Assign team</option>
+                          {TEAM_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      )}
+                      {/* chevron icon overlay */}
+                      {updatingTeam !== row.email && (
+                        <svg className={`pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 ${
+                          row.team ? (row.team === 'raising-bulls' ? 'text-accent/70' : 'text-white/70') : 'text-gray-400'
+                        }`} viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
                   {confirmEmail === row.email ? (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -206,28 +249,8 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
                     >{removingEmail === row.email ? 'Removing…' : 'Remove'}</button>
                   )}
                 </div>
-                {/* Team + date */}
-                <div className="flex items-center justify-between gap-2">
-                  {updatingTeam === row.email ? (
-                    <span className="text-xs text-gray-400 italic">Saving…</span>
-                  ) : (
-                    <select
-                      value={row.team || ''}
-                      onChange={(e) => handleTeamChange(row.email, e.target.value)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${
-                        row.team === 'raising-bulls'
-                          ? 'bg-primary-dark text-accent'
-                          : row.team === 'royal-bulls'
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      <option value="">No team</option>
-                      {TEAM_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                  )}
+                {/* date row */}
+                <div className="flex justify-end mt-2">
                   <span className="text-xs text-gray-400">
                     {new Date(row.added_at).toLocaleDateString('en-US', {
                       month: 'short', day: 'numeric', year: 'numeric',
@@ -271,18 +294,15 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
                     </td>
                     <td className="px-5 py-3">
                       {updatingTeam === row.email ? (
-                        <span className="text-xs text-gray-400 italic">Saving…</span>
+                        <span className="text-xs text-gray-400 italic flex items-center gap-1">
+                          <span className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          Saving…
+                        </span>
                       ) : (
                         <select
                           value={row.team || ''}
                           onChange={(e) => handleTeamChange(row.email, e.target.value)}
-                          className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent ${
-                            row.team === 'raising-bulls'
-                              ? 'bg-primary-dark text-accent'
-                              : row.team === 'royal-bulls'
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent text-gray-700"
                         >
                           <option value="">No team</option>
                           {TEAM_OPTIONS.map((o) => (

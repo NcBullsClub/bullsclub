@@ -64,6 +64,16 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     (f) => `${f.date}::${f.team}` === selectedKey,
   )
 
+  // Auto-set season/division based on selected fixture's team
+  useEffect(() => {
+    if (!selectedFixture) return
+    setSeason(
+      selectedFixture.team === 'royal-bulls'
+        ? '2026 HT Mega Bash - Division 9'
+        : '2026 HT Mega Bash - Division 5',
+    )
+  }, [selectedFixture?.team])
+
   useEffect(() => {
     if (!selectedKey) { setAvailability([]); setSelected([]); return }
     const [date, team] = selectedKey.split('::')
@@ -109,8 +119,9 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   function buildMessage() {
     if (!selectedFixture || selected.length === 0) return ''
     const gameLabel = gameNumber ? `${ordinal(Number(gameNumber))} Game` : 'Game'
-    const playerLines = selected
-      .map((name, i) => `${String(i + 1).padStart(2, ' ')}. ${name}`)
+    const playerLines = [...selected]
+      .sort((a, b) => a.split(' ')[0].localeCompare(b.split(' ')[0]))
+      .map((name, i) => `${String(i + 1).padStart(2, ' ')}. ${name.split(' ')[0]}`)
       .join('\n')
 
     const lines = [

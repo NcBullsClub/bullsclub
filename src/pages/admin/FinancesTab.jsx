@@ -6,6 +6,7 @@ const SEASON = '2026'
 const SEASON_FEE = 120
 
 const TEAMS = [
+  { id: 'all',          label: 'All Teams'    },
   { id: 'raising-bulls', label: 'Raising Bulls' },
   { id: 'royal-bulls',   label: 'Royal Bulls'   },
 ]
@@ -13,9 +14,9 @@ const TEAMS = [
 export default function FinancesTab() {
   const { isSuperAdmin, adminTeam } = useAuth()
 
-  const defaultTeam = isSuperAdmin ? 'raising-bulls' : adminTeam
-  const [teamFilter, setTeamFilter]   = useState(defaultTeam)
+  const [teamFilter, setTeamFilter]   = useState('raising-bulls')
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'paid' | 'unpaid'
+  const [searchQuery, setSearchQuery]  = useState('')
   const [rosterPlayers, setRosterPlayers] = useState([])   // from profiles table
   const [financeMap, setFinanceMap]   = useState({})       // full_name::team → record
   const [loading, setLoading]         = useState(true)
@@ -69,17 +70,26 @@ export default function FinancesTab() {
   }
 
   // Derived stats for the selected team
-  const teamPlayers    = rosterPlayers.filter((p) => p.team === teamFilter)
+  const teamPlayers    = teamFilter === 'all'
+    ? rosterPlayers
+    : rosterPlayers.filter((p) => p.team === teamFilter)
   const paidCount      = teamPlayers.filter((p) => getRecord(p)?.paid).length
   const unpaidCount    = teamPlayers.length - paidCount
   const totalDue       = teamPlayers.length * SEASON_FEE
   const totalCollected = paidCount * SEASON_FEE
 
-  // List after status filter
+  // List after status filter + search
   const visiblePlayers = teamPlayers.filter((p) => {
     if (statusFilter === 'paid')   return !!getRecord(p)?.paid
     if (statusFilter === 'unpaid') return !getRecord(p)?.paid
     return true
+  }).filter((p) => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      (p.full_name || '').toLowerCase().includes(q) ||
+      (p.email    || '').toLowerCase().includes(q)
+    )
   })
 
   return (
@@ -96,27 +106,28 @@ export default function FinancesTab() {
 
       {/* Filters row */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        {/* Team filter — superAdmin only */}
-        {isSuperAdmin && (
-          <div className="flex gap-1.5">
-            {TEAMS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTeamFilter(t.id)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  teamFilter === t.id
-                    ? t.id === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Team filter */}
+        <div className="flex gap-1.5">
+          {TEAMS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTeamFilter(t.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                teamFilter === t.id
+                  ? t.id === 'raising-bulls'
+                    ? 'bg-primary-dark text-accent'
+                    : t.id === 'royal-bulls'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        {/* Divider */}
-        {isSuperAdmin && <span className="w-px h-5 bg-gray-200 hidden sm:block" />}
+        <span className="w-px h-5 bg-gray-200 hidden sm:block" />
 
         {/* Status filter */}
         <div className="flex gap-1.5">
@@ -137,6 +148,26 @@ export default function FinancesTab() {
               {f.label}
             </button>
           ))}
+        </div>
+
+        {/* Search bar */}
+        <div className="relative ml-auto">
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0Z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search name or email"
+            className="pl-8 pr-3 py-1.5 rounded-full text-xs border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent w-48"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+            >✕</button>
+          )}
         </div>
       </div>
 

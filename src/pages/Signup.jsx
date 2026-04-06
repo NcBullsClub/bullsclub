@@ -177,7 +177,7 @@ export default function Signup() {
                   <input
                     type="text" name="fullName" value={formData.fullName}
                     onChange={handleChange} required autoComplete="name"
-                    placeholder="Siva Kumar"
+                    placeholder="Steve Jobs"
                     className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   />
                 </div>

@@ -238,26 +238,23 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
 
         {/* ── PAYMENT BANNER: only shown when fee is unpaid */}
         {user && profile?.team === fixture.team && !isPast && financeLoaded && !myPaymentPaid && (
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-300">
-            {/* Stack of bills icon */}
-            <svg className="w-5 h-5 text-amber-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-              {/* bottom layer */}
-              <rect x="2" y="13" width="20" height="5" rx="1" fill="currentColor" fillOpacity="0.15" stroke="currentColor"/>
-              {/* middle layer */}
-              <rect x="2" y="10" width="20" height="5" rx="1" fill="currentColor" fillOpacity="0.25" stroke="currentColor"/>
-              {/* top bill */}
-              <rect x="2" y="7" width="20" height="5" rx="1" fill="currentColor" fillOpacity="0.5" stroke="currentColor"/>
-              {/* dollar circle on top bill */}
-              <circle cx="12" cy="9.5" r="1.5" stroke="currentColor" strokeWidth={1.4}/>
-              {/* left & right ovals */}
-              <ellipse cx="5" cy="9.5" rx="1.2" ry="0.9" stroke="currentColor" strokeWidth={1.2}/>
-              <ellipse cx="19" cy="9.5" rx="1.2" ry="0.9" stroke="currentColor" strokeWidth={1.2}/>
-            </svg>
+          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-300 shadow-sm">
+            {/* Banknotes icon */}
+            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 7.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
+                <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 0 1 1.5 14.625v-9.75ZM8.25 9.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM18.75 9a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V9.75a.75.75 0 0 0-.75-.75h-.008ZM4.5 9.75A.75.75 0 0 1 5.25 9h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V9.75Z" clipRule="evenodd" />
+                <path d="M2.25 18a.75.75 0 0 0 0 1.5c5.4 0 10.63.722 15.6 2.075 1.19.324 2.4-.558 2.4-1.82V18.75a.75.75 0 0 0-.75-.75H2.25Z" />
+              </svg>
+            </div>
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-bold text-amber-900">Season fee unpaid</span>
-              <span className="inline-flex items-center gap-1 ml-1.5">
-                <span className="text-xs font-black text-white bg-amber-500 px-2 py-0.5 rounded-full tabular-nums">$120</span>
-                <span className="text-[11px] text-amber-600">due · contact your admin</span>
+              <p className="text-xs font-bold text-amber-900 leading-tight">Season Fee Unpaid</p>
+              <p className="text-[10px] text-amber-600 mt-0.5">Contact your admin to settle payment</p>
+            </div>
+            <div className="flex-shrink-0">
+              <span className="inline-flex items-baseline gap-0.5 bg-red-500 text-white px-2.5 py-1 rounded-lg shadow-sm">
+                <span className="text-sm font-black tabular-nums">$120</span>
+                <span className="text-[9px] font-semibold uppercase tracking-wide ml-0.5">due</span>
               </span>
             </div>
           </div>
@@ -499,10 +496,12 @@ export default function Availability() {
                       ? 'bg-green-500 text-white'
                       : 'bg-red-500 text-white'
                   }`}>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 7.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
+                      <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 0 1 1.5 14.625v-9.75ZM8.25 9.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM18.75 9a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V9.75a.75.75 0 0 0-.75-.75h-.008ZM4.5 9.75A.75.75 0 0 1 5.25 9h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V9.75Z" clipRule="evenodd" />
+                      <path d="M2.25 18a.75.75 0 0 0 0 1.5c5.4 0 10.63.722 15.6 2.075 1.19.324 2.4-.558 2.4-1.82V18.75a.75.75 0 0 0-.75-.75H2.25Z" />
                     </svg>
-                    {myPaymentStatus ? '$120 · Season Fee Paid' : '$120 · Season Fee Unpaid'}
+                    {myPaymentStatus ? '$120 · Season Fee Paid' : '$120 Due · Season Fee Unpaid'}
                   </span>
                 )}
               </div>

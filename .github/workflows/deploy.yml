@@ -29,6 +29,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_TURSO_DB_URL: ${{ secrets.VITE_TURSO_DB_URL }}
+          VITE_TURSO_DB_AUTH_TOKEN: ${{ secrets.VITE_TURSO_DB_AUTH_TOKEN }}
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4

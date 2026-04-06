@@ -104,38 +104,46 @@ function CoinIcon({ className = 'w-3 h-3 flex-shrink-0' }) {
   )
 }
 
-function ScorePanel({ teamLabel, opponent, dbResult, align = 'left' }) {
+function ScorePanel({ teamLabel, opponent, dbResult }) {
   const hasScores = dbResult.ncb_score || dbResult.opp_score
-  const isRight = align === 'right'
   return (
     <div className="space-y-1.5 w-full">
+      {/* Toss */}
       {dbResult.toss && (
-        <div className={`flex items-center gap-1 text-[11px] text-gray-400 italic ${isRight ? 'justify-end' : ''}`}>
+        <div className="flex items-center gap-1 text-[11px] text-gray-400 italic">
           <CoinIcon className="w-3 h-3 flex-shrink-0" />
-          <span className="truncate">{dbResult.toss}</span>
+          <span>{dbResult.toss}</span>
         </div>
       )}
+
+      {/* Side-by-side scores */}
       {hasScores && (
-        <div className="rounded-xl overflow-hidden border border-gray-200">
-          {dbResult.ncb_score && (
-            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-primary-dark/5">
-              <span className="text-[11px] font-semibold text-gray-700 truncate flex-1">{teamLabel}</span>
-              <span className="text-xs font-mono font-black text-gray-900 tabular-nums flex-shrink-0">{dbResult.ncb_score}</span>
-            </div>
-          )}
-          {dbResult.opp_score && (
-            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white border-t border-gray-100">
-              <span className="text-[11px] font-semibold text-gray-700 truncate flex-1">{opponent}</span>
-              <span className="text-xs font-mono font-black text-gray-900 tabular-nums flex-shrink-0">{dbResult.opp_score}</span>
-            </div>
-          )}
+        <div className="flex items-stretch gap-2">
+          {/* Our team */}
+          <div className="flex-1 flex flex-col gap-0.5 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none truncate">{teamLabel}</span>
+            <span className="text-sm font-black font-mono tabular-nums text-gray-900 leading-tight">
+              {dbResult.ncb_score || <span className="text-gray-300 font-normal text-xs">—</span>}
+            </span>
+          </div>
+          {/* Opponent */}
+          <div className="flex-1 flex flex-col gap-0.5 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none truncate">{opponent}</span>
+            <span className="text-sm font-black font-mono tabular-nums text-gray-900 leading-tight">
+              {dbResult.opp_score || <span className="text-gray-300 font-normal text-xs">—</span>}
+            </span>
+          </div>
         </div>
       )}
+
+      {/* Result verdict */}
       {dbResult.result && (
-        <p className={`text-[11px] text-gray-600 font-medium leading-snug ${isRight ? 'text-right' : ''}`}>{dbResult.result}</p>
+        <p className="text-[11px] text-gray-600 font-medium leading-snug text-center">{dbResult.result}</p>
       )}
+
+      {/* Scorecard link */}
       {dbResult.scorecard_url && (
-        <div className={isRight ? 'flex justify-end' : ''}>
+        <div className="flex justify-center">
           <a
             href={dbResult.scorecard_url}
             target="_blank"
@@ -441,8 +449,8 @@ export default function Fixtures() {
                           </>
                         )}
                         {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
-                          <div className="w-52">
-                            <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} align="right" />
+                          <div className="w-56">
+                            <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
                           </div>
                         )}
                       </div>

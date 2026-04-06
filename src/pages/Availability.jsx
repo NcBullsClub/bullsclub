@@ -49,7 +49,7 @@ function StatusPill({ value, count }) {
   )
 }
 
-function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSaved }) {
+function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, myPaymentPaid, financeLoaded, onResponseSaved }) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const isRaising = fixture.team === 'raising-bulls'
@@ -118,6 +118,14 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSave
   const outPlayers = counts.players
     .filter((p) => p.status === 'out')
     .sort((a, b) => a.name.localeCompare(b.name))
+
+  function hasPaid(fullName) {
+    const first = (fullName || '').split(' ')[0].toLowerCase()
+    const key = Object.keys(financeMap).find(
+      (k) => k.split('::')[0].toLowerCase() === first && k.split('::')[1] === fixture.team
+    )
+    return key ? financeMap[key] : null
+  }
 
   return (
     <motion.div
@@ -228,6 +236,33 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSave
           </form>
         )}
 
+        {/* ── PAYMENT BANNER: only shown when fee is unpaid */}
+        {user && profile?.team === fixture.team && !isPast && financeLoaded && !myPaymentPaid && (
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-300">
+            {/* Stack of bills icon */}
+            <svg className="w-5 h-5 text-amber-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              {/* bottom layer */}
+              <rect x="2" y="13" width="20" height="5" rx="1" fill="currentColor" fillOpacity="0.15" stroke="currentColor"/>
+              {/* middle layer */}
+              <rect x="2" y="10" width="20" height="5" rx="1" fill="currentColor" fillOpacity="0.25" stroke="currentColor"/>
+              {/* top bill */}
+              <rect x="2" y="7" width="20" height="5" rx="1" fill="currentColor" fillOpacity="0.5" stroke="currentColor"/>
+              {/* dollar circle on top bill */}
+              <circle cx="12" cy="9.5" r="1.5" stroke="currentColor" strokeWidth={1.4}/>
+              {/* left & right ovals */}
+              <ellipse cx="5" cy="9.5" rx="1.2" ry="0.9" stroke="currentColor" strokeWidth={1.2}/>
+              <ellipse cx="19" cy="9.5" rx="1.2" ry="0.9" stroke="currentColor" strokeWidth={1.2}/>
+            </svg>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-bold text-amber-900">Season fee unpaid</span>
+              <span className="inline-flex items-center gap-1 ml-1.5">
+                <span className="text-xs font-black text-white bg-amber-500 px-2 py-0.5 rounded-full tabular-nums">$120</span>
+                <span className="text-[11px] text-amber-600">due · contact your admin</span>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* ── SECTION 2 & 3: Player list grouped by status */}
         {user && counts.players.length > 0 && (
           <details open={!isPast}>
@@ -254,25 +289,47 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSave
             {/* In — alphabetical list */}
             {availablePlayers.filter((p) => p.status === 'in').length > 0 && (
               <div className="space-y-0.5 mb-1">
-                {availablePlayers.filter((p) => p.status === 'in').map((p, i) => (
-                  <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-green-50">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                    <span className="text-xs font-medium text-green-800">{p.name.split(' ')[0]}</span>
-                  </div>
-                ))}
+                {availablePlayers.filter((p) => p.status === 'in').map((p, i) => {
+                  const paid = hasPaid(p.name)
+                  return (
+                    <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-green-50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-green-800 flex-1">{p.name.split(' ')[0]}</span>
+                      {paid !== null && (
+                        <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                          paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
+                        }`}>
+                          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+                          {paid ? 'Paid' : 'Unpaid'}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
             {/* Maybe — alphabetical list */}
             {availablePlayers.filter((p) => p.status === 'maybe').length > 0 && (
               <div className="space-y-0.5 mb-1">
-                {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => (
-                  <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-50">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                    <span className="text-xs font-medium text-amber-800">{p.name.split(' ')[0]}</span>
-                    <span className="ml-auto text-[10px] text-amber-500 font-normal">maybe</span>
-                  </div>
-                ))}
+                {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => {
+                  const paid = hasPaid(p.name)
+                  return (
+                    <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                      <span className="text-xs font-medium text-amber-800 flex-1">{p.name.split(' ')[0]}</span>
+                      <span className="ml-auto text-[10px] text-amber-500 font-normal">maybe</span>
+                      {paid !== null && (
+                        <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                          paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
+                        }`}>
+                          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+                          {paid ? 'Paid' : 'Unpaid'}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
@@ -283,12 +340,23 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, onResponseSave
                   {outPlayers.length} not available
                 </summary>
                 <div className="space-y-0.5 mt-1">
-                  {outPlayers.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-red-50">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                      <span className="text-xs font-medium text-red-700">{p.name.split(' ')[0]}</span>
-                    </div>
-                  ))}
+                  {outPlayers.map((p, i) => {
+                    const paid = hasPaid(p.name)
+                    return (
+                      <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-red-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                        <span className="text-xs font-medium text-red-700 flex-1">{p.name.split(' ')[0]}</span>
+                        {paid !== null && (
+                          <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                            paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-500 border-red-300'
+                          }`}>
+                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+                            {paid ? 'Paid' : 'Unpaid'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </details>
             )}
@@ -314,6 +382,8 @@ export default function Availability() {
   const [availabilityMap, setAvailabilityMap] = useState({})
   const [userResponseMap, setUserResponseMap] = useState({})
   const [loadingData, setLoadingData]         = useState(true)
+  const [financeMap, setFinanceMap]           = useState({})
+  const [financeLoaded, setFinanceLoaded]     = useState(false)
 
   const upcomingFixtures = fixtures.filter(
     (f) => f.status !== 'completed' && f.team === teamFilter,
@@ -359,6 +429,19 @@ export default function Availability() {
   useEffect(() => { loadData() }, [teamFilter, user])
 
   useEffect(() => {
+    supabase
+      .from('player_finances')
+      .select('player_name, team, paid')
+      .eq('season', '2026')
+      .then(({ data }) => {
+        const map = {}
+        ;(data || []).forEach((r) => { map[`${r.player_name}::${r.team}`] = r.paid })
+        setFinanceMap(map)
+        setFinanceLoaded(true)
+      })
+  }, [])
+
+  useEffect(() => {
     if (profile?.team) setTeamFilter(profile.team)
   }, [profile])
 
@@ -370,6 +453,20 @@ export default function Availability() {
       }, 400)
     }
   }, [paramFixture])
+
+  // Look up the logged-in player's own payment status
+  const myPaymentStatus = (() => {
+    if (!profile || !financeLoaded) return undefined
+    const exactKey = `${profile.full_name}::${profile.team}`
+    if (exactKey in financeMap) return financeMap[exactKey]
+    // first-name fallback for name mismatches
+    const fn = profile.full_name?.split(' ')[0]?.toLowerCase()
+    const k = Object.keys(financeMap).find(
+      (k) => k.split('::')[0].toLowerCase() === fn && k.split('::')[1] === profile.team
+    )
+    // default to unpaid (false) if loaded but no record found
+    return k !== undefined ? financeMap[k] : false
+  })()
 
   return (
     <div>
@@ -383,7 +480,7 @@ export default function Availability() {
               Let your captain know if you can make the next match.
             </p>
             {user && profile && (
-              <div className="flex justify-center mt-5">
+              <div className="flex flex-col items-center gap-3 mt-5">
                 <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm">
                   <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-primary-dark font-bold text-xs">
                     {profile.full_name?.[0]?.toUpperCase()}
@@ -394,6 +491,20 @@ export default function Availability() {
                     {profile.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
                   </span>
                 </div>
+
+                {/* Payment status tag for the logged-in player */}
+                {myPaymentStatus !== undefined && (
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 rounded-full ${
+                    myPaymentStatus
+                      ? 'bg-green-500 text-white'
+                      : 'bg-red-500 text-white'
+                  }`}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {myPaymentStatus ? '$120 · Season Fee Paid' : '$120 · Season Fee Unpaid'}
+                  </span>
+                )}
               </div>
             )}
             {!user && (
@@ -448,6 +559,9 @@ export default function Availability() {
                     fixture={f}
                     availabilityMap={availabilityMap}
                     userResponseMap={userResponseMap}
+                    financeMap={financeMap}
+                    myPaymentPaid={myPaymentStatus}
+                    financeLoaded={financeLoaded}
                     onResponseSaved={loadData}
                   />
                 </div>

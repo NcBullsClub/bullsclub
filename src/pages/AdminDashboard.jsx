@@ -7,11 +7,13 @@ import ResultsTab         from './admin/ResultsTab'
 import AllowedEmailsTab   from './admin/AllowedEmailsTab'
 import PlayerRosterTab    from './admin/PlayerRosterTab'
 import JoinRequestsTab    from './admin/JoinRequestsTab'
+import FinancesTab        from './admin/FinancesTab'
 
 const TABS = [
   { id: 'availability', label: 'Availability',   icon: '📋', short: 'Avail.'   },
   { id: 'whatsapp',     label: 'Selection',       icon: '🏏', short: 'Select.'  },
   { id: 'results',      label: 'Results',         icon: '🏆', short: 'Results'  },
+  { id: 'finances',     label: 'Finances',        icon: '💰', short: 'Finances' },
   { id: 'access',       label: 'Access',          icon: '🔑', short: 'Access'   },
   { id: 'roster',       label: 'Player Roster',   icon: '👥', short: 'Roster'   },
   { id: 'requests',     label: 'Join Requests',   icon: '📩', short: 'Requests' },
@@ -149,6 +151,7 @@ export default function AdminDashboard() {
             {activeTab === 'availability' && <AvailabilityTab onSelectFixture={handleSelectFixture} />}
             {activeTab === 'whatsapp'     && <WhatsAppSummaryTab initialFixtureKey={selectedFixtureKey} />}
             {activeTab === 'results'      && <ResultsTab />}
+            {activeTab === 'finances'     && <FinancesTab />}
             {activeTab === 'access'       && <AllowedEmailsTab onPlayerDeleted={handlePlayerDeleted} />}
             {activeTab === 'roster'       && <PlayerRosterTab key={rosterRefreshKey} />}
             {activeTab === 'requests'     && <JoinRequestsTab onPendingCount={setPendingRequests} />}

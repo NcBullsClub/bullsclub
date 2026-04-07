@@ -4,15 +4,12 @@
     <meta charset="UTF-8" />
     <title>NC Bulls Cricket Club</title>
     <script>
-      // Encode the path into the query string so index.html can restore it.
-      // e.g. /news/my-article  →  /?/news/my-article
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        '/?/' +
-        l.pathname.slice(1).replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
+      // Redirect any unknown path back to the root hash route
+      // e.g. /news/article -> /#/news/article
+      var path = window.location.pathname;
+      var search = window.location.search;
+      window.location.replace(
+        window.location.origin + '/#' + path + search
       );
     </script>
   </head>

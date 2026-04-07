@@ -189,9 +189,17 @@ export default function Article() {
         </div>
       </section>
 
-      {/* Cover image placeholder */}
-      <div className="bg-gradient-to-br from-primary to-primary-light h-64 md:h-80 flex items-center justify-center">
-        <span className="font-display font-bold text-white/10 text-9xl">NCB</span>
+      {/* Cover image */}
+      <div className="relative bg-gradient-to-br from-primary to-primary-light h-64 md:h-80 flex items-center justify-center overflow-hidden">
+        {article.cover_image_url ? (
+          <img
+            src={article.cover_image_url}
+            alt={article.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <span className="font-display font-bold text-white/10 text-9xl">NCB</span>
+        )}
       </div>
 
       {/* Content */}

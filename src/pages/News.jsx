@@ -148,7 +148,15 @@ export default function News() {
                 className="group bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all flex flex-col"
               >
                 <div className="relative h-48 bg-gradient-to-br from-primary-dark to-primary flex items-center justify-center overflow-hidden">
-                  <span className="font-display font-bold text-white/10 text-8xl">NCB</span>
+                  {article.cover_image_url ? (
+                    <img
+                      src={article.cover_image_url}
+                      alt={article.title}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <span className="font-display font-bold text-white/10 text-8xl">NCB</span>
+                  )}
                   <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
                     {article.tags.slice(0, 2).map((tag) => (
                       <span key={tag} className="text-xs bg-accent/90 text-primary-dark font-bold px-2 py-0.5 rounded-full">

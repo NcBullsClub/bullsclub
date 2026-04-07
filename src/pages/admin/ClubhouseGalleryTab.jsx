@@ -3,6 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../../lib/turso'
 import { useAuth } from '../../contexts/AuthContext'
 
+const TROPHY_TAGS = new Set(['trophy', 'trophies', 'honours', 'award', 'winners', 'champion', 'champions'])
+const isTrophy = (tags) => Array.isArray(tags) && tags.some((t) => TROPHY_TAGS.has(t.toLowerCase()))
+
+/** Convert a Google Drive sharing link to a direct embeddable URL */
+function convertDriveUrl(url) {
+  if (!url) return url
+  // Already a lh3 or thumbnail URL — extract ID and re-normalise
+  const lh3Match = url.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/)
+  if (lh3Match) return `https://drive.google.com/thumbnail?id=${lh3Match[1]}&sz=w1600`
+  // uc?export=view format
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*[?&]id=([a-zA-Z0-9_-]+)/)
+  if (ucMatch) return `https://drive.google.com/thumbnail?id=${ucMatch[1]}&sz=w1600`
+  // Standard sharing link: /file/d/FILE_ID/view
+  const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+  if (fileMatch) return `https://drive.google.com/thumbnail?id=${fileMatch[1]}&sz=w1600`
+  // Other Drive URL with ?id= param
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+  if (idMatch && url.includes('drive.google.com')) return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1600`
+  return url
+}
+
 const EMPTY = {
   title: '', description: '', image_url: '', thumb_url: '',
   tags: '', match_date: '', uploaded_by: '',
@@ -119,10 +140,20 @@ export default function ClubhouseGalleryTab() {
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="bg-white rounded-xl border-l-4 border-accent px-4 py-3 shadow-sm flex-shrink-0">
           <div className="text-2xl font-display font-bold text-primary-dark">{items.length}</div>
           <div className="text-xs text-gray-500">Total Photos</div>
+        </div>
+        <div className="flex gap-2">
+          <div className="bg-amber-50 rounded-xl border-l-4 border-amber-400 px-3 py-2 flex-shrink-0">
+            <div className="text-lg font-display font-bold text-amber-700">{items.filter((g) => isTrophy(g.tags)).length}</div>
+            <div className="text-[10px] text-amber-500">🏆 Trophies</div>
+          </div>
+          <div className="bg-blue-50 rounded-xl border-l-4 border-blue-400 px-3 py-2 flex-shrink-0">
+            <div className="text-lg font-display font-bold text-blue-700">{items.filter((g) => !isTrophy(g.tags)).length}</div>
+            <div className="text-[10px] text-blue-500">📸 Moments</div>
+          </div>
         </div>
         <input
           type="text"
@@ -184,6 +215,13 @@ export default function ClubhouseGalleryTab() {
 
               {/* Card info */}
               <div className="p-2.5">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                    isTrophy(g.tags) ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-500'
+                  }`}>
+                    {isTrophy(g.tags) ? '🏆 Trophy' : '📸 Moment'}
+                  </span>
+                </div>
                 <div className="text-xs font-semibold text-gray-700 truncate">{g.title}</div>
                 {g.match_date && (
                   <div className="text-[10px] text-gray-400 mt-0.5">
@@ -363,10 +401,13 @@ export default function ClubhouseGalleryTab() {
                   <input
                     type="text"
                     value={form.image_url}
-                    onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
-                    placeholder="https://..."
+                    onChange={(e) => setForm((f) => ({ ...f, image_url: convertDriveUrl(e.target.value) }))}
+                    placeholder="https://... or Google Drive share link"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Google Drive links are auto-converted. Make sure the file is shared as <em>Anyone with the link</em>.
+                  </p>
                 </div>
 
                 {/* Thumbnail URL */}
@@ -378,8 +419,8 @@ export default function ClubhouseGalleryTab() {
                   <input
                     type="text"
                     value={form.thumb_url}
-                    onChange={(e) => setForm((f) => ({ ...f, thumb_url: e.target.value }))}
-                    placeholder="Smaller/compressed version"
+                    onChange={(e) => setForm((f) => ({ ...f, thumb_url: convertDriveUrl(e.target.value) }))}
+                    placeholder="Smaller/compressed version or Drive link"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
@@ -433,6 +474,9 @@ export default function ClubhouseGalleryTab() {
                     placeholder="Match, Raising Bulls, 2026"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    💡 Use <span className="font-semibold text-amber-600">trophy</span>, <span className="font-semibold text-amber-600">champion</span> or <span className="font-semibold text-amber-600">winners</span> to show in the Trophy Cabinet section of the public gallery.
+                  </p>
                   {form.tags && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {form.tags
@@ -440,8 +484,10 @@ export default function ClubhouseGalleryTab() {
                         .map((t) => t.trim())
                         .filter(Boolean)
                         .map((t) => (
-                          <span key={t} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                            {t}
+                          <span key={t} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                            TROPHY_TAGS.has(t.toLowerCase()) ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {TROPHY_TAGS.has(t.toLowerCase()) ? '🏆 ' : ''}{t}
                           </span>
                         ))}
                     </div>

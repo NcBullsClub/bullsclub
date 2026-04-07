@@ -35,6 +35,88 @@ function formatDate(dateStr) {
   return `${month} ${ordinal(dt.getDate())}, ${y}`
 }
 
+// ─── Shared player row used in the picker ────────────────────────────────────
+function PlayerPickerRow({ name, isSel, onToggle, badge }) {
+  const displayName = name.split(' ')[0]
+  const fullLastName = name.split(' ').slice(1).join(' ')
+  return (
+    <button
+      onClick={onToggle}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-all ${
+        isSel
+          ? 'bg-primary-dark text-white font-medium ring-1 ring-accent/40'
+          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+      }`}
+    >
+      <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-[10px] ${
+        isSel ? 'border-accent bg-accent text-primary-dark' : 'border-gray-300'
+      }`}>
+        {isSel && '✓'}
+      </span>
+      <span className="flex-1 truncate">
+        <span className="font-medium">{displayName}</span>
+        {fullLastName && <span className="opacity-60 ml-1 text-xs">{fullLastName}</span>}
+      </span>
+      {badge && !isSel && (
+        <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-500">
+          {badge}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ─── Collapsible "No Response" section ───────────────────────────────────────
+function NoResponseSection({ players, selected, onToggle }) {
+  const [expanded, setExpanded] = useState(false)
+  const selectedCount = players.filter((p) => selected.includes(p.full_name)).length
+
+  return (
+    <div className="border border-dashed border-gray-300 rounded-xl overflow-hidden">
+      {/* Header — always visible */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-500">
+            ⚠️ No Response ({players.length})
+          </span>
+          {selectedCount > 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-dark text-accent">
+              {selectedCount} selected
+            </span>
+          )}
+        </div>
+        <span className={`text-gray-400 text-xs transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>
+          ▼
+        </span>
+      </button>
+
+      {/* Collapsible body */}
+      {expanded && (
+        <div className="px-3 py-2.5 space-y-1 bg-white">
+          <p className="text-[11px] text-gray-400 mb-2">
+            These players haven't submitted their availability. You can still include them in the XI.
+          </p>
+          {players.map((p) => {
+            const isSel = selected.includes(p.full_name)
+            return (
+              <PlayerPickerRow
+                key={p.id}
+                name={p.full_name}
+                isSel={isSel}
+                onToggle={() => onToggle(p.full_name)}
+                badge="?"
+              />
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
@@ -45,10 +127,11 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 
-  const [selectedKey, setSelectedKey] = useState(initialFixtureKey)
-  const [availability, setAvailability] = useState([])
-  const [loading, setLoading]           = useState(false)
-  const [selected, setSelected]         = useState([])
+  const [selectedKey, setSelectedKey]   = useState(initialFixtureKey)
+  const [availability, setAvailability]  = useState([])
+  const [allTeamPlayers, setAllTeamPlayers] = useState([])
+  const [loading, setLoading]            = useState(false)
+  const [selected, setSelected]          = useState([])
 
   // Sync when parent navigates here with a pre-selected fixture
   useEffect(() => {
@@ -75,21 +158,27 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   }, [selectedFixture?.team])
 
   useEffect(() => {
-    if (!selectedKey) { setAvailability([]); setSelected([]); return }
+    if (!selectedKey) { setAvailability([]); setAllTeamPlayers([]); setSelected([]); return }
     const [date, team] = selectedKey.split('::')
     setLoading(true)
     setSelected([])
-    supabase
-      .from('availability')
-      .select('*, profiles(full_name)')
-      .eq('fixture_date', date)
-      .eq('fixture_team', team)
-      .in('status', ['in', 'maybe'])
-      .order('status')
-      .then(({ data }) => {
-        setAvailability(data || [])
-        setLoading(false)
-      })
+    Promise.all([
+      supabase
+        .from('availability')
+        .select('*, profiles(full_name)')
+        .eq('fixture_date', date)
+        .eq('fixture_team', team)
+        .order('status'),
+      supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('team', team)
+        .order('full_name'),
+    ]).then(([{ data: avail }, { data: players }]) => {
+      setAvailability(avail || [])
+      setAllTeamPlayers(players || [])
+      setLoading(false)
+    })
   }, [selectedKey])
 
   function togglePlayer(name) {
@@ -147,6 +236,10 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     .sort((a, b) => (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
   const maybePlayers = availability.filter((r) => r.status === 'maybe')
     .sort((a, b) => (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
+  const respondedIds = new Set(availability.map((r) => r.user_id))
+  const noResponsePlayers = allTeamPlayers
+    .filter((p) => !respondedIds.has(p.id))
+    .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -256,70 +349,61 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
                 <div className="flex justify-center py-8">
                   <div className="w-6 h-6 border-4 border-accent border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : availability.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No availability responses yet.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  {/* ── Confirmed ── */}
                   {inPlayers.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-green-600 mb-2">✅ Confirmed</p>
+                      <p className="text-xs font-semibold text-green-600 mb-2">✅ Confirmed ({inPlayers.length})</p>
                       <div className="space-y-1">
                         {inPlayers.map((r) => {
                           const name = r.profiles?.full_name || 'Unknown'
-                          const displayName = name.split(' ')[0]
                           const isSel = selected.includes(name)
                           return (
-                            <button
+                            <PlayerPickerRow
                               key={r.id}
-                              onClick={() => togglePlayer(name)}
-                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-left transition-all ${
-                                isSel
-                                  ? 'bg-primary-dark text-white font-medium'
-                                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                              }`}
-                            >
-                              <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-[10px] ${
-                                isSel ? 'border-accent bg-accent text-primary-dark' : 'border-gray-300'
-                              }`}>
-                                {isSel && '✓'}
-                              </span>
-                              {displayName}
-                            </button>
+                              name={name}
+                              isSel={isSel}
+                              onToggle={() => togglePlayer(name)}
+                            />
                           )
                         })}
                       </div>
                     </div>
                   )}
 
+                  {/* ── Maybe ── */}
                   {maybePlayers.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-amber-600 mb-2">🤔 Maybe</p>
+                      <p className="text-xs font-semibold text-amber-600 mb-2">🤔 Maybe ({maybePlayers.length})</p>
                       <div className="space-y-1">
                         {maybePlayers.map((r) => {
                           const name = r.profiles?.full_name || 'Unknown'
-                          const displayName = name.split(' ')[0]
                           const isSel = selected.includes(name)
                           return (
-                            <button
+                            <PlayerPickerRow
                               key={r.id}
-                              onClick={() => togglePlayer(name)}
-                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-left transition-all ${
-                                isSel
-                                  ? 'bg-primary-dark text-white font-medium'
-                                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                              }`}
-                            >
-                              <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-[10px] ${
-                                isSel ? 'border-accent bg-accent text-primary-dark' : 'border-gray-300'
-                              }`}>
-                                {isSel && '✓'}
-                              </span>
-                              {displayName}
-                            </button>
+                              name={name}
+                              isSel={isSel}
+                              onToggle={() => togglePlayer(name)}
+                            />
                           )
                         })}
                       </div>
                     </div>
+                  )}
+
+                  {/* ── No Response ── */}
+                  {noResponsePlayers.length > 0 && (
+                    <NoResponseSection
+                      players={noResponsePlayers}
+                      selected={selected}
+                      onToggle={togglePlayer}
+                    />
+                  )}
+
+                  {inPlayers.length === 0 && maybePlayers.length === 0 && noResponsePlayers.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">No players found for this team.</p>
                   )}
                 </div>
               )}

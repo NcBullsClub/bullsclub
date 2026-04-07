@@ -119,7 +119,7 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
+            <Link to="/" className="flex items-center gap-2 shrink-0 group">
               <div className="transition-all duration-300 rounded-full overflow-hidden bg-white shadow-md p-0.5">
                 <img
                   src={logo}
@@ -191,6 +191,7 @@ export default function Navbar() {
                     </div>
                   )
                 }
+                if (item.label === 'Join Us' && user) return null
                 const active = location.pathname === item.path
                 return (
                   <Link
@@ -230,7 +231,7 @@ export default function Navbar() {
                   </div>
                   <button
                     onClick={handleSignOut}
-                    className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+                    className="px-3 py-1.5 rounded-md text-xs font-medium text-gray-300 border border-white/20 hover:text-white hover:bg-white/10 hover:border-white/40 transition-colors"
                   >
                     Sign Out
                   </button>

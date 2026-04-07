@@ -20,6 +20,8 @@ export default function PlayerRosterTab() {
   const [search, setSearch]                   = useState('')
   const [teamFilter, setTeamFilter]           = useState('all')
   const [updatingProfile, setUpdatingProfile] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deleteError, setDeleteError]         = useState('')
 
   async function loadProfiles() {
     setLoading(true)
@@ -43,10 +45,17 @@ export default function PlayerRosterTab() {
     loadProfiles()
   }
 
-  async function handleDelete(player) {
-    if (!window.confirm(`Remove "${player.full_name}" from the roster?\n\nThis deletes their profile record. They will no longer appear in the roster.`)) return
+  async function handleDeleteConfirmed(player) {
+    setConfirmDeleteId(null)
+    setDeleteError('')
     setUpdatingProfile(player.id)
-    await supabase.from('profiles').delete().eq('id', player.id)
+    const { error } = await supabase.from('profiles').delete().eq('id', player.id)
+    if (error) {
+      setDeleteError(`Failed to delete "${player.full_name}": ${error.message}`)
+      setUpdatingProfile(null)
+      loadProfiles()
+      return
+    }
     setProfiles((prev) => prev.filter((p) => p.id !== player.id))
     setUpdatingProfile(null)
   }
@@ -70,6 +79,13 @@ export default function PlayerRosterTab() {
           Manage roles and team assignments for players who have created an account.
         </p>
       </div>
+
+      {deleteError && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-3">
+          <span>{deleteError}</span>
+          <button onClick={() => setDeleteError('')} className="text-red-400 hover:text-red-600 font-bold flex-shrink-0">✕</button>
+        </div>
+      )}
 
       {/* Team filter tags */}
       <div className="flex gap-2 mb-3">
@@ -178,13 +194,26 @@ export default function PlayerRosterTab() {
                   {/* Delete */}
                   {p.role !== 'superadmin' && (
                     <div className="mt-3 pt-2.5 border-t border-gray-100 flex justify-end">
-                      <button
-                        onClick={() => handleDelete(p)}
-                        disabled={saving}
-                        className="text-[11px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-full transition-colors disabled:opacity-40"
-                      >
-                        Remove from roster
-                      </button>
+                      {confirmDeleteId === p.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleDeleteConfirmed(p)}
+                            className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 font-medium"
+                          >Yes</button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-300 font-medium"
+                          >No</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(p.id)}
+                          disabled={saving}
+                          className="text-[11px] font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-full transition-colors disabled:opacity-40"
+                        >
+                          {saving ? 'Removing…' : 'Remove from roster'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -261,13 +290,26 @@ export default function PlayerRosterTab() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {p.role !== 'superadmin' && (
-                          <button
-                            onClick={() => handleDelete(p)}
-                            disabled={saving}
-                            className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-full transition-colors disabled:opacity-40"
-                          >
-                            Remove
-                          </button>
+                          confirmDeleteId === p.id ? (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleDeleteConfirmed(p)}
+                                className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 font-medium"
+                              >Yes</button>
+                              <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-300 font-medium"
+                              >No</button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(p.id)}
+                              disabled={saving}
+                              className="text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-full transition-colors disabled:opacity-40"
+                            >
+                              {saving ? 'Removing…' : 'Remove'}
+                            </button>
+                          )
                         )}
                       </td>
                     </tr>

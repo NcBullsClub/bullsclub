@@ -13,14 +13,17 @@
     <title>NC Bulls Cricket Club | Raising Bulls &amp; Royal Bulls</title>
     <!-- GitHub Pages SPA redirect restore -->
     <script>
-      (function() {
-        var redirect = sessionStorage.getItem('spa-redirect');
-        if (redirect) {
-          sessionStorage.removeItem('spa-redirect');
-          var url = new URL(redirect, window.location.origin);
-          window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      (function(l) {
+        // If the URL looks like  /?/news/my-article  restore it to  /news/my-article
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
         }
-      }());
+      }(window.location));
     </script>
   </head>
   <body>

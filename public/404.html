@@ -4,11 +4,16 @@
     <meta charset="UTF-8" />
     <title>NC Bulls Cricket Club</title>
     <script>
-      // GitHub Pages SPA redirect trick
-      // Store the full URL and redirect to the root so index.html loads,
-      // then the script in index.html restores the original path for React Router.
-      sessionStorage.setItem('spa-redirect', window.location.href);
-      window.location.replace('/');
+      // Encode the path into the query string so index.html can restore it.
+      // e.g. /news/my-article  →  /?/news/my-article
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        '/?/' +
+        l.pathname.slice(1).replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
     </script>
   </head>
   <body></body>

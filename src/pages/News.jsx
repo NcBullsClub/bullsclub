@@ -8,7 +8,7 @@ function CardShare({ slug, title }) {
   const [open, setOpen]     = useState(false)
   const [copied, setCopied] = useState(false)
   const ref                 = useRef(null)
-  const url                 = `${window.location.origin}/news/${slug}`
+  const url                 = `${window.location.origin}/#/news/${slug}`
 
   useEffect(() => {
     if (!open) return

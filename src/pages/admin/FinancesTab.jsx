@@ -24,7 +24,7 @@ const EXPENSE_CATS = [
    Season Fees Panel
 ══════════════════════════════════════════════════════ */
 function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, togglePaid, toggling }) {
-  const [teamFilter, setTeamFilter]     = useState('raising-bulls')
+  const [teamFilter, setTeamFilter]     = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery]   = useState('')
 
@@ -233,7 +233,6 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
   const [loading, setLoading]           = useState(true)
   const [teamFilter, setTeamFilter]     = useState('all')
   const [showForm, setShowForm]         = useState(false)
-  const [form, setForm]                 = useState(EMPTY_FORM)
   const [saving, setSaving]             = useState(false)
   const [deletingId, setDeletingId]     = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)

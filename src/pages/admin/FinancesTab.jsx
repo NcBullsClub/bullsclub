@@ -27,6 +27,7 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
   const [teamFilter, setTeamFilter]     = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery]   = useState('')
+  const [confirmToggleId, setConfirmToggleId] = useState(null)
 
   const teamPlayers    = teamFilter === 'all'
     ? rosterPlayers
@@ -161,6 +162,7 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
             const record     = getRecord(player)
             const paid       = !!record?.paid
             const isToggling = toggling === player.id
+            const isConfirm  = confirmToggleId === player.id
             return (
               <div
                 key={player.id}
@@ -190,23 +192,54 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => togglePaid(player)}
-                  disabled={isToggling}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all disabled:opacity-50 ${
-                    paid
-                      ? 'bg-green-100 text-green-700 border-green-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300'
-                      : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-700 hover:border-green-300'
-                  }`}
-                >
-                  {isToggling ? (
-                    <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : paid ? (
-                    <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Paid</>
-                  ) : (
-                    <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Mark Paid</>
-                  )}
-                </button>
+
+                {/* Confirm flow */}
+                {isConfirm ? (
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                    <p className="text-[10px] text-gray-500 whitespace-nowrap">
+                      {paid ? 'Mark as unpaid?' : 'Mark as paid?'}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setConfirmToggleId(null); togglePaid(player) }}
+                        disabled={isToggling}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition-colors disabled:opacity-50 ${
+                          paid ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'
+                        }`}
+                      >
+                        {isToggling
+                          ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        }
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setConfirmToggleId(null)}
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmToggleId(player.id)}
+                    disabled={isToggling}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all disabled:opacity-50 ${
+                      paid
+                        ? 'bg-green-100 text-green-700 border-green-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300'
+                        : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-700 hover:border-green-300'
+                    }`}
+                  >
+                    {isToggling ? (
+                      <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : paid ? (
+                      <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Paid</>
+                    ) : (
+                      <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Mark Paid</>
+                    )}
+                  </button>
+                )}
               </div>
             )
           })}
@@ -228,11 +261,12 @@ const EMPTY_FORM = {
   team:         'raising-bulls',
 }
 
-function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
+function ExpensesPanel({ rosterPlayers, currentUserName }) {
   const [expenses, setExpenses]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [teamFilter, setTeamFilter]     = useState('all')
   const [showForm, setShowForm]         = useState(false)
+  const [form, setForm]                 = useState(EMPTY_FORM)
   const [saving, setSaving]             = useState(false)
   const [deletingId, setDeletingId]     = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -286,7 +320,7 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
       category:     form.category,
       description:  form.description.trim() || null,
       expense_date: form.expense_date,
-      created_by:   currentUserEmail || 'admin',
+      created_by:   currentUserName || 'Admin',
       created_at:   new Date().toISOString(),
     })
     load()
@@ -558,6 +592,15 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
               : e.team === 'royal-bulls' ? 'bg-primary/10 text-primary'
               : 'bg-purple-100 text-purple-700'
 
+            const catCls = {
+              drinks:       'bg-blue-100 text-blue-700',
+              snacks:       'bg-yellow-100 text-yellow-700',
+              food:         'bg-orange-100 text-orange-700',
+              equipment:    'bg-indigo-100 text-indigo-700',
+              registration: 'bg-teal-100 text-teal-700',
+              other:        'bg-gray-200 text-gray-700',
+            }[e.category] || 'bg-gray-200 text-gray-700'
+
             return (
               <div
                 key={e.id}
@@ -574,7 +617,7 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-semibold text-sm text-gray-800">{e.paid_by}</span>
-                    <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">{cat.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${catCls}`}>{cat.icon} {cat.label}</span>
                     {isEditingTeam ? (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <select
@@ -617,7 +660,9 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
                     {dateStr}{e.description ? ` · ${e.description}` : ''}{isSettled && e.settled_at ? ` · Settled ${new Date(e.settled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                   </p>
                   {e.created_by && (
-                    <p className="text-[9px] text-gray-300 mt-0.5">Added by {e.created_by}</p>
+                    <p className="text-[9px] text-gray-600 font-medium mt-0.5">
+                      Added by {rosterPlayers.find((p) => p.email === e.created_by)?.full_name || e.created_by}
+                    </p>
                   )}
                 </div>
 
@@ -749,17 +794,42 @@ export default function FinancesTab() {
   }
 
   async function togglePaid(player) {
+    if (!['raising-bulls', 'royal-bulls'].includes(player.team)) return
     setToggling(player.id)
     const existing = getRecord(player)
     const nowPaid  = !existing?.paid
-    await supabase.from('player_finances').upsert({
-      player_name: player.full_name,
-      team:        player.team,
-      season:      SEASON,
-      amount_due:  SEASON_FEE,
-      paid:        nowPaid,
-      paid_at:     nowPaid ? new Date().toISOString() : null,
-    }, { onConflict: 'player_name,team,season' })
+
+    let error
+    if (existing) {
+      // Record exists → UPDATE only the relevant fields
+      const res = await supabase
+        .from('player_finances')
+        .update({
+          paid:    nowPaid,
+          paid_at: nowPaid ? new Date().toISOString() : null,
+        })
+        .eq('player_name', player.full_name)
+        .eq('team',        player.team)
+        .eq('season',      SEASON)
+      error = res.error
+    } else {
+      // No record yet → INSERT a fresh row
+      const res = await supabase
+        .from('player_finances')
+        .insert({
+          player_name: player.full_name,
+          team:        player.team,
+          season:      SEASON,
+          amount_due:  SEASON_FEE,
+          paid:        nowPaid,
+          paid_at:     nowPaid ? new Date().toISOString() : null,
+        })
+      error = res.error
+    }
+
+    if (error) {
+      console.error('togglePaid error:', error.message)
+    }
     await loadAll()
     setToggling(null)
   }
@@ -811,7 +881,7 @@ export default function FinancesTab() {
       ) : (
         <ExpensesPanel
           rosterPlayers={rosterPlayers}
-          currentUserEmail={user?.email}
+          currentUserName={rosterPlayers.find((p) => p.email === user?.email)?.full_name}
         />
       )}
     </div>

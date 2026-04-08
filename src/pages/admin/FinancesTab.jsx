@@ -12,11 +12,12 @@ const TEAMS = [
 ]
 
 const EXPENSE_CATS = [
-  { id: 'drinks',    label: 'Drinks',    icon: '💧' },
-  { id: 'snacks',    label: 'Snacks',    icon: '🍌' },
-  { id: 'food',      label: 'Food',      icon: '🍕' },
-  { id: 'equipment', label: 'Equipment', icon: '🏏' },
-  { id: 'other',     label: 'Other',     icon: '📦' },
+  { id: 'drinks',       label: 'Drinks',       icon: '💧' },
+  { id: 'snacks',       label: 'Snacks',        icon: '🍌' },
+  { id: 'food',         label: 'Food',          icon: '🍕' },
+  { id: 'equipment',    label: 'Equipment',     icon: '🏏' },
+  { id: 'registration', label: 'Registration',  icon: '📋' },
+  { id: 'other',        label: 'Other',         icon: '📦' },
 ]
 
 /* ══════════════════════════════════════════════════════
@@ -242,6 +243,7 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
   const [editingTeamId, setEditingTeamId] = useState(null)
   const [editTeam, setEditTeam]         = useState('')
   const [updatingTeamId, setUpdatingTeamId] = useState(null)
+  const [settlingId, setSettlingId]     = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -330,6 +332,16 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
     setUpdatingTeamId(null)
     setEditingTeamId(null)
     setEditTeam('')
+  }
+
+  async function handleToggleSettled(id, isSettled) {
+    setSettlingId(id)
+    await supabase
+      .from('team_expenses')
+      .update({ settled_at: isSettled ? null : new Date().toISOString() })
+      .eq('id', id)
+    load()
+    setSettlingId(null)
   }
 
   return (
@@ -535,6 +547,8 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
             const isUpdating     = updatingId === e.id
             const isEditingTeam  = editingTeamId === e.id
             const isUpdatingTeam = updatingTeamId === e.id
+            const isSettled      = !!e.settled_at
+            const isSettling     = settlingId === e.id
 
             const teamLabel =
               e.team === 'raising-bulls' ? 'Raising Bulls'
@@ -548,10 +562,12 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
             return (
               <div
                 key={e.id}
-                className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex items-center gap-3"
+                className={`border rounded-2xl px-4 py-3 flex items-start gap-3 transition-colors ${
+                  isSettled ? 'bg-green-50/60 border-green-200' : 'bg-white border-gray-200'
+                }`}
               >
                 {/* Category icon */}
-                <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-lg flex-shrink-0">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0 mt-0.5 ${isSettled ? 'bg-green-100' : 'bg-orange-100'}`}>
                   {cat.icon}
                 </div>
 
@@ -561,7 +577,7 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
                     <span className="font-semibold text-sm text-gray-800">{e.paid_by}</span>
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">{cat.label}</span>
                     {isEditingTeam ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <select
                           autoFocus
                           value={editTeam}
@@ -575,14 +591,18 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
                         <button
                           onClick={() => handleUpdateTeam(e.id)}
                           disabled={isUpdatingTeam}
-                          className="text-[10px] font-bold text-green-600 hover:text-green-700 disabled:opacity-50"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 transition-colors"
                         >
-                          {isUpdatingTeam ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : '✓'}
+                          {isUpdatingTeam ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                          Save
                         </button>
                         <button
                           onClick={() => { setEditingTeamId(null); setEditTeam('') }}
-                          className="text-[10px] text-gray-400 hover:text-gray-600"
-                        >✕</button>
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          Cancel
+                        </button>
                       </div>
                     ) : (
                       <button
@@ -595,73 +615,101 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
                     )}
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    {dateStr}{e.description ? ` · ${e.description}` : ''}
+                    {dateStr}{e.description ? ` · ${e.description}` : ''}{isSettled && e.settled_at ? ` · Settled ${new Date(e.settled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                   </p>
                   {e.created_by && (
                     <p className="text-[9px] text-gray-300 mt-0.5">Added by {e.created_by}</p>
                   )}
                 </div>
 
-                {/* Amount — inline editable */}
-                {isEditing ? (
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-xs text-gray-400">$</span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={editAmount}
-                      onChange={(ev) => setEditAmount(ev.target.value)}
-                      autoFocus
-                      className="w-16 px-2 py-1 rounded-lg text-xs border border-accent focus:outline-none focus:ring-2 focus:ring-accent text-right"
-                    />
-                    <button
-                      onClick={() => handleUpdateAmount(e.id)}
-                      disabled={isUpdating}
-                      className="text-[10px] font-bold text-green-600 hover:text-green-700 disabled:opacity-50"
-                    >
-                      {isUpdating ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : '✓'}
-                    </button>
-                    <button
-                      onClick={() => { setEditingId(null); setEditAmount('') }}
-                      className="text-[10px] text-gray-400 hover:text-gray-600"
-                    >✕</button>
-                  </div>
-                ) : (
+                {/* Right column: settle top, amount+delete bottom */}
+                <div className="flex flex-col items-end justify-between self-stretch gap-2 flex-shrink-0">
+                  {/* TOP — Settle toggle */}
                   <button
-                    onClick={() => { setEditingId(e.id); setEditAmount(String(Number(e.amount).toFixed(2))) }}
-                    className="font-black text-base text-orange-600 tabular-nums flex-shrink-0 hover:text-orange-700 transition-colors"
-                    title="Click to edit amount"
+                    onClick={() => handleToggleSettled(e.id, isSettled)}
+                    disabled={isSettling}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all disabled:opacity-50 ${
+                      isSettled
+                        ? 'bg-green-500 text-white hover:bg-green-600 active:bg-green-700'
+                        : 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
+                    }`}
+                    title={isSettled ? 'Mark as unsettled' : 'Mark as settled'}
                   >
-                    ${Number(e.amount).toFixed(2)}
+                    {isSettling ? (
+                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : isSettled ? (
+                      <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : null}
+                    <span className="whitespace-nowrap">{isSettled ? 'Settled' : 'Need to settle'}</span>
                   </button>
-                )}
 
-                {/* Delete / Confirm */}
-                {isConfirm ? (
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-[10px] text-gray-500 whitespace-nowrap">Delete?</span>
-                    <button
-                      onClick={() => handleDelete(e.id)}
-                      disabled={isDeleting}
-                      className="text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-full transition-colors disabled:opacity-50"
-                    >
-                      {isDeleting ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : 'Yes'}
-                    </button>
-                    <button
-                      onClick={() => setConfirmDeleteId(null)}
-                      className="text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-colors"
-                    >No</button>
+                  {/* BOTTOM — Amount + Delete */}
+                  <div className="flex items-center gap-2">
+                    {/* Amount — inline editable */}
+                    {isEditing ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-400">$</span>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={editAmount}
+                          onChange={(ev) => setEditAmount(ev.target.value)}
+                          autoFocus
+                          className="w-16 px-2 py-1 rounded-lg text-xs border border-accent focus:outline-none focus:ring-2 focus:ring-accent text-right"
+                        />
+                        <button
+                          onClick={() => handleUpdateAmount(e.id)}
+                          disabled={isUpdating}
+                          className="text-[10px] font-bold text-green-600 hover:text-green-700 disabled:opacity-50"
+                        >
+                          {isUpdating ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : '✓'}
+                        </button>
+                        <button
+                          onClick={() => { setEditingId(null); setEditAmount('') }}
+                          className="text-[10px] text-gray-400 hover:text-gray-600"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingId(e.id); setEditAmount(String(Number(e.amount).toFixed(2))) }}
+                        className="font-black text-base text-orange-600 tabular-nums hover:text-orange-700 transition-colors"
+                        title="Click to edit amount"
+                      >
+                        ${Number(e.amount).toFixed(2)}
+                      </button>
+                    )}
+
+                    {/* Delete / Confirm */}
+                    {isConfirm ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-gray-500 whitespace-nowrap">Delete?</span>
+                        <button
+                          onClick={() => handleDelete(e.id)}
+                          disabled={isDeleting}
+                          className="text-[10px] font-bold text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded-full transition-colors disabled:opacity-50"
+                        >
+                          {isDeleting ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : 'Yes'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-colors"
+                        >No</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(e.id)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-red-500 text-red-500 hover:text-white transition-all"
+                        title="Delete expense"
+                      >
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        </svg>
+                        <span className="hidden sm:inline text-[10px] font-bold">Delete</span>
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmDeleteId(e.id)}
-                    className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-500 text-gray-400 flex items-center justify-center transition-colors"
-                    title="Delete expense"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                )}
+                </div>
               </div>
             )
           })}

@@ -24,6 +24,40 @@ const CAT_META = {
   'announcement': { label: 'Announcement', cls: 'bg-blue-100 text-blue-700'   },
 }
 
+const TAG_ICONS = {
+  'match report':   '🏏',
+  'match-report':   '🏏',
+  'win':            '🏆',
+  'victory':        '🏆',
+  'loss':           '📉',
+  'announcement':   '📢',
+  'league':         '🏅',
+  'mega bash':      '⚡',
+  'mega-bash':      '⚡',
+  't20':            '🔥',
+  'championship':   '🥇',
+  'tournament':     '🎯',
+  'registration':   '📝',
+  'trials':         '🎽',
+  'training':       '🏋️',
+  'event':          '📅',
+  'events':         '📅',
+  'raising bulls':  '🐂',
+  'royal bulls':    '👑',
+  'news':           '📰',
+  'season':         '📆',
+  'milestone':      '🌟',
+  'squad':          '👥',
+  'fundraiser':     '💰',
+  'sponsor':        '🤝',
+  'community':      '🤲',
+}
+
+function tagWithIcon(tag) {
+  const icon = TAG_ICONS[tag.toLowerCase().trim()]
+  return icon ? `${icon} ${tag}` : tag
+}
+
 function slugify(title) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
@@ -46,9 +80,14 @@ export default function ClubhouseNewsTab() {
   const [form, setForm]           = useState(EMPTY)
   const [saving, setSaving]       = useState(false)
   const [deletingId, setDeletingId] = useState(null)
-  const [togglingId, setTogglingId] = useState(null)
-  const [showPrompt, setShowPrompt]     = useState(false)
-  const [promptCopied, setPromptCopied] = useState(false)
+  const [togglingId, setTogglingId]       = useState(null)
+  const [showPrompt, setShowPrompt]        = useState(false)
+  const [promptCopied, setPromptCopied]    = useState(false)
+  const [aiPaste, setAiPaste]              = useState('')
+  const [aiParsed, setAiParsed]            = useState(false)
+  const [galleryImages, setGalleryImages]  = useState([])
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
+  const [gallerySearch, setGallerySearch]  = useState('')
   const titleRef   = useRef(null)
   const contentRef = useRef(null)
 
@@ -68,6 +107,11 @@ export default function ClubhouseNewsTab() {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    turso.execute('SELECT id, title, image_url, thumb_url FROM gallery WHERE image_url IS NOT NULL AND image_url != \'\' ORDER BY created_at DESC')
+      .then(({ rows }) => setGalleryImages(rows))
+      .catch(() => {})
+  }, [])
   useEffect(() => { if (showForm && titleRef.current) titleRef.current.focus() }, [showForm])
 
   const filtered = articles.filter((a) => {
@@ -116,6 +160,74 @@ export default function ClubhouseNewsTab() {
       title: val,
       slug: editItem ? f.slug : slugify(val),
     }))
+  }
+
+  function parseAIResponse(raw) {
+    const lines = raw.split('\n')
+    let title = '', slug = '', summary = '', content = ''
+    let section = ''
+    const contentLines = []
+    const summaryLines = []
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const trimmed = line.trim()
+
+      // Detect section headers (case-insensitive, with or without markdown)
+      const headerText = trimmed.replace(/^#+\s*/, '').toLowerCase()
+      if (
+        headerText === 'title' ||
+        headerText.startsWith('title') && trimmed.length < 20
+      ) { section = 'title'; continue }
+      if (
+        headerText === 'slug' ||
+        headerText.startsWith('slug') && trimmed.length < 20
+      ) { section = 'slug'; continue }
+      if (
+        headerText.includes('summary') ||
+        headerText.includes('excerpt')
+      ) { section = 'summary'; continue }
+      if (
+        headerText.includes('full content') ||
+        headerText === 'content'
+      ) { section = 'content'; continue }
+      // Skip horizontal dividers
+      if (/^[\u2014\-=*_]{3,}$/.test(trimmed)) continue
+
+      if (section === 'title' && !title && trimmed) {
+        title = trimmed
+      } else if (section === 'slug' && !slug && trimmed) {
+        slug = trimmed.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/(^-|-$)/g, '')
+      } else if (section === 'summary') {
+        if (trimmed) summaryLines.push(trimmed)
+      } else if (section === 'content') {
+        contentLines.push(line)
+      }
+    }
+
+    summary = summaryLines.join(' ')
+    content = contentLines.join('\n').trim()
+
+    // If slug wasn't in its own section, derive from title
+    if (!slug && title) {
+      slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    }
+
+    return { title, slug, summary, content }
+  }
+
+  function handleAIFill() {
+    const parsed = parseAIResponse(aiPaste)
+    setForm((f) => ({
+      ...f,
+      title:   parsed.title   || f.title,
+      slug:    parsed.slug    || f.slug,
+      summary: parsed.summary || f.summary,
+      content: parsed.content || f.content,
+    }))
+    setAiParsed(true)
+    setAiPaste('')
+    setTimeout(() => setAiParsed(false), 3000)
   }
 
   function insertMarkup(tag) {
@@ -322,7 +434,7 @@ export default function ClubhouseNewsTab() {
                   {a.tags?.length > 0 && (
                     <>
                       <span>·</span>
-                      <span className="text-gray-300">{a.tags.slice(0, 3).join(' · ')}</span>
+                      <span className="text-gray-300">{a.tags.slice(0, 3).map(tagWithIcon).join(' · ')}</span>
                     </>
                   )}
                 </div>
@@ -420,7 +532,7 @@ export default function ClubhouseNewsTab() {
 Team: [RAISING BULLS / ROYAL BULLS]
 Match Type: [Mega Bash / T20 / etc.]
 Result: [WIN / LOSS]
-Score: [Team score] vs [Opponent score]
+Score: [Team score: ] vs [Opponent score: ]
 Opponent: [Opponent name]
 
 Please write:
@@ -450,6 +562,35 @@ Extra Notes / Context:
                       >
                         {promptCopied ? '\u2713 Copied!' : '\ud83d\udccb Copy Prompt'}
                       </button>
+
+                      {/* Paste & Auto-fill */}
+                      <div className="mt-4 border-t border-amber-200 pt-4">
+                        <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1.5">
+                          ✨ Paste ChatGPT Response → Auto-fill Fields
+                        </p>
+                        <p className="text-[10px] text-amber-600 mb-2">
+                          Paste the full ChatGPT response below. Title, Slug, Summary and Content will be filled automatically.
+                        </p>
+                        <textarea
+                          value={aiPaste}
+                          onChange={(e) => setAiPaste(e.target.value)}
+                          rows={5}
+                          placeholder="Paste ChatGPT response here…"
+                          className="w-full border border-amber-200 rounded-lg px-3 py-2 text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+                        />
+                        <button
+                          type="button"
+                          disabled={!aiPaste.trim()}
+                          onClick={handleAIFill}
+                          className={`w-full mt-2 text-xs font-semibold py-2 rounded-lg transition-colors ${
+                            aiParsed
+                              ? 'bg-green-500 text-white'
+                              : 'bg-primary-dark hover:bg-primary text-accent disabled:opacity-40 disabled:cursor-not-allowed'
+                          }`}
+                        >
+                          {aiParsed ? '✓ Fields Filled!' : '⚡ Auto-fill from Response'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -531,9 +672,72 @@ Extra Notes / Context:
 
                 {/* Cover image */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                    Cover Image URL
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Cover Image URL
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowGalleryPicker((v) => !v); setGallerySearch('') }}
+                      className="text-[10px] font-semibold text-primary hover:text-accent transition-colors flex items-center gap-1"
+                    >
+                      🖼️ {showGalleryPicker ? 'Close Gallery' : 'Pick from Gallery'}
+                    </button>
+                  </div>
+
+                  {/* Gallery picker */}
+                  {showGalleryPicker && (
+                    <div className="mb-3 border border-gray-200 rounded-xl overflow-hidden">
+                      <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={gallerySearch}
+                          onChange={(e) => setGallerySearch(e.target.value)}
+                          placeholder="Search gallery images…"
+                          className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                        />
+                      </div>
+                      {galleryImages.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-gray-400">No gallery images found.</div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-1.5 p-2.5 max-h-56 overflow-y-auto">
+                          {galleryImages
+                            .filter((g) => !gallerySearch || g.title?.toLowerCase().includes(gallerySearch.toLowerCase()))
+                            .map((g) => {
+                              const thumb = g.thumb_url || g.image_url
+                              const isSelected = form.cover_image_url === g.image_url
+                              return (
+                                <button
+                                  key={g.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm((f) => ({ ...f, cover_image_url: g.image_url }))
+                                    setShowGalleryPicker(false)
+                                  }}
+                                  className={`relative rounded-lg overflow-hidden aspect-square border-2 transition-all ${
+                                    isSelected ? 'border-accent scale-95' : 'border-transparent hover:border-primary/40'
+                                  }`}
+                                  title={g.title || 'Gallery image'}
+                                >
+                                  <img
+                                    src={thumb}
+                                    alt={g.title || ''}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { e.target.style.display = 'none' }}
+                                  />
+                                  {isSelected && (
+                                    <div className="absolute inset-0 bg-accent/30 flex items-center justify-center">
+                                      <span className="text-white text-lg font-bold">✓</span>
+                                    </div>
+                                  )}
+                                </button>
+                              )
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {form.cover_image_url && (
                     <div className="mb-2 h-28 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
                       <img
@@ -548,7 +752,7 @@ Extra Notes / Context:
                     type="text"
                     value={form.cover_image_url}
                     onChange={(e) => setForm((f) => ({ ...f, cover_image_url: e.target.value }))}
-                    placeholder="https://..."
+                    placeholder="https://... or pick from gallery above"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>

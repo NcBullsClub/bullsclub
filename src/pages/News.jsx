@@ -98,6 +98,47 @@ function CardShare({ slug, title }) {
   )
 }
 
+const TAG_ICONS = {
+  // Results & Reports
+  'match report':   '🏏',
+  'match-report':   '🏏',
+  'win':            '🏆',
+  'victory':        '🏆',
+  'loss':           '📉',
+  // Announcements & Club
+  'announcement':   '📢',
+  'announcement':   '📢',
+  // Leagues & Competitions
+  'league':         '🏅',
+  'mega bash':      '⚡',
+  'mega-bash':      '⚡',
+  't20':            '🔥',
+  'championship':   '🥇',
+  'tournament':     '🎯',
+  // Registration & Events
+  'registration':   '📝',
+  'trials':         '🎽',
+  'training':       '🏋️',
+  'event':          '📅',
+  'events':         '📅',
+  // Teams
+  'raising bulls':  '🐂',
+  'royal bulls':    '👑',
+  // General
+  'news':           '📰',
+  'season':         '📆',
+  'milestone':      '🌟',
+  'squad':          '👥',
+  'fundraiser':     '💰',
+  'sponsor':        '🤝',
+  'community':      '🤲',
+}
+
+function tagWithIcon(tag) {
+  const icon = TAG_ICONS[tag.toLowerCase().trim()]
+  return icon ? `${icon} ${tag}` : tag
+}
+
 export default function News() {
   const [news, setNews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -160,7 +201,7 @@ export default function News() {
                   <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
                     {article.tags.slice(0, 2).map((tag) => (
                       <span key={tag} className="text-xs bg-accent/90 text-primary-dark font-bold px-2 py-0.5 rounded-full">
-                        {tag}
+                        {tagWithIcon(tag)}
                       </span>
                     ))}
                   </div>

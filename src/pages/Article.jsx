@@ -3,6 +3,40 @@ import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../lib/turso'
 
+const TAG_ICONS = {
+  'match report':   '🏏',
+  'match-report':   '🏏',
+  'win':            '🏆',
+  'victory':        '🏆',
+  'loss':           '📉',
+  'announcement':   '📢',
+  'league':         '🏅',
+  'mega bash':      '⚡',
+  'mega-bash':      '⚡',
+  't20':            '🔥',
+  'championship':   '🥇',
+  'tournament':     '🎯',
+  'registration':   '📝',
+  'trials':         '🎽',
+  'training':       '🏋️',
+  'event':          '📅',
+  'events':         '📅',
+  'raising bulls':  '🐂',
+  'royal bulls':    '👑',
+  'news':           '📰',
+  'season':         '📆',
+  'milestone':      '🌟',
+  'squad':          '👥',
+  'fundraiser':     '💰',
+  'sponsor':        '🤝',
+  'community':      '🤲',
+}
+
+function tagWithIcon(tag) {
+  const icon = TAG_ICONS[tag.toLowerCase().trim()]
+  return icon ? `${icon} ${tag}` : tag
+}
+
 /* ── Share button ────────────────────────────────────── */
 function ShareButton({ title, url }) {
   const [open, setOpen]     = useState(false)
@@ -165,7 +199,7 @@ export default function Article() {
             <div className="flex flex-wrap gap-2 mb-4">
               {article.tags.map((tag) => (
                 <span key={tag} className="text-xs bg-accent/20 text-accent px-3 py-1 rounded-full border border-accent/30">
-                  {tag}
+                  {tagWithIcon(tag)}
                 </span>
               ))}
             </div>

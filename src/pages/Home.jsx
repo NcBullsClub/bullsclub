@@ -127,7 +127,7 @@ export default function Home() {
       {a2hsDismissed && !showA2HS && (
         <button
           onClick={reopenA2HS}
-          className="fixed bottom-5 right-4 z-50 sm:hidden flex items-center gap-1.5 bg-primary-dark text-accent border border-accent/40 rounded-full px-3 py-2 text-xs font-semibold shadow-lg active:scale-95 transition-transform"
+          className="fixed top-1/2 right-0 -translate-y-1/2 z-50 sm:hidden flex items-center gap-1.5 bg-primary-dark text-accent border border-accent/40 rounded-l-full px-3 py-2.5 text-xs font-semibold shadow-lg active:scale-95 transition-transform"
           aria-label="Add to Home Screen"
         >
           <span>📲</span>

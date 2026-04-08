@@ -239,6 +239,9 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
   const [editingId, setEditingId]       = useState(null)
   const [editAmount, setEditAmount]     = useState('')
   const [updatingId, setUpdatingId]     = useState(null)
+  const [editingTeamId, setEditingTeamId] = useState(null)
+  const [editTeam, setEditTeam]         = useState('')
+  const [updatingTeamId, setUpdatingTeamId] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -246,6 +249,7 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
       .from('team_expenses')
       .select('*')
       .eq('season', SEASON)
+      .is('deleted_at', null)
       .order('expense_date', { ascending: false })
       .then(({ data }) => {
         setExpenses(data || [])
@@ -292,7 +296,10 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
 
   async function handleDelete(id) {
     setDeletingId(id)
-    await supabase.from('team_expenses').delete().eq('id', id)
+    await supabase
+      .from('team_expenses')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
     load()
     setDeletingId(null)
     setConfirmDeleteId(null)
@@ -310,6 +317,19 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
     setUpdatingId(null)
     setEditingId(null)
     setEditAmount('')
+  }
+
+  async function handleUpdateTeam(id) {
+    if (!editTeam) return
+    setUpdatingTeamId(id)
+    await supabase
+      .from('team_expenses')
+      .update({ team: editTeam })
+      .eq('id', id)
+    load()
+    setUpdatingTeamId(null)
+    setEditingTeamId(null)
+    setEditTeam('')
   }
 
   return (
@@ -509,10 +529,12 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
             const cat = EXPENSE_CATS.find((c) => c.id === e.category) || EXPENSE_CATS[4]
             const [y, m, d] = e.expense_date.split('-').map(Number)
             const dateStr = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            const isDeleting  = deletingId === e.id
-            const isConfirm   = confirmDeleteId === e.id
-            const isEditing   = editingId === e.id
-            const isUpdating  = updatingId === e.id
+            const isDeleting      = deletingId === e.id
+            const isConfirm      = confirmDeleteId === e.id
+            const isEditing      = editingId === e.id
+            const isUpdating     = updatingId === e.id
+            const isEditingTeam  = editingTeamId === e.id
+            const isUpdatingTeam = updatingTeamId === e.id
 
             const teamLabel =
               e.team === 'raising-bulls' ? 'Raising Bulls'
@@ -538,9 +560,39 @@ function ExpensesPanel({ rosterPlayers, currentUserEmail }) {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-semibold text-sm text-gray-800">{e.paid_by}</span>
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">{cat.label}</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${teamCls}`}>
-                      {teamLabel}
-                    </span>
+                    {isEditingTeam ? (
+                      <div className="flex items-center gap-1">
+                        <select
+                          autoFocus
+                          value={editTeam}
+                          onChange={(ev) => setEditTeam(ev.target.value)}
+                          className="text-[10px] border border-accent rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-accent bg-white"
+                        >
+                          <option value="raising-bulls">Raising Bulls</option>
+                          <option value="royal-bulls">Royal Bulls</option>
+                          <option value="both">Both</option>
+                        </select>
+                        <button
+                          onClick={() => handleUpdateTeam(e.id)}
+                          disabled={isUpdatingTeam}
+                          className="text-[10px] font-bold text-green-600 hover:text-green-700 disabled:opacity-50"
+                        >
+                          {isUpdatingTeam ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : '✓'}
+                        </button>
+                        <button
+                          onClick={() => { setEditingTeamId(null); setEditTeam('') }}
+                          className="text-[10px] text-gray-400 hover:text-gray-600"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingTeamId(e.id); setEditTeam(e.team) }}
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${teamCls} hover:opacity-70 transition-opacity`}
+                        title="Click to edit team"
+                      >
+                        {teamLabel}
+                      </button>
+                    )}
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">
                     {dateStr}{e.description ? ` · ${e.description}` : ''}

@@ -11,10 +11,20 @@ CREATE TABLE IF NOT EXISTS team_expenses (
   description  text,
   expense_date date             NOT NULL,
   created_by   text,                               -- admin email who logged it
-  created_at   timestamptz      DEFAULT now()
+  created_at   timestamptz      DEFAULT now(),
+  deleted_at   timestamptz      DEFAULT null       -- soft delete
 );
 
+-- Add deleted_at if not already present (safe re-run)
+ALTER TABLE team_expenses ADD COLUMN IF NOT EXISTS deleted_at timestamptz DEFAULT null;
+
 ALTER TABLE team_expenses ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies before recreating (safe re-run)
+DROP POLICY IF EXISTS "Admins can read expenses"   ON team_expenses;
+DROP POLICY IF EXISTS "Admins can insert expenses" ON team_expenses;
+DROP POLICY IF EXISTS "Admins can update expenses" ON team_expenses;
+DROP POLICY IF EXISTS "Admins can delete expenses" ON team_expenses;
 
 -- Admins can read all expenses
 CREATE POLICY "Admins can read expenses"
@@ -38,9 +48,9 @@ CREATE POLICY "Admins can insert expenses"
     )
   );
 
--- Admins can delete expenses
-CREATE POLICY "Admins can delete expenses"
-  ON team_expenses FOR DELETE
+-- Admins can update expenses (used for soft delete and amount edits)
+CREATE POLICY "Admins can update expenses"
+  ON team_expenses FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM profiles

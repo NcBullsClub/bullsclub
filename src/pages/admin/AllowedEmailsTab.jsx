@@ -31,6 +31,7 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
   const [confirmEmail, setConfirmEmail]     = useState(null)
   const [removingEmail, setRemovingEmail]   = useState(null)
   const [updatingTeam, setUpdatingTeam]     = useState(null)
+  const [mobileFormOpen, setMobileFormOpen] = useState(false)
 
   async function loadAllowlist() {
     setLoading(true)
@@ -105,8 +106,69 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
         </p>
       </div>
 
-      {/* Add form */}
-      <form onSubmit={handleAdd} className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-6">
+      {/* ── Mobile add form (collapsible) ── */}
+      <div className="sm:hidden mb-4">
+        {!mobileFormOpen ? (
+          <button
+            onClick={() => setMobileFormOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-dark text-accent text-sm font-bold active:opacity-80 transition-opacity"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Player
+          </button>
+        ) : (
+          <form onSubmit={(e) => { handleAdd(e); setMobileFormOpen(false) }} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-2.5">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">New Player</span>
+              <button type="button" onClick={() => { setMobileFormOpen(false); setAddError('') }} className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 text-lg leading-none">&times;</button>
+            </div>
+            <input
+              type="email"
+              required
+              placeholder="Email *"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-white"
+            />
+            <input
+              type="text"
+              placeholder="Full name (optional)"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-white"
+            />
+            <div className="flex gap-2">
+              {TEAM_OPTIONS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setNewTeam(newTeam === t.value ? '' : t.value)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                    newTeam === t.value
+                      ? t.value === 'raising-bulls'
+                        ? 'bg-primary-dark text-accent border-primary-dark'
+                        : 'bg-primary text-white border-primary'
+                      : 'bg-white text-gray-500 border-gray-300'
+                  }`}
+                >
+                  {t.value === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}
+                </button>
+              ))}
+            </div>
+            {addError && <p className="text-red-500 text-xs">{addError}</p>}
+            <button
+              type="submit"
+              disabled={adding}
+              className="w-full py-2.5 rounded-lg bg-primary-dark text-accent text-sm font-bold disabled:opacity-60 active:opacity-80 transition-opacity"
+            >
+              {adding ? 'Adding…' : 'Add Player'}
+            </button>
+          </form>
+        )}
+      </div>
+
+      {/* ── Desktop add form ── */}
+      <form onSubmit={handleAdd} className="hidden sm:block bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
           <input
             type="email"
@@ -174,90 +236,93 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
         </p>
       ) : (
         <>
-          {/* ── Mobile cards ── */}
-          <div className="sm:hidden space-y-3">
+          {/* ── Mobile cards (compact row layout) ── */}
+          <div className="sm:hidden space-y-2">
             {filtered.map((row) => {
               const profile = profilesByEmail[row.email?.toLowerCase()]
               const roleMeta = ROLE_META[profile?.role] || null
+              const initials = (row.full_name || row.email).charAt(0).toUpperCase()
               return (
-              <div key={row.email} className="bg-white border border-gray-200 rounded-2xl p-4">
-                {/* Email + remove */}
-                <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <p className="font-semibold text-gray-800 text-sm leading-tight">
-                        {row.full_name || <span className="text-gray-400 italic">No name</span>}
+                <div key={row.email} className="bg-white border border-gray-100 rounded-xl px-3 py-2.5 flex items-center gap-3 shadow-sm">
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
+                    row.team === 'raising-bulls' ? 'bg-primary-dark text-accent' :
+                    row.team === 'royal-bulls'   ? 'bg-primary text-white' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>
+                    {initials}
+                  </div>
+
+                  {/* Name / email / date */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <p className="font-semibold text-gray-800 text-xs truncate leading-tight">
+                        {row.full_name || <span className="text-gray-400 italic font-normal">No name</span>}
                       </p>
                       {roleMeta && (
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${roleMeta.className}`}>
+                        <span className={`flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${roleMeta.className}`}>
                           {roleMeta.label}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 break-all">{row.email}</p>
-                    {/* Team tag — tappable, opens native picker */}
-                    <div className="mt-1.5 relative inline-block">
-                      {updatingTeam === row.email ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-400">
-                          <span className="w-2.5 h-2.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                          Saving…
-                        </span>
-                      ) : (
+                    <p className="text-[10px] text-gray-400 truncate">{row.email}</p>
+                    <p className="text-[10px] text-gray-300 mt-0.5">
+                      {new Date(row.added_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+
+                  {/* Team pill */}
+                  <div className="flex-shrink-0 relative">
+                    {updatingTeam === row.email ? (
+                      <span className="w-5 h-5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin block" />
+                    ) : (
+                      <>
                         <select
                           value={row.team || ''}
                           onChange={(e) => handleTeamChange(row.email, e.target.value)}
-                          className={`appearance-none text-[10px] font-bold pl-2.5 pr-5 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-accent ${
-                            row.team === 'raising-bulls'
-                              ? 'bg-primary-dark text-accent focus:ring-primary-dark'
-                              : row.team === 'royal-bulls'
-                              ? 'bg-primary text-white focus:ring-primary'
-                              : 'bg-gray-100 text-gray-400 focus:ring-gray-300'
+                          className={`appearance-none text-[9px] font-bold pl-2 pr-4 py-1 rounded-full cursor-pointer focus:outline-none ${
+                            row.team === 'raising-bulls' ? 'bg-primary-dark text-accent' :
+                            row.team === 'royal-bulls'   ? 'bg-primary text-white' :
+                            'bg-gray-100 text-gray-400'
                           }`}
                         >
-                          <option value="">＋ Assign team</option>
+                          <option value="">Assign</option>
                           {TEAM_OPTIONS.map((o) => (
                             <option key={o.value} value={o.value}>{o.label}</option>
                           ))}
                         </select>
-                      )}
-                      {/* chevron icon overlay */}
-                      {updatingTeam !== row.email && (
-                        <svg className={`pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 ${
-                          row.team ? (row.team === 'raising-bulls' ? 'text-accent/70' : 'text-white/70') : 'text-gray-400'
+                        <svg className={`pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-2 h-2 ${
+                          row.team === 'raising-bulls' ? 'text-accent/70' :
+                          row.team === 'royal-bulls'   ? 'text-white/70' : 'text-gray-400'
                         }`} viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                         </svg>
-                      )}
-                    </div>
+                      </>
+                    )}
                   </div>
+
+                  {/* Remove */}
                   {confirmEmail === row.email ? (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={handleRemoveConfirmed}
-                        className="text-xs bg-red-500 text-white px-2.5 py-1 rounded-lg hover:bg-red-600 font-medium"
-                      >Yes</button>
-                      <button
-                        onClick={() => setConfirmEmail(null)}
-                        className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-300 font-medium"
-                      >No</button>
+                    <div className="flex-shrink-0 flex items-center gap-1">
+                      <button onClick={handleRemoveConfirmed} className="text-[10px] bg-red-500 text-white px-2 py-1 rounded-lg font-bold">Yes</button>
+                      <button onClick={() => setConfirmEmail(null)} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg font-semibold">No</button>
                     </div>
                   ) : (
                     <button
                       onClick={() => setConfirmEmail(row.email)}
                       disabled={removingEmail === row.email}
-                      className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-40"
-                    >{removingEmail === row.email ? 'Removing…' : 'Remove'}</button>
+                      className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-red-400 active:bg-red-50 disabled:opacity-40 transition-colors"
+                    >
+                      {removingEmail === row.email ? (
+                        <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                      )}
+                    </button>
                   )}
                 </div>
-                {/* date row */}
-                <div className="flex justify-end mt-2">
-                  <span className="text-xs text-gray-400">
-                    {new Date(row.added_at).toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    })}
-                  </span>
-                </div>
-              </div>
               )
             })}
           </div>

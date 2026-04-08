@@ -106,14 +106,14 @@ export default function Home() {
     <div>
       {/* Add to Home Screen — mobile only */}
       {showA2HS && (
-        <div className="sm:hidden bg-primary-dark border-b border-white/10 px-4 py-2.5 flex items-center gap-3">
+        <div className="sm:hidden bg-yellow-300 border-b border-yellow-400 px-4 py-2.5 flex items-center gap-3 shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
           <span className="text-lg flex-shrink-0">📲</span>
-          <p className="flex-1 text-white text-xs leading-snug">
-            <span className="font-semibold">Add to Home Screen</span> — tap <span className="font-bold text-accent">Share</span> then <span className="font-bold text-accent">"Add to Home Screen"</span> for the best experience
+          <p className="flex-1 text-primary-dark text-xs leading-snug">
+            <span className="font-bold">Add to Home Screen</span> - tap <span className="font-extrabold underline decoration-primary-dark/40">Share</span> then <span className="font-extrabold">"Add to Home Screen"</span> for the best experience
           </p>
           <button
             onClick={dismissA2HS}
-            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 text-white text-xs hover:bg-white/20 transition-colors"
+            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-primary-dark/10 text-primary-dark text-xs hover:bg-primary-dark/20 transition-colors"
             aria-label="Dismiss"
           >
             ✕

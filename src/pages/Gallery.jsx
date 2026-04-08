@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../lib/turso'
 import videos from '../data/videos.json'
@@ -100,6 +100,13 @@ export default function Gallery() {
   const [loading, setLoading]   = useState(true)
   const [filter, setFilter]     = useState('All')
   const [lightbox, setLightbox] = useState(null)
+  const [zoom, setZoom]               = useState(1)
+  const [pan, setPan]                 = useState({ x: 0, y: 0 })
+  const [isGesturing, setIsGesturing] = useState(false)
+  const pinchRef   = useRef(null)
+  const zoomRef    = useRef(1)
+  const panRef     = useRef({ x: 0, y: 0 })
+  const imgAreaRef = useRef(null)
 
   useEffect(() => {
     turso
@@ -109,6 +116,87 @@ export default function Gallery() {
       )
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (lightbox) { setZoom(1); setPan({ x: 0, y: 0 }); setIsGesturing(false) }
+  }, [lightbox])
+
+  // Keep refs in sync with state so touch handlers always have latest values
+  useEffect(() => { zoomRef.current = zoom }, [zoom])
+  useEffect(() => { panRef.current = pan }, [pan])
+
+  // Attach non-passive touch listeners for pinch-to-zoom + drag-to-pan
+  useEffect(() => {
+    const el = imgAreaRef.current
+    if (!el || !lightbox) return
+
+    function getDist(t) {
+      return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    }
+
+    function onTouchStart(e) {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        setIsGesturing(true)
+        pinchRef.current = { type: 'pinch', startDist: getDist(e.touches), startZoom: zoomRef.current }
+      } else if (e.touches.length === 1 && zoomRef.current > 1) {
+        setIsGesturing(true)
+        pinchRef.current = {
+          type: 'pan',
+          startX: e.touches[0].clientX - panRef.current.x,
+          startY: e.touches[0].clientY - panRef.current.y,
+        }
+      } else {
+        pinchRef.current = null
+      }
+    }
+
+    function onTouchMove(e) {
+      if (!pinchRef.current) return
+      if (pinchRef.current.type === 'pinch' && e.touches.length === 2) {
+        e.preventDefault()
+        const ratio = getDist(e.touches) / pinchRef.current.startDist
+        const newZoom = Math.min(3, Math.max(1, pinchRef.current.startZoom * ratio))
+        setZoom(newZoom)
+        if (newZoom <= 1) setPan({ x: 0, y: 0 })
+      } else if (pinchRef.current.type === 'pan' && e.touches.length === 1 && zoomRef.current > 1) {
+        e.preventDefault()
+        setPan({
+          x: e.touches[0].clientX - pinchRef.current.startX,
+          y: e.touches[0].clientY - pinchRef.current.startY,
+        })
+      }
+    }
+
+    function onTouchEnd(e) {
+      if (e.touches.length === 0) {
+        setIsGesturing(false)
+        pinchRef.current = null
+        if (zoomRef.current < 1.08) { setZoom(1); setPan({ x: 0, y: 0 }) }
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    el.addEventListener('touchend',   onTouchEnd)
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove',  onTouchMove)
+      el.removeEventListener('touchend',   onTouchEnd)
+    }
+  }, [lightbox])
+
+  function zoomIn() {
+    setZoom((z) => Math.min(3, Number((z + 0.25).toFixed(2))))
+  }
+
+  function zoomOut() {
+    setZoom((z) => {
+      const next = Math.max(1, Number((z - 0.25).toFixed(2)))
+      if (next <= 1) setPan({ x: 0, y: 0 })
+      return next
+    })
+  }
 
   const trophyItems       = items.filter((g) => isTrophy(g.tags))
   const momentItems       = items.filter((g) => !isTrophy(g.tags))
@@ -353,29 +441,67 @@ export default function Gallery() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => setLightbox(null)}
-                className="w-9 h-9 flex-shrink-0 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/20 transition-colors text-xl leading-none"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={zoomOut}
+                  disabled={zoom <= 1}
+                  className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/20 transition-colors text-lg leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Zoom out"
+                >
+                  −
+                </button>
+                <span className="text-xs text-gray-300 w-12 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+                <button
+                  onClick={zoomIn}
+                  disabled={zoom >= 3}
+                  className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/20 transition-colors text-lg leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }}
+                  disabled={zoom === 1}
+                  className="px-2.5 h-9 rounded-full bg-white/10 text-white text-[11px] font-semibold active:bg-white/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); setLightbox(null) }}
+                  className="w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/20 transition-colors text-xl leading-none"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             {/* image */}
             <div
-              className="flex-1 flex items-center justify-center min-h-0 safe-area-inset"
+              ref={imgAreaRef}
+              className="flex-1 flex items-center justify-center min-h-0 safe-area-inset overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {lightbox.image_url ? (
-                <motion.img
+                <motion.div
                   initial={{ scale: 0.92, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.92, opacity: 0 }}
-                  src={convertDriveUrl(lightbox.image_url)}
-                  alt={lightbox.title}
-                  className="max-w-full max-h-full object-contain"
+                  className="flex items-center justify-center"
                   style={{ maxHeight: 'calc(100dvh - 120px)' }}
-                />
+                >
+                  <img
+                    src={convertDriveUrl(lightbox.image_url)}
+                    alt={lightbox.title}
+                    draggable={false}
+                    className={`max-w-full max-h-full object-contain select-none ${isGesturing ? '' : 'transition-transform duration-150'}`}
+                    style={{
+                      maxHeight: 'calc(100dvh - 120px)',
+                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                      touchAction: 'none',
+                    }}
+                  />
+                </motion.div>
               ) : (
                 <div className="w-64 h-64 bg-primary-dark rounded-2xl flex items-center justify-center">
                   <span className="font-display font-bold text-white/10 text-6xl">NCB</span>

@@ -156,16 +156,21 @@ export default function PlayerRosterTab() {
                             autoFocus
                             className="text-sm font-semibold text-gray-800 border border-accent rounded-lg px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-accent"
                           />
-                          <button onClick={() => { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }} className="text-green-600 font-bold text-base leading-none">✓</button>
-                          <button onClick={() => setEditingNameId(null)} className="text-gray-400 font-bold text-sm leading-none">✕</button>
+                          <button
+                            onClick={() => { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }}
+                            className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-md font-semibold hover:bg-green-200"
+                          >
+                            Save
+                          </button>
+                          <button onClick={() => setEditingNameId(null)} className="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-md font-semibold hover:bg-gray-200">Cancel</button>
                         </div>
                       ) : (
                         <button
                           onClick={() => { setEditingNameId(p.id); setEditNameValue(p.full_name || '') }}
-                          className="font-semibold text-gray-800 text-sm hover:text-primary text-left flex items-center gap-1"
+                          className="font-semibold text-sm text-left flex items-center gap-1 text-gray-800 hover:text-primary"
                         >
                           {p.full_name}
-                          <span className="text-gray-300 text-[10px]">✏︎</span>
+                          <svg className="w-3 h-3 text-gray-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
                       )}
                       <p className="text-xs text-gray-500 mt-0.5 break-all">{p.email || '—'}</p>
@@ -279,16 +284,21 @@ export default function PlayerRosterTab() {
                               autoFocus
                               className="text-sm font-medium text-gray-800 border border-accent rounded-lg px-2 py-0.5 w-44 focus:outline-none focus:ring-1 focus:ring-accent"
                             />
-                            <button onClick={() => { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }} className="text-green-600 font-bold text-base leading-none">✓</button>
-                            <button onClick={() => setEditingNameId(null)} className="text-gray-400 font-bold text-sm leading-none">✕</button>
+                            <button
+                              onClick={() => { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }}
+                              className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-md font-semibold hover:bg-green-200"
+                            >
+                              Save
+                            </button>
+                            <button onClick={() => setEditingNameId(null)} className="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-md font-semibold hover:bg-gray-200">Cancel</button>
                           </div>
                         ) : (
                           <button
                             onClick={() => { setEditingNameId(p.id); setEditNameValue(p.full_name || '') }}
-                            className="font-medium text-gray-800 hover:text-primary text-left flex items-center gap-1 group"
+                            className="font-medium text-left flex items-center gap-1 group text-gray-800 hover:text-primary"
                           >
                             {p.full_name}
-                            <span className="text-gray-300 text-[10px] group-hover:text-gray-400">✏︎</span>
+                            <svg className="w-3 h-3 text-gray-500 group-hover:text-gray-700 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                           </button>
                         )}
                       </td>

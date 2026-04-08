@@ -181,9 +181,10 @@ export default function AvailabilityTab({ onSelectFixture }) {
               viewport={{ once: true }}
               className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
             >
-              <div className={`px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
-                <div className="flex-1">
-                  <div className="flex flex-wrap gap-2 mb-1">
+              <div className={`px-6 py-4 flex flex-col gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+                {/* Top row: meta tags + WhatsApp notification button */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'}`}>
                       {isRaising ? 'Raising Bulls' : 'Royal Bulls'}
                     </span>
@@ -194,47 +195,74 @@ export default function AvailabilityTab({ onSelectFixture }) {
                       <span className="text-xs bg-white/10 text-gray-400 px-2.5 py-0.5 rounded-full">Past</span>
                     )}
                   </div>
-                  <h3 className="font-display font-bold text-white text-xl">
-                    vs {fixture?.opponent || 'Unknown'}
-                  </h3>
-                  <p className="text-gray-400 text-sm mt-0.5">
-                    {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                    {fixture?.time && ` · ${fixture.time}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {onSelectFixture && (
+                  {/* WhatsApp notification — top right */}
+                  {!isPast && fixture && (
                     <button
-                      onClick={() => !isPast && onSelectFixture(key)}
-                      disabled={isPast}
-                      title={isPast ? 'Cannot select players for a past match' : ''}
-                      className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap ${
-                        isPast
-                          ? 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
-                          : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-                      }`}
+                      onClick={() => {
+                        const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`
+                        const teamName = isRaising ? 'Raising Bulls' : 'Royal Bulls'
+                        const msg =
+`🏏 *NC Bulls Cricket Club — ${teamName}*
+
+Hi Team 👋,
+Please update your *availability* for our upcoming match:
+
+📅 *Date:* ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+⏰ *Time:* ${fixture.time || 'TBD'}
+⚔️ *Opponent:* ${fixture.opponent || 'TBD'}
+🏟️ *Ground:* ${fixture.venue || 'TBD'}
+
+👉 Visit the app and mark your availability as ✅ IN, ❌ OUT, or 🤔 MAYBE.
+
+Your response helps us plan the squad. Please respond *at least by Wednesday*.
+Thank you! 🙌`
+                        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer')
+                      }}
+                      className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-green-600/90 hover:bg-green-500 text-white border border-green-400/30 transition-all whitespace-nowrap shadow-sm"
                     >
-                      🏏 Select Players
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.852L0 24l6.335-1.507A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.372l-.36-.214-3.727.977.994-3.634-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
+                      Send Availability Notification
                     </button>
                   )}
-                  {[
-                    { label: 'In',    count: inList.length,    bg: 'bg-green-500' },
-                    { label: 'Maybe', count: maybeList.length, bg: 'bg-amber-400' },
-                    { label: 'Out',   count: outList.length,   bg: 'bg-red-500'   },
-                  ].map((s) => (
-                    <div key={s.label} className={`${s.bg} rounded-xl px-4 py-2 text-center text-white min-w-[52px]`}>
-                      <div className="font-display font-bold text-xl leading-none">{s.count}</div>
-                      <div className="text-xs font-medium opacity-90 mt-0.5">{s.label}</div>
-                    </div>
-                  ))}
-                  {/* Collapse toggle */}
-                  <button
-                    onClick={() => toggleCollapse(key)}
-                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-                    title={collapsedKeys.has(key) ? 'Expand' : 'Collapse'}
-                  >
-                    {collapsedKeys.has(key) ? '▶' : '▼'}
-                  </button>
+                </div>
+
+                {/* Bottom row: match title, date, counts, select players */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-display font-bold text-white text-xl">
+                      vs {fixture?.opponent || 'Unknown'}
+                    </h3>
+                    <p className="text-gray-400 text-sm mt-0.5">
+                      {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                      {fixture?.time && ` · ${fixture.time}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {onSelectFixture && (
+                      <button
+                        onClick={() => !isPast && onSelectFixture(key)}
+                        disabled={isPast}
+                        title={isPast ? 'Cannot select players for a past match' : ''}
+                        className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap ${
+                          isPast
+                            ? 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
+                            : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                        }`}
+                      >
+                        🏏 Select Players
+                      </button>
+                    )}
+                    {[
+                      { label: 'In',    count: inList.length,    bg: 'bg-green-500' },
+                      { label: 'Maybe', count: maybeList.length, bg: 'bg-amber-400' },
+                      { label: 'Out',   count: outList.length,   bg: 'bg-red-500'   },
+                    ].map((s) => (
+                      <div key={s.label} className={`${s.bg} rounded-xl px-2.5 py-2 text-center text-white flex-shrink-0`}>
+                        <div className="font-display font-bold text-xl leading-none">{s.count}</div>
+                        <div className="text-[10px] font-medium opacity-90 mt-0.5 whitespace-nowrap">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -323,6 +351,17 @@ export default function AvailabilityTab({ onSelectFixture }) {
                 })()}
               </div>
               )}
+              {/* Toggle players list — always visible at bottom */}
+              <div className="border-t border-gray-100 px-6 py-2.5 flex justify-center">
+                <button
+                  onClick={() => toggleCollapse(key)}
+                  className="text-xs font-medium text-gray-400 hover:text-gray-600 flex items-center gap-1.5 transition-colors"
+                >
+                  {collapsedKeys.has(key)
+                    ? `▼ Show Players (${rows.length})`
+                    : '▲ Hide Players'}
+                </button>
+              </div>
             </motion.div>
           )
         })}

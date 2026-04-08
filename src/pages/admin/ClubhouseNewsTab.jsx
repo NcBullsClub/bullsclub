@@ -47,6 +47,8 @@ export default function ClubhouseNewsTab() {
   const [saving, setSaving]       = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
+  const [showPrompt, setShowPrompt]     = useState(false)
+  const [promptCopied, setPromptCopied] = useState(false)
   const titleRef   = useRef(null)
   const contentRef = useRef(null)
 
@@ -396,6 +398,62 @@ export default function ClubhouseNewsTab() {
 
               {/* Drawer body */}
               <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+
+                {/* AI Prompt Helper */}
+                <div className="border border-amber-200 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowPrompt((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 hover:bg-amber-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🤖</span>
+                      <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">AI Prompt Helper</span>
+                      <span className="text-[10px] text-amber-600 font-medium hidden sm:inline">— Copy &amp; paste into ChatGPT</span>
+                    </div>
+                    <span className="text-amber-500 text-xs">{showPrompt ? '▲' : '▼'}</span>
+                  </button>
+                  {showPrompt && (
+                    <div className="px-4 pb-4 pt-3 bg-amber-50/50">
+                      <pre className="text-[11px] text-gray-700 whitespace-pre-wrap font-mono bg-white border border-amber-200 rounded-lg px-3 py-3 leading-relaxed select-all mb-3">{`Write a cricket match report article for NC Bulls Cricket Club.
+
+Team: [RAISING BULLS / ROYAL BULLS]
+Match Type: [Mega Bash / T20 / etc.]
+Result: [WIN / LOSS]
+Score: [Team score] vs [Opponent score]
+Opponent: [Opponent name]
+
+Please write:
+• Title — catchy headline, highlight the star performer
+• Slug — URL-friendly version of the title
+• Summary / Excerpt — 2–3 sentences for the article card
+• Full Content — 3–4 engaging paragraphs covering the match
+
+Star Performances:
+[Player] — [e.g., 4 wickets in 4 overs, conceding 12 runs]
+[Player] — [e.g., 25 runs off 23 balls]
+
+Extra Notes / Context:
+[Any storylines, comebacks, milestones, or highlights to emphasize]`}</pre>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`Write a cricket match report article for NC Bulls Cricket Club.\n\nTeam: [RAISING BULLS / ROYAL BULLS]\nMatch Type: [Mega Bash / T20 / etc.]\nResult: [WIN / LOSS]\nScore: [Team score] vs [Opponent score]\nOpponent: [Opponent name]\n\nPlease write:\n\u2022 Title \u2014 catchy headline, highlight the star performer\n\u2022 Slug \u2014 URL-friendly version of the title\n\u2022 Summary / Excerpt \u2014 2\u20133 sentences for the article card\n\u2022 Full Content \u2014 3\u20134 engaging paragraphs covering the match\n\nStar Performances:\n[Player] \u2014 [e.g., 4 wickets in 4 overs, conceding 12 runs]\n[Player] \u2014 [e.g., 25 runs off 23 balls]\n\nExtra Notes / Context:\n[Any storylines, comebacks, milestones, or highlights to emphasize]`)
+                          setPromptCopied(true)
+                          setTimeout(() => setPromptCopied(false), 2500)
+                        }}
+                        className={`w-full text-xs font-semibold py-2 rounded-lg transition-colors ${
+                          promptCopied
+                            ? 'bg-green-500 text-white'
+                            : 'bg-amber-500 hover:bg-amber-600 text-white'
+                        }`}
+                      >
+                        {promptCopied ? '\u2713 Copied!' : '\ud83d\udccb Copy Prompt'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Title */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">

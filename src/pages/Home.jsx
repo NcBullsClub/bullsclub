@@ -62,6 +62,7 @@ export default function Home() {
   const [showA2HS, setShowA2HS]         = useState(false)
   const [a2hsPlatform, setA2hsPlatform] = useState('ios')
   const [a2hsDismissed, setA2hsDismissed] = useState(false)
+  const deferredPromptRef = useRef(null)
 
   useEffect(() => {
     const dismissed   = localStorage.getItem('a2hs-dismissed')
@@ -78,6 +79,24 @@ export default function Home() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      deferredPromptRef.current = e
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  async function handleNativeInstall() {
+    if (deferredPromptRef.current) {
+      deferredPromptRef.current.prompt()
+      const { outcome } = await deferredPromptRef.current.userChoice
+      deferredPromptRef.current = null
+      if (outcome === 'accepted') dismissA2HS()
+    }
+  }
 
   function dismissA2HS() {
     localStorage.setItem('a2hs-dismissed', '1')
@@ -187,18 +206,29 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
-                    <p className="text-xs text-gray-700">Tap the <span className="font-bold">⋮</span> menu in the <span className="font-semibold">top-right</span> of Chrome</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
-                    <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span> or <span className="font-bold">&ldquo;Install App&rdquo;</span></p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
-                    <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add&rdquo;</span> to confirm — done!</p>
-                  </div>
+                  {deferredPromptRef.current ? (
+                    <button
+                      onClick={handleNativeInstall}
+                      className="w-full py-3 rounded-xl bg-primary-dark text-accent font-bold text-sm flex items-center justify-center gap-2"
+                    >
+                      <span>📲</span> Tap to Install App
+                    </button>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
+                        <p className="text-xs text-gray-700">Tap the <span className="font-bold">⋮</span> menu in the <span className="font-semibold">top-right</span> of Chrome</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
+                        <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span> or <span className="font-bold">&ldquo;Install App&rdquo;</span></p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
+                        <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add&rdquo;</span> to confirm — done!</p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>

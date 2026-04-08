@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import logo from '../../assets/images/cropped_nc_bulls_club_logo.png'
+import logo from '../../assets/images/cropped_no bg_nc_bulls_club_logo.png'
 import { useAuth } from '../../contexts/AuthContext'
 
 /* ── Inline SVG icon component (Heroicons v2 outline) ─────── */
@@ -120,11 +120,20 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0 group">
-              <div className="transition-all duration-300 rounded-full overflow-hidden bg-white shadow-md p-0.5">
+              <div className="relative transition-all duration-300 group-hover:scale-110">
+                {/* Radiating gold glow */}
+                <div
+                  className="absolute rounded-full animate-pulse pointer-events-none"
+                  style={{
+                    inset: '-8px',
+                    background: 'radial-gradient(circle, rgba(245,197,24,0.55) 0%, rgba(245,197,24,0.2) 50%, transparent 75%)',
+                  }}
+                />
                 <img
                   src={logo}
                   alt="NC Bulls Cricket Club"
-                  className="h-10 w-10 object-contain rounded-full"
+                  className="relative h-10 w-10 object-contain rounded-full"
+                  style={{ filter: 'drop-shadow(0 0 6px #f5c518) drop-shadow(0 0 14px rgba(245,197,24,0.6))' }}
                 />
               </div>
               <div className="leading-tight">

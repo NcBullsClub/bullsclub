@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import logo from '../assets/images/cropped_nc_bulls_club_logo.png'
+import logo from '../assets/images/cropped_no bg_nc_bulls_club_logo.png'
 import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
 import { turso } from '../lib/turso'
@@ -194,7 +194,15 @@ export default function Home() {
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
         {/* Background logo watermark */}
         <div className="absolute inset-0 flex items-start justify-center pointer-events-none" style={{paddingTop: '6%'}}>
-          <img src={logo} alt="" className="w-[550px] max-w-[70vw] opacity-[0.28] select-none" />
+          <img
+            src={logo}
+            alt=""
+            className="w-[550px] max-w-[70vw] select-none"
+            style={{
+              opacity: 0.22,
+              filter: 'sepia(1) saturate(4) hue-rotate(5deg) drop-shadow(0 0 40px rgba(245,197,24,0.5))',
+            }}
+          />
         </div>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-96 h-96 rounded-full bg-accent blur-3xl" />

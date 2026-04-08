@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import SponsorInquiriesTab from './SponsorInquiriesTab'
 
 const ROLE_LABELS = {
   'batsman':       '🏏 Batsman',
@@ -25,7 +26,8 @@ const FILTERS = [
 
 export default function JoinRequestsTab({ onPendingCount }) {
   const { profile } = useAuth()
-  const [requests, setRequests]     = useState([])
+  const [subTab, setSubTab]             = useState('players')
+  const [requests, setRequests]         = useState([])
   const [loading, setLoading]       = useState(true)
   const [filter, setFilter]         = useState('pending')
   const [actionId, setActionId]     = useState(null)
@@ -102,22 +104,44 @@ export default function JoinRequestsTab({ onPendingCount }) {
   })
 
   const pendingCount = requests.filter((r) => r.status === 'pending').length
+  const [sponsorNewCount, setSponsorNewCount] = useState(0)
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h2 className="font-display font-bold text-primary text-2xl mb-1 flex items-center gap-3">
-          Join Requests
-          {pendingCount > 0 && (
-            <span className="text-sm font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full">
-              {pendingCount} pending
-            </span>
-          )}
-        </h2>
-        <p className="text-sm text-gray-500">
+      {/* Sub-tab switcher */}
+      <div className="flex gap-2 mb-6">
+        {[
+          { id: 'players',  label: 'Join Requests',       icon: '📩' },
+          { id: 'sponsors', label: 'Sponsor Inquiries',   icon: '💼' },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSubTab(t.id)}
+            className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              subTab === t.id
+                ? 'bg-primary-dark text-accent'
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <span>{t.icon}</span>{t.label}
+            {t.id === 'players' && pendingCount > 0 && (
+              <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">{pendingCount}</span>
+            )}
+            {t.id === 'sponsors' && sponsorNewCount > 0 && (
+              <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">{sponsorNewCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {subTab === 'sponsors' && (
+        <SponsorInquiriesTab onNewCount={setSponsorNewCount} />
+      )}
+
+      {subTab === 'players' && (<div>
+        <p className="text-sm text-gray-500 mb-5">
           Players who submitted the Join the Club form. Approve to add them to the allowed list.
         </p>
-      </div>
 
       {/* Filters + search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -262,6 +286,8 @@ export default function JoinRequestsTab({ onPendingCount }) {
           })}
         </div>
       )}
+    </div>
+  )} {/* end subTab === 'players' */}
     </div>
   )
 }

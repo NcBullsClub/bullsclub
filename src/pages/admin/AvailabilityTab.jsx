@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
@@ -30,6 +30,8 @@ export default function AvailabilityTab({ onSelectFixture }) {
   const [responses, setResponses]   = useState([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
+  const [collapsedKeys, setCollapsedKeys] = useState(new Set())
+  const initializedCollapse = useRef(false)
 
   const fixtureMap = Object.fromEntries(
     fixtures.map((f) => [`${f.date}::${f.team}`, f]),
@@ -61,6 +63,31 @@ export default function AvailabilityTab({ onSelectFixture }) {
   }
 
   useEffect(() => { load() }, [teamFilter])
+
+  // Auto-collapse past matches on first data load
+  useEffect(() => {
+    if (!responses.length || initializedCollapse.current) return
+    initializedCollapse.current = true
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const pastKeys = new Set(
+      responses
+        .map((r) => `${r.fixture_date}::${r.fixture_team}`)
+        .filter((key) => {
+          const [y, m, d] = key.split('::')[0].split('-').map(Number)
+          return new Date(y, m - 1, d) < today
+        })
+    )
+    setCollapsedKeys(pastKeys)
+  }, [responses])
+
+  function toggleCollapse(key) {
+    setCollapsedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const grouped = responses.reduce((acc, r) => {
     const k = `${r.fixture_date}::${r.fixture_team}`
@@ -163,6 +190,9 @@ export default function AvailabilityTab({ onSelectFixture }) {
                     {fixture && (
                       <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full">{fixture.format}</span>
                     )}
+                    {isPast && (
+                      <span className="text-xs bg-white/10 text-gray-400 px-2.5 py-0.5 rounded-full">Past</span>
+                    )}
                   </div>
                   <h3 className="font-display font-bold text-white text-xl">
                     vs {fixture?.opponent || 'Unknown'}
@@ -197,9 +227,18 @@ export default function AvailabilityTab({ onSelectFixture }) {
                       <div className="text-xs font-medium opacity-90 mt-0.5">{s.label}</div>
                     </div>
                   ))}
+                  {/* Collapse toggle */}
+                  <button
+                    onClick={() => toggleCollapse(key)}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title={collapsedKeys.has(key) ? 'Expand' : 'Collapse'}
+                  >
+                    {collapsedKeys.has(key) ? '▶' : '▼'}
+                  </button>
                 </div>
               </div>
 
+              {!collapsedKeys.has(key) && (
               <div className="px-4 sm:px-6 py-4">
                 {rows.length === 0 ? (
                   <p className="text-gray-400 text-sm text-center py-4">No responses yet.</p>
@@ -283,6 +322,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
                   )
                 })()}
               </div>
+              )}
             </motion.div>
           )
         })}

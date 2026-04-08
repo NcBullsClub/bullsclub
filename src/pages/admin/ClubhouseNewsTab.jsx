@@ -47,7 +47,8 @@ export default function ClubhouseNewsTab() {
   const [saving, setSaving]       = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
-  const titleRef = useRef(null)
+  const titleRef   = useRef(null)
+  const contentRef = useRef(null)
 
   const load = () => {
     setLoading(true)
@@ -113,6 +114,23 @@ export default function ClubhouseNewsTab() {
       title: val,
       slug: editItem ? f.slug : slugify(val),
     }))
+  }
+
+  function insertMarkup(tag) {
+    const el = contentRef.current
+    if (!el) return
+    const start   = el.selectionStart
+    const end     = el.selectionEnd
+    const before  = form.content.slice(0, start)
+    const sel     = form.content.slice(start, end)
+    const after   = form.content.slice(end)
+    const wrapped = `<${tag}>${sel}</${tag}>`
+    setForm((f) => ({ ...f, content: before + wrapped + after }))
+    setTimeout(() => {
+      el.focus()
+      const cursor = start + wrapped.length
+      el.setSelectionRange(cursor, cursor)
+    }, 0)
   }
 
   async function handleSave() {
@@ -422,12 +440,34 @@ export default function ClubhouseNewsTab() {
                 {/* Content */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Content</label>
+                  {/* Formatting toolbar */}
+                  <div className="flex items-center gap-1 mb-1.5 border border-gray-200 rounded-t-lg px-2 py-1.5 bg-gray-50 border-b-0">
+                    {[
+                      { tag: 'b',  label: 'B', title: 'Bold',        cls: 'font-black' },
+                      { tag: 'i',  label: 'I', title: 'Italic',      cls: 'italic font-medium' },
+                      { tag: 'u',  label: 'U', title: 'Underline',   cls: 'underline font-medium' },
+                      { tag: 'strong', label: 'S', title: 'Strong',  cls: 'font-black text-primary-dark' },
+                    ].map(({ tag, label, title, cls }) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        title={title}
+                        onMouseDown={(e) => { e.preventDefault(); insertMarkup(tag) }}
+                        className={`w-7 h-7 flex items-center justify-center rounded text-sm text-gray-700 hover:bg-gray-200 active:bg-gray-300 transition-colors select-none ${cls}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <div className="w-px h-4 bg-gray-200 mx-1" />
+                    <span className="text-[10px] text-gray-400 ml-1">Select text then tap a button</span>
+                  </div>
                   <textarea
+                    ref={contentRef}
                     value={form.content}
                     onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                     rows={8}
                     placeholder="Full article content (plain text or HTML)"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y"
+                    className="w-full border border-gray-200 rounded-b-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 resize-y"
                   />
                 </div>
 

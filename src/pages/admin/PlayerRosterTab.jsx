@@ -22,6 +22,8 @@ export default function PlayerRosterTab() {
   const [updatingProfile, setUpdatingProfile] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deleteError, setDeleteError]         = useState('')
+  const [editingNameId, setEditingNameId]     = useState(null)
+  const [editNameValue, setEditNameValue]     = useState('')
 
   async function loadProfiles() {
     setLoading(true)
@@ -141,7 +143,31 @@ export default function PlayerRosterTab() {
                   {/* Name + role */}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm">{p.full_name}</p>
+                      {editingNameId === p.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={editNameValue}
+                            onChange={(e) => setEditNameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }
+                              if (e.key === 'Escape') setEditingNameId(null)
+                            }}
+                            autoFocus
+                            className="text-sm font-semibold text-gray-800 border border-accent rounded-lg px-2 py-0.5 w-36 focus:outline-none focus:ring-1 focus:ring-accent"
+                          />
+                          <button onClick={() => { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }} className="text-green-600 font-bold text-base leading-none">✓</button>
+                          <button onClick={() => setEditingNameId(null)} className="text-gray-400 font-bold text-sm leading-none">✕</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setEditingNameId(p.id); setEditNameValue(p.full_name || '') }}
+                          className="font-semibold text-gray-800 text-sm hover:text-primary text-left flex items-center gap-1"
+                        >
+                          {p.full_name}
+                          <span className="text-gray-300 text-[10px]">✏︎</span>
+                        </button>
+                      )}
                       <p className="text-xs text-gray-500 mt-0.5 break-all">{p.email || '—'}</p>
                     </div>
                     {saving ? (
@@ -239,7 +265,33 @@ export default function PlayerRosterTab() {
                   const saving = updatingProfile === p.id
                   return (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 font-medium text-gray-800">{p.full_name}</td>
+                      <td className="px-5 py-3 font-medium text-gray-800">
+                        {editingNameId === p.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={editNameValue}
+                              onChange={(e) => setEditNameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }
+                                if (e.key === 'Escape') setEditingNameId(null)
+                              }}
+                              autoFocus
+                              className="text-sm font-medium text-gray-800 border border-accent rounded-lg px-2 py-0.5 w-44 focus:outline-none focus:ring-1 focus:ring-accent"
+                            />
+                            <button onClick={() => { handleProfileUpdate(p.id, { full_name: editNameValue }); setEditingNameId(null) }} className="text-green-600 font-bold text-base leading-none">✓</button>
+                            <button onClick={() => setEditingNameId(null)} className="text-gray-400 font-bold text-sm leading-none">✕</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setEditingNameId(p.id); setEditNameValue(p.full_name || '') }}
+                            className="font-medium text-gray-800 hover:text-primary text-left flex items-center gap-1 group"
+                          >
+                            {p.full_name}
+                            <span className="text-gray-300 text-[10px] group-hover:text-gray-400">✏︎</span>
+                          </button>
+                        )}
+                      </td>
                       <td className="px-5 py-3 text-gray-500 text-xs">{p.email || '—'}</td>
                       <td className="px-5 py-3">
                         {saving ? (

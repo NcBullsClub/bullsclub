@@ -26,6 +26,15 @@ export default {
       backgroundImage: {
         'hero-pattern': "url('/src/assets/hero-bg.jpg')",
       },
+      animation: {
+        marquee: 'marquee 28s linear infinite',
+      },
+      keyframes: {
+        marquee: {
+          '0%':   { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+      },
     },
   },
   plugins: [],

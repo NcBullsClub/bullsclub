@@ -25,7 +25,7 @@ function convertDriveUrl(url) {
 }
 
 const EMPTY = {
-  title: '', description: '', image_url: '', thumb_url: '',
+  title: '', description: '', image_url: '', thumb_url: '', video_url: '',
   tags: '', match_date: '', uploaded_by: '',
 }
 
@@ -83,6 +83,7 @@ export default function ClubhouseGalleryTab() {
       description: g.description ?? '',
       image_url:   g.image_url   ?? '',
       thumb_url:   g.thumb_url   ?? '',
+      video_url:   g.video_url   ?? '',
       tags:        Array.isArray(g.tags) ? g.tags.join(', ') : '',
       match_date:  g.match_date  ?? '',
       uploaded_by: g.uploaded_by ?? '',
@@ -103,21 +104,21 @@ export default function ClubhouseGalleryTab() {
       if (editItem) {
         await turso.execute({
           sql: `UPDATE gallery
-                SET title=?, description=?, image_url=?, thumb_url=?,
+                SET title=?, description=?, image_url=?, thumb_url=?, video_url=?,
                     tags=?, match_date=?, uploaded_by=?
                 WHERE id=?`,
           args: [
-            form.title, form.description, form.image_url, form.thumb_url,
+            form.title, form.description, form.image_url, form.thumb_url, form.video_url,
             tagsJson, form.match_date, form.uploaded_by, editItem.id,
           ],
         })
       } else {
         await turso.execute({
           sql: `INSERT INTO gallery
-                  (title, description, image_url, thumb_url, tags, match_date, uploaded_by, created_at)
-                VALUES (?,?,?,?,?,?,?,?)`,
+                  (title, description, image_url, thumb_url, video_url, tags, match_date, uploaded_by, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?)`,
           args: [
-            form.title, form.description, form.image_url, form.thumb_url,
+            form.title, form.description, form.image_url, form.thumb_url, form.video_url,
             tagsJson, form.match_date, form.uploaded_by, now,
           ],
         })
@@ -202,10 +203,29 @@ export default function ClubhouseGalleryTab() {
                     src={g.thumb_url || g.image_url}
                     alt={g.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.target.style.display = 'none'
-                    }}
+                    onError={(e) => { e.target.style.display = 'none' }}
                   />
+                ) : g.video_url ? (
+                  (() => {
+                    const ytMatch = g.video_url.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/)
+                    const thumb = ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : null
+                    return (
+                      <div className="relative w-full h-full">
+                        {thumb ? (
+                          <img src={thumb} alt={g.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-900">
+                            <span className="text-3xl">▶️</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                            <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="font-display text-accent/30 text-4xl font-bold">NCB</span>
@@ -423,6 +443,31 @@ export default function ClubhouseGalleryTab() {
                     placeholder="Smaller/compressed version or Drive link"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
+                </div>
+
+                {/* Video URL */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                    Video URL
+                    <span className="ml-1 text-gray-400 normal-case font-normal">(YouTube or Instagram — leave blank for photo)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.video_url}
+                    onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))
+                    }
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  {form.video_url && (() => {
+                    const ytMatch = form.video_url.match(/(?:youtu\.be\/|v=|embed\/)?([\w-]{11})/)
+                    const thumb = ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : null
+                    return thumb ? (
+                      <div className="mt-2 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        <img src={thumb} alt="YouTube thumbnail" className="w-full h-full object-cover" />
+                      </div>
+                    ) : null
+                  })()}
                 </div>
 
                 {/* Description */}

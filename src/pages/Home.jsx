@@ -59,9 +59,21 @@ export default function Home() {
   const [rbWins, setRbWins] = useState(0)
   const [ryWins, setRyWins] = useState(0)
   const [latestNews, setLatestNews] = useState([])
+  const [showA2HS, setShowA2HS] = useState(false)
 
   useEffect(() => {
-    turso.execute("SELECT id, title, slug, summary, published_at FROM news WHERE status='published' ORDER BY published_at DESC LIMIT 3")
+    const dismissed   = localStorage.getItem('a2hs-dismissed')
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+    if (!dismissed && !isStandalone) setShowA2HS(true)
+  }, [])
+
+  function dismissA2HS() {
+    localStorage.setItem('a2hs-dismissed', '1')
+    setShowA2HS(false)
+  }
+
+  useEffect(() => {
+    turso.execute("SELECT id, title, slug, summary, published_at, cover_image_url FROM news WHERE status='published' ORDER BY published_at DESC LIMIT 3")
       .then(({ rows }) => {
         setLatestNews(rows.map(r => ({
           id: r.id,
@@ -69,6 +81,7 @@ export default function Home() {
           slug: r.slug,
           excerpt: r.summary,
           date: r.published_at?.split('T')[0] ?? '',
+          cover_image_url: r.cover_image_url ?? '',
         })))
       })
   }, [])
@@ -91,6 +104,23 @@ export default function Home() {
 
   return (
     <div>
+      {/* Add to Home Screen — mobile only */}
+      {showA2HS && (
+        <div className="sm:hidden bg-primary-dark border-b border-white/10 px-4 py-2.5 flex items-center gap-3">
+          <span className="text-lg flex-shrink-0">📲</span>
+          <p className="flex-1 text-white text-xs leading-snug">
+            <span className="font-semibold">Add to Home Screen</span> — tap <span className="font-bold text-accent">Share</span> then <span className="font-bold text-accent">"Add to Home Screen"</span> for the best experience
+          </p>
+          <button
+            onClick={dismissA2HS}
+            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 text-white text-xs hover:bg-white/20 transition-colors"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Hero */}
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
         {/* Background logo watermark */}
@@ -364,19 +394,19 @@ export default function Home() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: i * 0.07 }}
-                        className={`flex items-center gap-4 bg-white rounded-xl border-l-4 px-4 py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
+                        className={`flex items-center gap-2.5 sm:gap-4 bg-white rounded-xl border-l-4 px-2.5 sm:px-4 py-2 sm:py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-display font-bold text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                        <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-display font-bold text-xs sm:text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                           {isWon(r) ? 'W' : 'L'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-800 text-sm truncate">vs {r.opponent}</div>
+                          <div className="font-semibold text-gray-800 text-xs sm:text-sm truncate">vs {r.opponent}</div>
                           <div className="text-xs text-gray-400 mt-0.5">
                             {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            {r.venue && <span> · {r.venue}</span>}
+                            {r.venue && <span className="hidden sm:inline"> · {r.venue}</span>}
                           </div>
                           {r.result && (
-                            <div className={`text-xs font-medium mt-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
+                            <div className={`text-xs font-medium mt-0.5 line-clamp-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
                           )}
                         </div>
                         {(r.ncb_score || r.opp_score) && (
@@ -409,7 +439,6 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Gold + Silver in one row */}
           <div className="flex flex-wrap justify-center gap-4">
             {sponsors
               .filter(s => s.tier === 'Gold' || s.tier === 'Silver')
@@ -453,15 +482,15 @@ export default function Home() {
       </section>
 
       {/* Latest News */}
-      <section className="py-16 bg-white">
+      <section className="py-8 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4 sm:mb-8">
             <h2 className="section-heading">Latest News</h2>
             <Link to="/news" className="text-primary font-medium hover:text-accent transition-colors text-sm">
               View All →
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {latestNews.map((article, i) => (
               <motion.div
                 key={article.id}
@@ -469,18 +498,33 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="group border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all"
+                className="group flex sm:flex-col border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-all"
               >
-                <div className="bg-gradient-to-br from-primary to-primary-light h-40 flex items-center justify-center">
-                  <span className="font-display text-accent text-4xl font-bold opacity-30">NCB</span>
-                </div>
-                <div className="p-5">
-                  <div className="text-xs text-gray-400 mb-2">{new Date(article.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                  <h3 className="font-semibold text-gray-800 text-base mb-2 group-hover:text-primary transition-colors leading-snug">
+                {/* Image */}
+                <Link to={`/news/${article.slug}`} className="flex-shrink-0 w-24 sm:w-full h-24 sm:h-40 relative overflow-hidden bg-gradient-to-br from-primary to-primary-light block">
+                  {article.cover_image_url ? (
+                    <img
+                      src={article.cover_image_url}
+                      alt={article.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { e.target.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="font-display text-accent text-xl sm:text-4xl font-bold opacity-30">NCB</span>
+                    </div>
+                  )}
+                </Link>
+                {/* Content */}
+                <div className="p-3 sm:p-5 flex-1 min-w-0 flex flex-col justify-center">
+                  <div className="text-[10px] sm:text-xs text-gray-400 mb-1">
+                    {new Date(article.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                  <h3 className="font-semibold text-gray-800 text-sm sm:text-base mb-1 group-hover:text-primary transition-colors leading-snug line-clamp-2">
                     {article.title}
                   </h3>
-                  <p className="text-sm text-gray-500 line-clamp-2">{article.excerpt}</p>
-                  <Link to={`/news/${article.slug}`} className="inline-block mt-3 text-sm font-medium text-primary hover:text-accent transition-colors">
+                  <p className="hidden sm:block text-sm text-gray-500 line-clamp-2">{article.excerpt}</p>
+                  <Link to={`/news/${article.slug}`} className="inline-block mt-1.5 sm:mt-3 text-xs sm:text-sm font-medium text-primary hover:text-accent transition-colors">
                     Read More →
                   </Link>
                 </div>
@@ -491,22 +535,30 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-primary-dark text-white text-center">
-        <div className="max-w-3xl mx-auto px-4">
+      <section className="py-12 sm:py-20 bg-primary-dark text-white">
+        <div className="max-w-3xl mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
+            <div className="w-14 h-14 mx-auto mb-4 bg-accent/20 rounded-full flex items-center justify-center text-2xl">
+              🏏
+            </div>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
               READY TO <span className="text-accent">PLAY?</span>
             </h2>
-            <p className="text-gray-300 text-lg mb-8">
-              Join NC Bulls Cricket Club — we welcome players of all skill levels to our Raising Bulls and Royal Bulls squads.
+            <p className="text-gray-300 text-sm sm:text-lg mb-6 sm:mb-8 max-w-md mx-auto leading-relaxed">
+              Join NC Bulls Cricket Club — players of all skill levels welcome across our Raising Bulls &amp; Royal Bulls squads.
             </p>
-            <Link to="/contact" className="btn-primary text-lg px-10 py-4">
-              Join the Club Today
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <Link to="/contact" className="btn-primary text-base sm:text-lg px-8 sm:px-10 py-3 sm:py-4 w-full sm:w-auto">
+                Join the Club Today
+              </Link>
+              <Link to="/teams" className="btn-outline text-base px-8 py-3 w-full sm:w-auto">
+                Meet Our Teams
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>

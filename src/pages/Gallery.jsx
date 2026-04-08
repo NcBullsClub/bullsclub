@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../lib/turso'
+import videos from '../data/videos.json'
 
 const TROPHY_TAGS = new Set(['trophy', 'trophies', 'honours', 'award', 'winners', 'champion', 'champions'])
 const isTrophy = (tags) => tags.some((t) => TROPHY_TAGS.has(t.toLowerCase()))
@@ -194,6 +195,77 @@ export default function Gallery() {
           </div>
         </div>
       </section>
+
+      {/* ────────────────── FEATURED VIDEOS ────────────────── */}
+      {videos.length > 0 && (
+        <section className="bg-gray-950 py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto">
+            <SectionDivider icon="🎬" title="Featured Videos" count={videos.length} />
+            <div className="space-y-3">
+              {videos.map((v, i) => {
+                const isYouTube = v.platform === 'youtube'
+                const thumbnail = isYouTube && v.youtube_id
+                  ? `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg`
+                  : null
+                return (
+                  <motion.a
+                    key={v.id}
+                    href={v.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="group flex items-center gap-3 rounded-xl overflow-hidden border border-white/5 bg-black/40 hover:border-white/20 active:scale-[0.98] transition-all"
+                  >
+                    {/* Thumbnail */}
+                    <div className="flex-shrink-0 w-24 h-16 sm:w-32 sm:h-20 relative overflow-hidden bg-gray-900">
+                      {thumbnail ? (
+                        <img
+                          src={thumbnail}
+                          alt={v.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-2xl">{isYouTube ? '▶️' : '📱'}</span>
+                        </div>
+                      )}
+                      {/* Play overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isYouTube ? 'bg-red-600' : 'bg-gradient-to-br from-purple-500 to-pink-500'}`}>
+                          <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 py-3 pr-3">
+                      <p className="text-white text-sm font-semibold leading-snug line-clamp-2 group-hover:text-accent transition-colors">
+                        {v.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        {isYouTube ? (
+                          <span className="text-[10px] font-bold text-red-400 bg-red-900/30 px-2 py-0.5 rounded-full">
+                            ▶ YouTube
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-pink-400 bg-pink-900/30 px-2 py-0.5 rounded-full">
+                            📷 Instagram
+                          </span>
+                        )}
+                        <span className="text-gray-600 text-[10px]">Tap to watch →</span>
+                      </div>
+                    </div>
+                  </motion.a>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ────────────────── TROPHY CABINET ────────────────── */}
       {!loading && trophyItems.length > 0 && (

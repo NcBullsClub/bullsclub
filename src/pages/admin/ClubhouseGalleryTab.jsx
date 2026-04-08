@@ -39,7 +39,9 @@ export default function ClubhouseGalleryTab() {
   const [form, setForm]         = useState(EMPTY)
   const [saving, setSaving]     = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [lightbox, setLightbox] = useState(null)
+  const [mediaType, setMediaType] = useState('photo') // 'photo' | 'video'
   const titleRef = useRef(null)
 
   const load = () => {
@@ -70,13 +72,15 @@ export default function ClubhouseGalleryTab() {
     )
   })
 
-  function openAdd() {
+  function openAdd(type = 'photo') {
+    setMediaType(type)
     setEditItem(null)
     setForm({ ...EMPTY, uploaded_by: profile?.full_name ?? '' })
     setShowForm(true)
   }
 
   function openEdit(g) {
+    setMediaType(g.video_url && !g.image_url ? 'video' : 'photo')
     setEditItem(g)
     setForm({
       title:       g.title       ?? '',
@@ -91,13 +95,20 @@ export default function ClubhouseGalleryTab() {
     setShowForm(true)
   }
 
-  function closeForm() { setShowForm(false); setEditItem(null); setForm(EMPTY) }
+  function closeForm() { setShowForm(false); setEditItem(null); setForm(EMPTY); setMediaType('photo') }
 
   async function handleSave() {
     if (!form.title.trim()) return
+    if (mediaType === 'video' && !form.video_url.trim()) return
     setSaving(true)
+    // Route fields by type so videos never end up in the photo grid
+    const imageUrl = mediaType === 'video' ? '' : form.image_url
+    const thumbUrl = mediaType === 'video' ? '' : form.thumb_url
+    const videoUrl = mediaType === 'photo' ? '' : form.video_url
     const tagsJson = JSON.stringify(
-      form.tags.split(',').map((t) => t.trim()).filter(Boolean)
+      mediaType === 'photo'
+        ? form.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : []
     )
     const now = new Date().toISOString()
     try {
@@ -108,7 +119,7 @@ export default function ClubhouseGalleryTab() {
                     tags=?, match_date=?, uploaded_by=?
                 WHERE id=?`,
           args: [
-            form.title, form.description, form.image_url, form.thumb_url, form.video_url,
+            form.title, form.description, imageUrl, thumbUrl, videoUrl,
             tagsJson, form.match_date, form.uploaded_by, editItem.id,
           ],
         })
@@ -118,7 +129,7 @@ export default function ClubhouseGalleryTab() {
                   (title, description, image_url, thumb_url, video_url, tags, match_date, uploaded_by, created_at)
                 VALUES (?,?,?,?,?,?,?,?,?)`,
           args: [
-            form.title, form.description, form.image_url, form.thumb_url, form.video_url,
+            form.title, form.description, imageUrl, thumbUrl, videoUrl,
             tagsJson, form.match_date, form.uploaded_by, now,
           ],
         })
@@ -131,11 +142,11 @@ export default function ClubhouseGalleryTab() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this photo? This cannot be undone.')) return
     setDeletingId(id)
     await turso.execute({ sql: 'DELETE FROM gallery WHERE id=?', args: [id] })
     setItems((prev) => prev.filter((g) => g.id !== id))
     setDeletingId(null)
+    setConfirmDeleteId(null)
   }
 
   return (
@@ -152,8 +163,12 @@ export default function ClubhouseGalleryTab() {
             <div className="text-[10px] text-amber-500">🏆 Trophies</div>
           </div>
           <div className="bg-blue-50 rounded-xl border-l-4 border-blue-400 px-3 py-2 flex-shrink-0">
-            <div className="text-lg font-display font-bold text-blue-700">{items.filter((g) => !isTrophy(g.tags)).length}</div>
+            <div className="text-lg font-display font-bold text-blue-700">{items.filter((g) => !!g.image_url && !isTrophy(g.tags)).length}</div>
             <div className="text-[10px] text-blue-500">📸 Moments</div>
+          </div>
+          <div className="bg-red-50 rounded-xl border-l-4 border-red-400 px-3 py-2 flex-shrink-0">
+            <div className="text-lg font-display font-bold text-red-600">{items.filter((g) => g.video_url && !g.image_url).length}</div>
+            <div className="text-[10px] text-red-400">🎬 Videos</div>
           </div>
         </div>
         <input
@@ -163,12 +178,20 @@ export default function ClubhouseGalleryTab() {
           placeholder="Search gallery…"
           className="flex-1 min-w-[160px] px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-1.5 bg-primary-dark text-accent px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary transition-colors"
-        >
-          + Add Photo
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => openAdd('photo')}
+            className="flex items-center gap-1.5 bg-primary-dark text-accent px-3 py-2 rounded-lg text-sm font-semibold hover:bg-primary transition-colors"
+          >
+            📸 Photo
+          </button>
+          <button
+            onClick={() => openAdd('video')}
+            className="flex items-center gap-1.5 bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+          >
+            🎬 Video
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -237,9 +260,9 @@ export default function ClubhouseGalleryTab() {
               <div className="p-2.5">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                    isTrophy(g.tags) ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-500'
+                    g.video_url && !g.image_url ? 'bg-red-50 text-red-500' : isTrophy(g.tags) ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-500'
                   }`}>
-                    {isTrophy(g.tags) ? '🏆 Trophy' : '📸 Moment'}
+                    {g.video_url && !g.image_url ? '🎬 Video' : isTrophy(g.tags) ? '🏆 Trophy' : '📸 Moment'}
                   </span>
                 </div>
                 <div className="text-xs font-semibold text-gray-700 truncate">{g.title}</div>
@@ -261,24 +284,61 @@ export default function ClubhouseGalleryTab() {
                 )}
               </div>
 
-              {/* Hover action buttons */}
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => openEdit(g)}
-                  className="w-7 h-7 rounded-lg bg-white/95 shadow text-primary text-xs font-bold hover:bg-white transition-colors flex items-center justify-center"
-                  title="Edit"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => handleDelete(g.id)}
-                  disabled={deletingId === g.id}
-                  className="w-7 h-7 rounded-lg bg-white/95 shadow text-red-400 text-xs font-bold hover:bg-white transition-colors flex items-center justify-center"
-                  title="Delete"
-                >
-                  {deletingId === g.id ? '…' : '✕'}
-                </button>
-              </div>
+              {/* Hover action buttons / delete confirm overlay */}
+              <AnimatePresence>
+                {confirmDeleteId === g.id ? (
+                  <motion.div
+                    key="confirm"
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.92 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute inset-0 bg-black/70 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center gap-2 px-3 z-10"
+                  >
+                    <p className="text-white text-xs font-semibold text-center leading-snug">
+                      Delete this {g.video_url && !g.image_url ? 'video' : 'photo'}?
+                    </p>
+                    <p className="text-gray-400 text-[10px] text-center">This cannot be undone.</p>
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        onClick={() => handleDelete(g.id)}
+                        disabled={deletingId === g.id}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
+                      >
+                        {deletingId === g.id
+                          ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : 'Yes, delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white/20 text-white hover:bg-white/30 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="actions"
+                    className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <button
+                      onClick={() => openEdit(g)}
+                      className="w-7 h-7 rounded-lg bg-white/95 shadow text-primary text-xs font-bold hover:bg-white transition-colors flex items-center justify-center"
+                      title="Edit"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(g.id)}
+                      className="w-7 h-7 rounded-lg bg-white/95 shadow text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Expand hint */}
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -369,13 +429,17 @@ export default function ClubhouseGalleryTab() {
               className="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col"
             >
               {/* Drawer header */}
-              <div className="flex items-center justify-between px-5 py-4 bg-primary-dark border-b border-white/10 flex-shrink-0">
+              <div className={`flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0 ${
+                mediaType === 'video' ? 'bg-red-700' : 'bg-primary-dark'
+              }`}>
                 <div>
                   <h3 className="font-display font-bold text-white text-lg leading-none">
-                    {editItem ? 'Edit Photo' : 'Add Photo'}
+                    {editItem
+                      ? (mediaType === 'video' ? 'Edit Video' : 'Edit Photo')
+                      : (mediaType === 'video' ? 'Add Video' : 'Add Photo')}
                   </h3>
                   <p className="text-gray-400 text-xs mt-0.5">
-                    {editItem ? 'Update photo details' : 'Add a new photo to the gallery'}
+                    {editItem ? 'Update media details' : (mediaType === 'video' ? 'Add a YouTube video to Featured Videos' : 'Add a new photo to the gallery')}
                   </p>
                 </div>
                 <button
@@ -388,8 +452,33 @@ export default function ClubhouseGalleryTab() {
 
               {/* Drawer body */}
               <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-                {/* Image preview */}
-                {form.image_url && (
+
+                {/* ── Media type toggle (only when adding new) ── */}
+                {!editItem && (
+                  <div className="flex rounded-xl overflow-hidden border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setMediaType('photo')}
+                      className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                        mediaType === 'photo' ? 'bg-primary-dark text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      📸 Photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMediaType('video')}
+                      className={`flex-1 py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                        mediaType === 'video' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      🎬 Video
+                    </button>
+                  </div>
+                )}
+
+                {/* Image preview (photo only) */}
+                {mediaType === 'photo' && form.image_url && (
                   <div className="rounded-xl overflow-hidden border border-gray-200 h-44 bg-gray-50">
                     <img
                       src={form.thumb_url || form.image_url}
@@ -415,60 +504,72 @@ export default function ClubhouseGalleryTab() {
                   />
                 </div>
 
-                {/* Image URL */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Image URL</label>
-                  <input
-                    type="text"
-                    value={form.image_url}
-                    onChange={(e) => setForm((f) => ({ ...f, image_url: convertDriveUrl(e.target.value) }))}
-                    placeholder="https://... or Google Drive share link"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Google Drive links are auto-converted. Make sure the file is shared as <em>Anyone with the link</em>.
-                  </p>
-                </div>
+                {/* ── PHOTO fields ── */}
+                {mediaType === 'photo' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Image URL</label>
+                      <input
+                        type="text"
+                        value={form.image_url}
+                        onChange={(e) => setForm((f) => ({ ...f, image_url: convertDriveUrl(e.target.value) }))}
+                        placeholder="https://... or Google Drive share link"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Google Drive links are auto-converted. Make sure the file is shared as <em>Anyone with the link</em>.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Thumbnail URL
+                        <span className="ml-1 text-gray-400 normal-case font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.thumb_url}
+                        onChange={(e) => setForm((f) => ({ ...f, thumb_url: convertDriveUrl(e.target.value) }))}
+                        placeholder="Smaller/compressed version or Drive link"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                  </>
+                )}
 
-                {/* Thumbnail URL */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                    Thumbnail URL
-                    <span className="ml-1 text-gray-400 normal-case font-normal">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.thumb_url}
-                    onChange={(e) => setForm((f) => ({ ...f, thumb_url: convertDriveUrl(e.target.value) }))}
-                    placeholder="Smaller/compressed version or Drive link"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-
-                {/* Video URL */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                    Video URL
-                    <span className="ml-1 text-gray-400 normal-case font-normal">(YouTube or Instagram — leave blank for photo)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.video_url}
-                    onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))
-                    }
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                  {form.video_url && (() => {
-                    const ytMatch = form.video_url.match(/(?:youtu\.be\/|v=|embed\/)?([\w-]{11})/)
-                    const thumb = ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : null
-                    return thumb ? (
-                      <div className="mt-2 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-                        <img src={thumb} alt="YouTube thumbnail" className="w-full h-full object-cover" />
-                      </div>
-                    ) : null
-                  })()}
-                </div>
+                {/* ── VIDEO fields ── */}
+                {mediaType === 'video' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                      YouTube URL <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.video_url}
+                      onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                    />
+                    {form.video_url && (() => {
+                      const ytMatch = form.video_url.match(/(?:youtu\.be\/|v=|embed\/)([\.\w-]{11})/)
+                      const thumb = ytMatch?.[1] ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : null
+                      return thumb ? (
+                        <div className="mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 relative">
+                          <img src={thumb} alt="YouTube thumbnail" className="w-full h-32 object-cover" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+                              <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-amber-600 mt-1">⚠️ Paste a full YouTube URL to see a preview</p>
+                      )
+                    })()}
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      This will appear in the <span className="font-semibold text-gray-600">🎬 Featured Videos</span> section of the public gallery.
+                    </p>
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>
@@ -506,7 +607,8 @@ export default function ClubhouseGalleryTab() {
                   </div>
                 </div>
 
-                {/* Tags */}
+                {/* Tags — photo only */}
+                {mediaType === 'photo' && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
                     Tags
@@ -538,6 +640,7 @@ export default function ClubhouseGalleryTab() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
 
               {/* Drawer footer */}
@@ -553,7 +656,7 @@ export default function ClubhouseGalleryTab() {
                   disabled={saving || !form.title.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-primary-dark text-accent text-sm font-semibold hover:bg-primary transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Saving…' : editItem ? 'Save Changes' : 'Add to Gallery'}
+                  {saving ? 'Saving…' : editItem ? 'Save Changes' : mediaType === 'video' ? 'Add to Featured Videos' : 'Add to Gallery'}
                 </button>
               </div>
             </motion.div>

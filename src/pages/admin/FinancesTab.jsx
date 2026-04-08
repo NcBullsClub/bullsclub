@@ -17,6 +17,7 @@ const EXPENSE_CATS = [
   { id: 'food',         label: 'Food',          icon: '🍕' },
   { id: 'equipment',    label: 'Equipment',     icon: '🏏' },
   { id: 'registration', label: 'Registration',  icon: '📋' },
+  { id: 'umpiring',     label: 'Umpiring',      icon: '🧑‍⚖️' },
   { id: 'other',        label: 'Other',         icon: '📦' },
 ]
 
@@ -277,6 +278,9 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
   const [editTeam, setEditTeam]         = useState('')
   const [updatingTeamId, setUpdatingTeamId] = useState(null)
   const [settlingId, setSettlingId]     = useState(null)
+  const [editingDescId, setEditingDescId] = useState(null)
+  const [editDesc, setEditDesc]         = useState('')
+  const [updatingDescId, setUpdatingDescId] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -352,6 +356,18 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
     setUpdatingId(null)
     setEditingId(null)
     setEditAmount('')
+  }
+
+  async function handleUpdateDesc(id) {
+    setUpdatingDescId(id)
+    await supabase
+      .from('team_expenses')
+      .update({ description: editDesc.trim() || null })
+      .eq('id', id)
+    load()
+    setUpdatingDescId(null)
+    setEditingDescId(null)
+    setEditDesc('')
   }
 
   async function handleUpdateTeam(id) {
@@ -604,18 +620,14 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
             return (
               <div
                 key={e.id}
-                className={`border rounded-2xl px-4 py-3 flex items-start gap-3 transition-colors ${
+                className={`border rounded-2xl px-4 py-3 flex items-start transition-colors ${
                   isSettled ? 'bg-green-50/60 border-green-200' : 'bg-white border-gray-200'
                 }`}
               >
-                {/* Category icon */}
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0 mt-0.5 ${isSettled ? 'bg-green-100' : 'bg-orange-100'}`}>
-                  {cat.icon}
-                </div>
-
                 {/* Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wide leading-none">paid by</span>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                     <span className="font-semibold text-sm text-gray-800">{e.paid_by}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${catCls}`}>{cat.icon} {cat.label}</span>
                     {isEditingTeam ? (
@@ -657,8 +669,43 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
                     )}
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">
-                    {dateStr}{e.description ? ` · ${e.description}` : ''}{isSettled && e.settled_at ? ` · Settled ${new Date(e.settled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                    {dateStr}{isSettled && e.settled_at ? ` · Settled ${new Date(e.settled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                   </p>
+                  {editingDescId === e.id ? (
+                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editDesc}
+                        onChange={(ev) => setEditDesc(ev.target.value)}
+                        placeholder="Add a description…"
+                        className="flex-1 min-w-0 px-2 py-1 rounded-lg text-[11px] border border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                      <button
+                        onClick={() => handleUpdateDesc(e.id)}
+                        disabled={updatingDescId === e.id}
+                        className="text-[10px] font-bold bg-green-100 text-green-700 hover:bg-green-200 px-2 py-0.5 rounded-md disabled:opacity-50 transition-colors"
+                      >
+                        {updatingDescId === e.id ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => { setEditingDescId(null); setEditDesc('') }}
+                        className="text-[10px] font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-0.5 rounded-md transition-colors"
+                      >Cancel</button>
+                    </div>
+                  ) : (
+                    <div
+                      className="flex items-center gap-1 mt-1 group cursor-pointer"
+                      onClick={() => { setEditingDescId(e.id); setEditDesc(e.description || '') }}
+                      title="Click to edit description"
+                    >
+                      {e.description
+                        ? <p className="text-[11px] text-gray-500 leading-snug">{e.description}</p>
+                        : <p className="text-[11px] text-gray-300 leading-snug italic">Add description…</p>
+                      }
+                      <svg className="w-2.5 h-2.5 text-gray-300 group-hover:text-gray-500 flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </div>
+                  )}
                   {e.created_by && (
                     <p className="text-[9px] text-gray-600 font-medium mt-0.5">
                       Added by {rosterPlayers.find((p) => p.email === e.created_by)?.full_name || e.created_by}
@@ -705,14 +752,14 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
                         <button
                           onClick={() => handleUpdateAmount(e.id)}
                           disabled={isUpdating}
-                          className="text-[10px] font-bold text-green-600 hover:text-green-700 disabled:opacity-50"
+                          className="text-[10px] font-bold bg-green-100 text-green-700 hover:bg-green-200 px-2 py-0.5 rounded-md disabled:opacity-50 transition-colors"
                         >
-                          {isUpdating ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : '✓'}
+                          {isUpdating ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : 'Save'}
                         </button>
                         <button
                           onClick={() => { setEditingId(null); setEditAmount('') }}
-                          className="text-[10px] text-gray-400 hover:text-gray-600"
-                        >✕</button>
+                          className="text-[10px] font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 px-2 py-0.5 rounded-md transition-colors"
+                        >Cancel</button>
                       </div>
                     ) : (
                       <button

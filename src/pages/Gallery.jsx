@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../lib/turso'
-import videos from '../data/videos.json'
 
 const TROPHY_TAGS = new Set(['trophy', 'trophies', 'honours', 'award', 'winners', 'champion', 'champions'])
 const isTrophy = (tags) => tags.some((t) => TROPHY_TAGS.has(t.toLowerCase()))
@@ -198,8 +197,10 @@ export default function Gallery() {
     })
   }
 
-  const trophyItems       = items.filter((g) => isTrophy(g.tags))
-  const momentItems       = items.filter((g) => !isTrophy(g.tags))
+  const videoItems        = items.filter((g) => g.video_url && !g.image_url)
+  const photoItems        = items.filter((g) => !!g.image_url)
+  const trophyItems       = photoItems.filter((g) => isTrophy(g.tags))
+  const momentItems       = photoItems.filter((g) => !isTrophy(g.tags))
   const momentTags        = [...new Set(momentItems.flatMap((g) => g.tags))].sort()
   const filters           = ['All', ...momentTags]
   const filteredMoments   = filter === 'All' ? momentItems : momentItems.filter((g) => g.tags.includes(filter))
@@ -285,20 +286,30 @@ export default function Gallery() {
       </section>
 
       {/* ────────────────── FEATURED VIDEOS ────────────────── */}
-      {videos.length > 0 && (
+      {videoItems.length > 0 && (
         <section className="bg-gray-950 py-6 px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto">
-            <SectionDivider icon="🎬" title="Featured Videos" count={videos.length} />
+            {/* Compact single-row header */}
+            <div className="flex items-center gap-2.5 mb-5">
+              <span className="text-xl flex-shrink-0">🎬</span>
+              <h2 className="font-display font-bold text-base sm:text-lg tracking-widest uppercase text-white leading-none">
+                Featured Videos
+              </h2>
+              <span className="ml-auto flex-shrink-0 text-[11px] font-bold text-gray-500 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
+                {videoItems.length} {videoItems.length === 1 ? 'video' : 'videos'}
+              </span>
+            </div>
             <div className="space-y-3">
-              {videos.map((v, i) => {
-                const isYouTube = v.platform === 'youtube'
-                const thumbnail = isYouTube && v.youtube_id
-                  ? `https://img.youtube.com/vi/${v.youtube_id}/hqdefault.jpg`
+              {videoItems.map((v, i) => {
+                const ytMatch = v.video_url?.match(/(?:youtu\.be\/|v=|embed\/)([\.\w-]{11})/)
+                const isYouTube = !!ytMatch
+                const thumbnail = ytMatch?.[1]
+                  ? `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`
                   : null
                 return (
                   <motion.a
                     key={v.id}
-                    href={v.url}
+                    href={v.video_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     initial={{ opacity: 0, y: 12 }}
@@ -346,6 +357,9 @@ export default function Gallery() {
                         )}
                         <span className="text-gray-600 text-[10px]">Tap to watch →</span>
                       </div>
+                      {v.description && (
+                        <p className="text-[10px] text-gray-500 mt-1 line-clamp-1">{v.description}</p>
+                      )}
                     </div>
                   </motion.a>
                 )

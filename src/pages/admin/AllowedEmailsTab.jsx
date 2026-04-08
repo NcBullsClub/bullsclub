@@ -32,6 +32,7 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
   const [removingEmail, setRemovingEmail]   = useState(null)
   const [updatingTeam, setUpdatingTeam]     = useState(null)
   const [mobileFormOpen, setMobileFormOpen] = useState(false)
+  const [teamFilter, setTeamFilter]         = useState('all')
 
   async function loadAllowlist() {
     setLoading(true)
@@ -88,10 +89,12 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
   const filtered = allowlist
     .filter((row) => {
       const q = search.toLowerCase()
-      return (
+      const matchesSearch =
         row.email.toLowerCase().includes(q) ||
         (row.full_name || '').toLowerCase().includes(q)
-      )
+      const matchesTeam =
+        teamFilter === 'all' || row.team === teamFilter
+      return matchesSearch && matchesTeam
     })
     .sort((a, b) =>
       (a.full_name || a.email).localeCompare(b.full_name || b.email)
@@ -214,7 +217,30 @@ export default function AllowedEmailsTab({ onPlayerDeleted }) {
         </button>
       </form>
 
-      {/* Search */}
+      {/* Filters + Search */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {[
+          { value: 'all',           label: 'All' },
+          { value: 'raising-bulls', label: 'Raising Bulls' },
+          { value: 'royal-bulls',   label: 'Royal Bulls' },
+        ].map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setTeamFilter(f.value)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              teamFilter === f.value
+                ? f.value === 'raising-bulls'
+                  ? 'bg-primary-dark text-accent'
+                  : f.value === 'royal-bulls'
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
       <div className="mb-4">
         <input
           type="text"

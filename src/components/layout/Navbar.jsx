@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import logo from '../../assets/images/logo_without_background.png'
+import logo from '../../assets/images/cropped_nc_bulls_club_logo.png'
 import { useAuth } from '../../contexts/AuthContext'
 
 /* ── Inline SVG icon component (Heroicons v2 outline) ─────── */

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import logo from '../assets/images/logo_without_background.png'
+import logo from '../assets/images/cropped_nc_bulls_club_logo.png'
 import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
 import { turso } from '../lib/turso'
@@ -59,12 +59,19 @@ export default function Home() {
   const [rbWins, setRbWins] = useState(0)
   const [ryWins, setRyWins] = useState(0)
   const [latestNews, setLatestNews] = useState([])
-  const [showA2HS, setShowA2HS] = useState(false)
+  const [showA2HS, setShowA2HS]         = useState(false)
+  const [a2hsPlatform, setA2hsPlatform] = useState('ios')
 
   useEffect(() => {
     const dismissed   = localStorage.getItem('a2hs-dismissed')
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
-    if (!dismissed && !isStandalone) setShowA2HS(true)
+    const ua = navigator.userAgent
+    const ios     = /iphone|ipad|ipod/i.test(ua)
+    const android = /android/i.test(ua)
+    if (!dismissed && !isStandalone && (ios || android)) {
+      setA2hsPlatform(ios ? 'ios' : 'android')
+      setShowA2HS(true)
+    }
   }, [])
 
   function dismissA2HS() {
@@ -104,20 +111,82 @@ export default function Home() {
 
   return (
     <div>
-      {/* Add to Home Screen — mobile only */}
+      {/* Add to Home Screen — fixed bottom sheet, mobile only */}
       {showA2HS && (
-        <div className="sm:hidden bg-yellow-300 border-b border-yellow-400 px-4 py-2.5 flex items-center gap-3 shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-          <span className="text-lg flex-shrink-0">📲</span>
-          <p className="flex-1 text-primary-dark text-xs leading-snug">
-            <span className="font-bold">Add to Home Screen</span> - tap <span className="font-extrabold underline decoration-primary-dark/40">Share</span> then <span className="font-extrabold">"Add to Home Screen"</span> for the best experience
-          </p>
-          <button
-            onClick={dismissA2HS}
-            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-primary-dark/10 text-primary-dark text-xs hover:bg-primary-dark/20 transition-colors"
-            aria-label="Dismiss"
-          >
-            ✕
-          </button>
+        <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden">
+          <div className="bg-white border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.15)] px-4 pt-4 pb-6">
+
+            {/* Header */}
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-primary-dark flex items-center justify-center flex-shrink-0 shadow-md">
+                  <span className="text-xl">📲</span>
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-gray-900 leading-tight">Add to Home Screen</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Get the full app experience — fast &amp; easy</p>
+                </div>
+              </div>
+              <button
+                onClick={dismissA2HS}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 transition-colors flex-shrink-0 -mr-1"
+                aria-label="Dismiss"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-gray-100 mb-3" />
+
+            {/* Platform label */}
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">
+              {a2hsPlatform === 'ios' ? '🍎 iPhone / iPad — Safari' : '🤖 Android — Chrome'}
+            </p>
+
+            {/* Steps */}
+            <div className="space-y-2 mb-4">
+              {a2hsPlatform === 'ios' ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
+                    <p className="text-xs text-gray-700">Tap the <span className="font-bold">Share</span> icon <span className="font-bold text-primary-dark">⬆</span> at the <span className="font-semibold">bottom</span> of Safari</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
+                    <p className="text-xs text-gray-700">Scroll down and tap <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span></p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
+                    <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add&rdquo;</span> in the top-right corner — done!</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
+                    <p className="text-xs text-gray-700">Tap the <span className="font-bold">⋮</span> menu in the <span className="font-semibold">top-right</span> of Chrome</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
+                    <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span> or <span className="font-bold">&ldquo;Install App&rdquo;</span></p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
+                    <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add&rdquo;</span> to confirm — done!</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Dismiss link */}
+            <button
+              onClick={dismissA2HS}
+              className="w-full text-center text-[11px] text-gray-400 hover:text-gray-600 transition-colors py-1"
+            >
+              Don't show this again
+            </button>
+          </div>
         </div>
       )}
 

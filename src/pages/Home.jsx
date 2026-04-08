@@ -61,6 +61,7 @@ export default function Home() {
   const [latestNews, setLatestNews] = useState([])
   const [showA2HS, setShowA2HS]         = useState(false)
   const [a2hsPlatform, setA2hsPlatform] = useState('ios')
+  const [a2hsDismissed, setA2hsDismissed] = useState(false)
 
   useEffect(() => {
     const dismissed   = localStorage.getItem('a2hs-dismissed')
@@ -68,15 +69,26 @@ export default function Home() {
     const ua = navigator.userAgent
     const ios     = /iphone|ipad|ipod/i.test(ua)
     const android = /android/i.test(ua)
-    if (!dismissed && !isStandalone && (ios || android)) {
+    if (!isStandalone && (ios || android)) {
       setA2hsPlatform(ios ? 'ios' : 'android')
-      setShowA2HS(true)
+      if (dismissed) {
+        setA2hsDismissed(true)
+      } else {
+        setShowA2HS(true)
+      }
     }
   }, [])
 
   function dismissA2HS() {
     localStorage.setItem('a2hs-dismissed', '1')
     setShowA2HS(false)
+    setA2hsDismissed(true)
+  }
+
+  function reopenA2HS() {
+    localStorage.removeItem('a2hs-dismissed')
+    setA2hsDismissed(false)
+    setShowA2HS(true)
   }
 
   useEffect(() => {
@@ -111,6 +123,18 @@ export default function Home() {
 
   return (
     <div>
+      {/* Floating re-open button — shows after A2HS is dismissed, mobile only */}
+      {a2hsDismissed && !showA2HS && (
+        <button
+          onClick={reopenA2HS}
+          className="fixed bottom-5 right-4 z-50 sm:hidden flex items-center gap-1.5 bg-primary-dark text-accent border border-accent/40 rounded-full px-3 py-2 text-xs font-semibold shadow-lg active:scale-95 transition-transform"
+          aria-label="Add to Home Screen"
+        >
+          <span>📲</span>
+          <span>Add to Home Screen</span>
+        </button>
+      )}
+
       {/* Add to Home Screen — fixed bottom sheet, mobile only */}
       {showA2HS && (
         <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden">

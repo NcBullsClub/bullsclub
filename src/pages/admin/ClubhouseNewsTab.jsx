@@ -542,11 +542,13 @@ Please write:
 • Full Content — 3–4 engaging paragraphs covering the match
 
 Star Performances:
-[Player] — [e.g., 4 wickets in 4 overs, conceding 12 runs]
-[Player] — [e.g., 25 runs off 23 balls]
+[batting-Player] — [e.g., 4 wickets in 4 overs, conceding 12 runs]
+[bowling-Player] — [e.g., 3 wickets in 4 overs, conceding 15 runs]
+[batting-Player] — [e.g., 25 runs off 23 balls]
+[bowling-Player] — [e.g., 20 runs off 25 balls]
 
 Extra Notes / Context:
-[Any storylines, comebacks, milestones, or highlights to emphasize]`}</pre>
+[Any storylines, comebacks, milestones, or highlights to emphasize: ]`}</pre>
                       <button
                         type="button"
                         onClick={() => {

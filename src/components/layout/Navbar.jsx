@@ -30,7 +30,33 @@ function NavIcon({ name, className = 'w-5 h-5' }) {
   )
 }
 
-/* ── Nav data ─────────────────────────────────────────────── */
+/* ── Colored icon config for mobile nav ──────────────────── */
+const NAV_ICONS = {
+  'Home':         { emoji: '🏠', bg: 'bg-blue-500' },
+  'About':        { emoji: '🎯', bg: 'bg-indigo-500' },
+  'Teams':        { emoji: '🎽', bg: 'bg-purple-600' },
+  'Fixtures':     { emoji: '📅', bg: 'bg-cyan-600' },
+  'Results':      { emoji: '🏆', bg: 'bg-yellow-500' },
+  'Gallery':      { emoji: '🖼️', bg: 'bg-pink-500' },
+  'Events':       { emoji: '⭐', bg: 'bg-orange-500' },
+  'News':         { emoji: '📰', bg: 'bg-red-500' },
+  'Sponsors':     { emoji: '🤝', bg: 'bg-teal-600' },
+  'Availability': { emoji: '✅', bg: 'bg-green-600' },
+  'Join Us':      { emoji: '🏏', bg: 'bg-accent' },
+  'Clubhouse':    { emoji: '🏡', bg: 'bg-amber-500' },
+  'Admin':        { emoji: '🛡️', bg: 'bg-gray-700' },
+  'Players':      { emoji: '🧑‍🤝‍🧑', bg: 'bg-violet-600' },
+}
+
+function MobileNavIcon({ label, large = false }) {
+  const cfg = NAV_ICONS[label] || { emoji: '•', bg: 'bg-gray-500' }
+  const size = large ? 'text-4xl' : 'text-3xl'
+  return (
+    <span className={`${size} leading-none`}>{cfg.emoji}</span>
+  )
+}
+
+
 // Mobile: flat grid — Clubhouse children are surfaced directly
 const mobileNavItems = [
   { path: '/', label: 'Home' },
@@ -324,9 +350,9 @@ export default function Navbar() {
                             : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white',
                       ].join(' ')}
                     >
-                      <NavIcon
-                        name={item.label}
-                        className={isJoin ? 'w-7 h-7' : 'w-6 h-6'}
+                      <MobileNavIcon
+                        label={item.label}
+                        large={isJoin}
                       />
                       <span
                         className={`font-semibold text-center leading-tight ${
@@ -352,12 +378,8 @@ export default function Navbar() {
                         : 'bg-accent/10 text-accent border border-accent/25 hover:bg-accent/20',
                     ].join(' ')}
                   >
-                    <div className={`p-2.5 rounded-xl shrink-0 ${
-                      location.pathname.startsWith('/admin')
-                        ? 'bg-primary-dark/20'
-                        : 'bg-accent/15'
-                    }`}>
-                      <NavIcon name="Admin" className="w-7 h-7" />
+                    <div className="rounded-xl shrink-0">
+                      <MobileNavIcon label="Admin" large />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-base font-bold leading-tight">Admin Panel</div>

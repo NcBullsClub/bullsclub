@@ -83,7 +83,7 @@ export default function Contact() {
               </div>
 
               <div className="mt-10">
-                <h3 className="font-display font-bold text-primary text-lg mb-4 uppercase tracking-wider">Why Join NC Bulls?</h3>
+                <h3 className="font-display font-bold text-primary text-lg mb-4 uppercase tracking-wider">Why Join NC Bulls Cricket Club?</h3>
                 <ul className="space-y-3">
                   {[
                     'Competitive T20 cricket in the Triangle Cricket League',

@@ -39,7 +39,7 @@ const NAV_ICONS = {
   'Results':      { emoji: '🏆', bg: 'bg-yellow-500' },
   'Gallery':      { emoji: '🖼️', bg: 'bg-pink-500' },
   'Events':       { emoji: '⭐', bg: 'bg-orange-500' },
-  'News':         { emoji: '📰', bg: 'bg-red-500' },
+  'News':         { emoji: '📰', bg: 'bg-red-500', imgSrc: '/icons/digital-news.svg' },
   'Sponsors':     { emoji: '🤝', bg: 'bg-teal-600' },
   'Availability': { emoji: '✅', bg: 'bg-green-600' },
   'Join Us':      { emoji: '🏏', bg: 'bg-accent' },

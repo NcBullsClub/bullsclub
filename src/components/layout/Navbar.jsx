@@ -34,8 +34,8 @@ function NavIcon({ name, className = 'w-5 h-5' }) {
 const NAV_ICONS = {
   'Home':         { emoji: '🏠', bg: 'bg-blue-500' },
   'About':        { emoji: '🎯', bg: 'bg-indigo-500' },
-  'Teams':        { emoji: '🎽', bg: 'bg-purple-600' },
-  'Fixtures':     { emoji: '📅', bg: 'bg-cyan-600' },
+  'Teams':        { emoji: '🎽', bg: 'bg-purple-600', imgSrc: '/icons/teams.svg' },
+  'Fixtures':     { emoji: '📅', bg: 'bg-cyan-600', imgSrc: '/icons/fixtures.svg' },
   'Results':      { emoji: '🏆', bg: 'bg-yellow-500' },
   'Gallery':      { emoji: '🖼️', bg: 'bg-pink-500' },
   'Events':       { emoji: '⭐', bg: 'bg-orange-500' },
@@ -51,6 +51,10 @@ const NAV_ICONS = {
 function MobileNavIcon({ label, large = false }) {
   const cfg = NAV_ICONS[label] || { emoji: '•', bg: 'bg-gray-500' }
   const size = large ? 'text-4xl' : 'text-3xl'
+  const imgSize = large ? 'w-10 h-10' : 'w-8 h-8'
+  if (cfg.imgSrc) {
+    return <img src={cfg.imgSrc} alt={label} className={`${imgSize} object-contain`} />
+  }
   return (
     <span className={`${size} leading-none`}>{cfg.emoji}</span>
   )

@@ -51,7 +51,7 @@ const NAV_ICONS = {
 function MobileNavIcon({ label, large = false }) {
   const cfg = NAV_ICONS[label] || { emoji: '•', bg: 'bg-gray-500' }
   const size = large ? 'text-[2.75rem]' : 'text-[2rem]'
-  const imgSize = large ? 'w-12 h-12' : 'w-11 h-11'
+  const imgSize = large ? 'w-16 h-16' : 'w-11 h-11'
   if (cfg.imgSrc) {
     return <img src={cfg.imgSrc} alt={label} className={`${imgSize} object-contain`} />
   }
@@ -256,7 +256,7 @@ export default function Navbar() {
                       to="/admin"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-accent/20 text-accent border border-accent/30 hover:bg-accent hover:text-primary-dark transition-colors"
                     >
-                      <NavIcon name="Admin" className="w-4 h-4" />
+                      <NavIcon name="Admin" className="w-5 h-5" />
                       Admin
                     </Link>
                   )}
@@ -386,7 +386,7 @@ export default function Navbar() {
                       <MobileNavIcon label="Admin" large />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-base font-bold leading-tight">Admin Panel</div>
+                      <div className="text-base font-bold leading-tight">Admins Panel</div>
                       <div className={`text-xs mt-0.5 font-medium ${
                         location.pathname.startsWith('/admin') ? 'opacity-70' : 'text-gray-400'
                       }`}>Manage club, players &amp; results</div>

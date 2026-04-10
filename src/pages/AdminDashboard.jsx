@@ -98,7 +98,7 @@ export default function AdminDashboard() {
                         : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                     }`}
                   >
-                    <span className="text-lg leading-none">{tab.icon}</span>
+                    <span className="text-2xl leading-none">{tab.icon}</span>
                     <span className="text-[10px] font-semibold leading-tight">{tab.short}</span>
                     {badge && (
                       <span className="absolute top-1 right-1 w-4 h-4 bg-amber-400 text-primary-dark rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
                         : 'text-gray-600 hover:bg-gray-100 hover:text-primary'
                     }`}
                   >
-                    <span>{tab.icon}</span>
+                    <span className="text-xl">{tab.icon}</span>
                     {tab.label}
                     {badge && (
                       <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">

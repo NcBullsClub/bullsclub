@@ -542,17 +542,52 @@ Please write:
 • Full Content — 3–4 engaging paragraphs covering the match
 
 Star Performances:
-[batting-Player] — [e.g., 4 wickets in 4 overs, conceding 12 runs]
-[bowling-Player] — [e.g., 3 wickets in 4 overs, conceding 15 runs]
-[batting-Player] — [e.g., 25 runs off 23 balls]
-[bowling-Player] — [e.g., 20 runs off 25 balls]
+[bowling-Player: ] — [ 4 wickets in 4 overs, conceding 12 runs]
+[bowling-Player: ] — [ 3 wickets in 4 overs, conceding 15 runs]
+[bowling-Player: ] — [ 3 wickets in 4 overs, conceding 15 runs]
+
+[batting-Player: ] — [ 25 runs off 23 balls]
+[batting-Player: ] — [ 20 runs off 25 balls]
+[batting-Player: ] — [ 13 runs off 6 balls]
+
+[Fielding-Player: ] — [ 3 catches and 2 run-outs]
 
 Extra Notes / Context:
-[Any storylines, comebacks, milestones, or highlights to emphasize: ]`}</pre>
+[Any storylines, comebacks, milestones, or highlights to emphasize: ]
+
+Note: Use <b> </b> e.g., <b>Player Name</b> for the players name only in the Full Content to highlight, provide the text to copy and paste in the article. `}</pre>
                       <button
                         type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText(`Write a cricket match report article for NC Bulls Cricket Club.\n\nTeam: [RAISING BULLS / ROYAL BULLS]\nMatch Type: [Mega Bash / T20 / etc.]\nResult: [WIN / LOSS]\nScore: [Team score] vs [Opponent score]\nOpponent: [Opponent name]\n\nPlease write:\n\u2022 Title \u2014 catchy headline, highlight the star performer\n\u2022 Slug \u2014 URL-friendly version of the title\n\u2022 Summary / Excerpt \u2014 2\u20133 sentences for the article card\n\u2022 Full Content \u2014 3\u20134 engaging paragraphs covering the match\n\nStar Performances:\n[Player] \u2014 [e.g., 4 wickets in 4 overs, conceding 12 runs]\n[Player] \u2014 [e.g., 25 runs off 23 balls]\n\nExtra Notes / Context:\n[Any storylines, comebacks, milestones, or highlights to emphasize]`)
+                          navigator.clipboard.writeText(`Write a cricket match report article for NC Bulls Cricket Club.
+
+Team: [RAISING BULLS / ROYAL BULLS]
+Match Type: [Mega Bash / T20 / etc.]
+Result: [WIN / LOSS]
+Score: [Team score: ] vs [Opponent score: ]
+Opponent: [Opponent name]
+
+Please write:
+• Title — catchy headline, highlight the star performer
+• Slug — URL-friendly version of the title
+• Summary / Excerpt — 2–3 sentences for the article card
+• Full Content — 3–4 engaging paragraphs covering the match
+
+Star Performances:
+[bowling-Player: ] — [ 4 wickets in 4 overs, conceding 12 runs]
+[bowling-Player: ] — [ 3 wickets in 4 overs, conceding 15 runs]
+[bowling-Player: ] — [ 3 wickets in 4 overs, conceding 15 runs]
+
+[batting-Player: ] — [ 25 runs off 23 balls]
+[batting-Player: ] — [ 20 runs off 25 balls]
+[batting-Player: ] — [ 13 runs off 6 balls]
+
+[Fielding-Player: ] — [ 3 catches and 2 run-outs]
+
+Extra Notes / Context:
+[Any storylines, comebacks, milestones, or highlights to emphasize: ]
+
+Note: Use <b> </b> e.g., <b>Player Name</b> for the players name only in the Full Content to highlight, provide the text to copy and paste in the article. `)
                           setPromptCopied(true)
                           setTimeout(() => setPromptCopied(false), 2500)
                         }}

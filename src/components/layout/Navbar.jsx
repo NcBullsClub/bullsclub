@@ -44,14 +44,14 @@ const NAV_ICONS = {
   'Availability': { emoji: '✅', bg: 'bg-green-600',imgSrc: '/icons/availability-icon.svg' },
   'Join Us':      { emoji: '🏏', bg: 'bg-accent' },
   'Clubhouse':    { emoji: '🏡', bg: 'bg-amber-500' },
-  'Admin':        { emoji: '🛡️', bg: 'bg-gray-700' },
+  'Admin':        { emoji: '🛡️', bg: 'bg-gray-700',imgSrc: '/icons/adminpanel-icon.svg' },
   'Players':      { emoji: '🧑‍🤝‍🧑', bg: 'bg-violet-600' },
 }
 
 function MobileNavIcon({ label, large = false }) {
   const cfg = NAV_ICONS[label] || { emoji: '•', bg: 'bg-gray-500' }
   const size = large ? 'text-[2.75rem]' : 'text-[2.5rem]'
-  const imgSize = large ? 'w-13 h-13' : 'w-11 h-11'
+  const imgSize = large ? 'w-12 h-12' : 'w-11 h-11'
   if (cfg.imgSrc) {
     return <img src={cfg.imgSrc} alt={label} className={`${imgSize} object-contain`} />
   }

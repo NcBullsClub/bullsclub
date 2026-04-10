@@ -164,7 +164,11 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
       <div className="px-4 py-4 space-y-4">
 
         {/* ── SECTION 1: Mark availability (always shown for eligible users) */}
-        {!user ? (
+        {isPast ? (
+          <div className="text-xs text-center text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+            This match has passed
+          </div>
+        ) : !user ? (
           <button
             onClick={() => {
               window.scrollTo({ top: 0, left: 0, behavior: 'instant' })

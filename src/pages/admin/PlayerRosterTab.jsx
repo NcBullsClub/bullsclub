@@ -77,9 +77,25 @@ export default function PlayerRosterTab() {
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
         <h2 className="font-display font-bold text-primary text-2xl mb-1">Player Roster</h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 mb-3">
           Manage roles and team assignments for players who have created an account.
         </p>
+        {!loading && (
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-3 mt-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+              <p className="text-xl sm:text-2xl font-black text-primary leading-none">{profiles.length}</p>
+              <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-gray-400 mt-1">Total</p>
+            </div>
+            <div className="bg-primary-dark border border-primary-dark rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+              <p className="text-xl sm:text-2xl font-black text-accent leading-none">{profiles.filter(p => p.team === 'raising-bulls').length}</p>
+              <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-accent/60 mt-1">Raising Bulls</p>
+            </div>
+            <div className="bg-primary border border-primary rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+              <p className="text-xl sm:text-2xl font-black text-white leading-none">{profiles.filter(p => p.team === 'royal-bulls').length}</p>
+              <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-white/60 mt-1">Royal Bulls</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {deleteError && (

@@ -32,6 +32,25 @@ const TAG_ICONS = {
   'community':      '🤲',
 }
 
+function renderInline(text) {
+  const result = []
+  const regex = /<(b|i|u|strong|em)>([\s\S]*?)<\/\1>/g
+  let last = 0
+  let match
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) result.push(text.slice(last, match.index))
+    const tag = match[1]
+    const inner = match[2]
+    const key = `${tag}-${match.index}`
+    if (tag === 'b' || tag === 'strong') result.push(<strong key={key}>{inner}</strong>)
+    else if (tag === 'i' || tag === 'em') result.push(<em key={key}>{inner}</em>)
+    else if (tag === 'u') result.push(<u key={key}>{inner}</u>)
+    last = match.index + match[0].length
+  }
+  if (last < text.length) result.push(text.slice(last))
+  return result.length ? result : text
+}
+
 function tagWithIcon(tag) {
   const icon = TAG_ICONS[tag.toLowerCase().trim()]
   return icon ? `${icon} ${tag}` : tag
@@ -247,7 +266,7 @@ export default function Article() {
           >
             {article.content.split('\n\n').map((para, i) => (
               <p key={i} className="text-gray-600 leading-relaxed mb-5 text-base md:text-lg">
-                {para}
+                {renderInline(para)}
               </p>
             ))}
           </motion.div>

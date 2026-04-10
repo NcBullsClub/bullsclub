@@ -907,7 +907,7 @@ export default function FinancesTab() {
         <button
           onClick={() => setActiveTab('expenses')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-            activeTab === 'expenses' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 active:bg-white/50'
+            activeTab === 'expenses' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-500 active:bg-white/50'
           }`}
         >
           <span>🧾</span>

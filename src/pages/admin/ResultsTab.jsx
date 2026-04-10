@@ -416,6 +416,21 @@ export default function ResultsTab() {
                         className="sm:col-span-2 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                     </div>
+                    {/* Paste-from-CricHeroes helper */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1.5">
+                        📋 Paste CricHeroes share text to auto-fill URL
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder={"Paste the full share text from CricHeroes here…\ne.g. \"Check it out https://cricheroes.in/scorecard/…\""}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none bg-gray-50"
+                        onChange={(e) => {
+                          const match = e.target.value.match(/https:\/\/cricheroes\.in\/scorecard\/[^\s]+/)
+                          if (match) setForm((f) => ({ ...f, scorecard_url: match[0] }))
+                        }}
+                      />
+                    </div>
                     {saveError && <p className="text-red-600 text-sm mb-2">{saveError}</p>}
                     <button
                       onClick={() => handleSave(fixture)}

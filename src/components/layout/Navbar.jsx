@@ -50,7 +50,7 @@ const NAV_ICONS = {
 
 function MobileNavIcon({ label, large = false }) {
   const cfg = NAV_ICONS[label] || { emoji: '•', bg: 'bg-gray-500' }
-  const size = large ? 'text-[2.75rem]' : 'text-[2.5rem]'
+  const size = large ? 'text-[2.75rem]' : 'text-[2rem]'
   const imgSize = large ? 'w-12 h-12' : 'w-11 h-11'
   if (cfg.imgSrc) {
     return <img src={cfg.imgSrc} alt={label} className={`${imgSize} object-contain`} />

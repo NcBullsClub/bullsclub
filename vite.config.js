@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ['apple-touch-icon.png', 'icons/icon-192x192.png', 'icons/icon-512x512.png'],
       manifest: {
         name: 'NC Bulls Cricket Club',
-        short_name: 'NC Bulls',
+        short_name: 'NC Bulls Cricket Club',
         description: 'Home of the Raising Bulls & Royal Bulls. Cricket in North Carolina.',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',

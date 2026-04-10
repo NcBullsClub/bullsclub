@@ -43,8 +43,8 @@ function CountUp({ end, duration = 2000, suffix = '' }) {
 }
 
 const teamData = {
-  'raising-bulls': { name: 'Raising Bulls', color: 'bg-accent', badge: 'RB', accent: 'border-primary-dark', textColor: 'text-primary-dark', subTextColor: 'text-primary-dark/70', badgeBg: 'bg-primary-dark', badgeText: 'text-accent' },
-  'royal-bulls': { name: 'Royal Bulls', color: 'bg-primary', badge: 'RY', accent: 'border-accent-light', textColor: 'text-white', subTextColor: 'text-gray-300', badgeBg: 'bg-accent', badgeText: 'text-primary-dark' },
+  'raising-bulls': { name: 'Raising Bulls', color: 'bg-accent', badge: 'RB', textColor: 'text-primary-dark', subTextColor: 'text-primary-dark/70', badgeBg: 'bg-primary-dark', badgeText: 'text-accent' },
+  'royal-bulls': { name: 'Royal Bulls', color: 'bg-primary', badge: 'RY', textColor: 'text-white', subTextColor: 'text-gray-300', badgeBg: 'bg-accent', badgeText: 'text-primary-dark' },
 }
 
 export default function Home() {
@@ -146,7 +146,7 @@ export default function Home() {
       {a2hsDismissed && !showA2HS && (
         <button
           onClick={reopenA2HS}
-          className="fixed top-1/2 right-0 -translate-y-1/2 z-50 sm:hidden flex items-center gap-1.5 bg-primary-dark text-accent border border-accent/40 rounded-l-full px-3 py-2.5 text-xs font-semibold shadow-lg active:scale-95 transition-transform"
+          className="fixed top-1/2 right-0 -translate-y-1/2 z-50 sm:hidden flex items-center gap-1.5 bg-accent text-primary-dark border border-accent-dark/40 rounded-l-full px-3 py-2.5 text-xs font-semibold shadow-lg active:scale-95 transition-transform"
           aria-label="Add to Home Screen"
         >
           <span>📲</span>
@@ -172,7 +172,7 @@ export default function Home() {
               </div>
               <button
                 onClick={dismissA2HS}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 transition-colors flex-shrink-0 -mr-1"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 text-black hover:bg-gray-300 transition-colors flex-shrink-0 -mr-1"
                 aria-label="Dismiss"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -252,7 +252,7 @@ export default function Home() {
             src={logo}
             alt=""
             className="w-[550px] max-w-[70vw] select-none"
-            style={{ opacity: 0.12 }}
+            style={{ opacity: 0.52 }}
           />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
@@ -298,7 +298,7 @@ export default function Home() {
                   <Link
                     key={teamId}
                     to="/teams"
-                    className={`${team.color} border-t-4 ${team.accent} rounded-xl p-5 hover:scale-105 transition-transform duration-200`}
+                    className={`${team.color} rounded-xl p-5 hover:scale-105 transition-transform duration-200`}
                   >
                     <div className={`w-12 h-12 ${team.badgeBg} rounded-full flex items-center justify-center font-display font-bold ${team.badgeText} text-lg mb-3`}>
                       {team.badge}

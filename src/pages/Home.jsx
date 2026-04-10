@@ -252,15 +252,8 @@ export default function Home() {
             src={logo}
             alt=""
             className="w-[550px] max-w-[70vw] select-none"
-            style={{
-              opacity: 0.22,
-              filter: 'sepia(1) saturate(4) hue-rotate(5deg) drop-shadow(0 0 40px rgba(245,197,24,0.5))',
-            }}
+            style={{ opacity: 0.12 }}
           />
-        </div>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 right-10 w-96 h-96 rounded-full bg-accent blur-3xl" />
-          <div className="absolute bottom-20 left-10 w-64 h-64 rounded-full bg-accent-light blur-3xl" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">

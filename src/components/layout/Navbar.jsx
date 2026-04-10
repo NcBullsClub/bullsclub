@@ -50,8 +50,8 @@ const NAV_ICONS = {
 
 function MobileNavIcon({ label, large = false }) {
   const cfg = NAV_ICONS[label] || { emoji: '•', bg: 'bg-gray-500' }
-  const size = large ? 'text-4xl' : 'text-3xl'
-  const imgSize = large ? 'w-10 h-10' : 'w-8 h-8'
+  const size = large ? 'text-[2.75rem]' : 'text-[2rem]'
+  const imgSize = large ? 'w-11 h-11' : 'w-9 h-9'
   if (cfg.imgSrc) {
     return <img src={cfg.imgSrc} alt={label} className={`${imgSize} object-contain`} />
   }
@@ -191,7 +191,7 @@ export default function Navbar() {
                             : 'text-gray-200 hover:text-white hover:bg-white/10'
                         }`}
                       >
-                        <NavIcon name={item.label} className="w-4 h-4" />
+                        <NavIcon name={item.label} className="w-[18px] h-[18px]" />
                         {item.label}
                         <svg
                           className={`w-3 h-3 transition-transform duration-200 ${clubhouseOpen ? 'rotate-180' : ''}`}
@@ -219,7 +219,7 @@ export default function Navbar() {
                                     active ? 'text-accent bg-white/10' : 'text-gray-200 hover:text-white hover:bg-white/10'
                                   }`}
                                 >
-                                  <NavIcon name={child.label} className="w-4 h-4" />
+                                  <NavIcon name={child.label} className="w-[18px] h-[18px]" />
                                   {child.label}
                                 </Link>
                               )
@@ -242,7 +242,7 @@ export default function Navbar() {
                         : 'text-gray-200 hover:text-white hover:bg-white/10'
                     } ${item.label === 'Join Us' ? '!bg-accent !text-primary-dark hover:!bg-accent-dark ml-2' : ''}`}
                   >
-                    <NavIcon name={item.label} className="w-4 h-4" />
+                      <NavIcon name={item.label} className="w-[18px] h-[18px]" />
                     {item.label}
                   </Link>
                 )
@@ -256,7 +256,7 @@ export default function Navbar() {
                       to="/admin"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-accent/20 text-accent border border-accent/30 hover:bg-accent hover:text-primary-dark transition-colors"
                     >
-                      <NavIcon name="Admin" className="w-3.5 h-3.5" />
+                      <NavIcon name="Admin" className="w-4 h-4" />
                       Admin
                     </Link>
                   )}
@@ -345,7 +345,7 @@ export default function Navbar() {
                       to={item.path}
                       onClick={() => setMenuOpen(false)}
                       className={[
-                        'flex flex-col items-center justify-center gap-2 py-4 px-1 rounded-2xl',
+                        'flex flex-col items-center justify-center gap-1 py-3.5 px-1 rounded-2xl',
                         'transition-all duration-150 active:scale-95 select-none',
                         isJoin
                           ? 'col-span-2 bg-accent text-primary-dark shadow-md'

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
 import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
 
@@ -160,8 +159,23 @@ function ScorePanel({ teamLabel, opponent, dbResult }) {
 
 export default function Fixtures() {
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
+  const [fixtures, setFixtures]     = useState([])
+  const [loadingFix, setLoadingFix] = useState(true)
   const [availRecords, setAvailRecords] = useState([])
   const [resultMap, setResultMap] = useState({})
+
+  // Fetch fixtures from Supabase
+  useEffect(() => {
+    setLoadingFix(true)
+    supabase
+      .from('fixtures')
+      .select('*')
+      .order('date', { ascending: true })
+      .then(({ data }) => {
+        setFixtures(data || [])
+        setLoadingFix(false)
+      })
+  }, [])
 
   useEffect(() => {
     if (!isSheetConfigured()) return
@@ -222,8 +236,13 @@ export default function Fixtures() {
       {/* Fixtures List */}
       <section className="py-6 md:py-12 bg-surface min-h-[60vh]">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8">
+          {loadingFix && (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
           <div className="space-y-3 md:space-y-4">
-            {filtered.map((f, i) => {
+            {!loadingFix && filtered.map((f, i) => {
               const past      = isPast(f)
               const matchStatus = getMatchStatus(f)
               const isLive    = matchStatus === 'live'
@@ -235,7 +254,7 @@ export default function Fixtures() {
               const dayNum   = String(day).padStart(2, '0')
               const monthShort = d.toLocaleDateString('en-US', { month: 'short' })
               const weekday  = d.toLocaleDateString('en-US', { weekday: 'short' })
-              const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venueAddress || f.venue)}`
+              const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue_address || f.venue)}`
 
               let avail = { inCount: 0, maybeCount: 0, outCount: 0, inNames: [], maybeNames: [], outNames: [] }
               if (isSheetConfigured()) {
@@ -300,7 +319,7 @@ export default function Fixtures() {
                       <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}</span>
+                        <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}{f.division ? ` · ${f.division.replace(/^D(\d+)$/, 'Div$1')}` : ''}</span>
                       <a
                         href={mapsUrl}
                         target="_blank"
@@ -314,6 +333,15 @@ export default function Fixtures() {
                       </a>
                     </div>
 
+                    {/* Umpiring info — mobile */}
+                    {(f.umpire1_team || f.umpire2_team) && (
+                      <div className="px-3 pb-2 flex items-center gap-1.5">
+                        <span className="text-[10px] text-blue-600">🧢</span>
+                        <span className="text-[10px] text-blue-600 font-medium truncate">
+                          {f.umpire1_team}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}
+                        </span>
+                      </div>
+                    )}
                     {/* Results — always show when any data available */}
                     {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
                       <div className="border-t border-gray-100 px-3 py-2.5">
@@ -384,6 +412,7 @@ export default function Fixtures() {
                             {teamLabel}
                           </span>
                           <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.format}</span>
+                          <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
                           <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
                         </div>
                         <h3 className="font-display font-bold text-primary text-xl mb-1">
@@ -392,7 +421,7 @@ export default function Fixtures() {
                         <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                           <span>⏰ {f.time}</span>
                         </div>
-                        <VenueActions venue={f.venue} venueAddress={f.venueAddress} />
+                        <VenueActions venue={f.venue} venueAddress={f.venue_address} />
                       </div>
 
                       {/* Status / result */}
@@ -440,7 +469,13 @@ export default function Fixtures() {
                                 )}
                               </div>
                             )}
-                            <Link
+                            {(f.umpire1_team || f.umpire2_team) && (
+                              <div className="text-xs text-blue-600 flex items-center gap-1 mt-1 w-full justify-end">
+                                <span>🧢</span>
+                                <span className="font-medium">{f.umpire1_team}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}</span>
+                              </div>
+                            )}
+                          <Link
                               to={`/availability?fixture=${f.id}&team=${f.team}`}
                               className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent text-primary-dark px-3 py-1.5 rounded-full hover:bg-accent-dark transition-colors"
                             >
@@ -460,7 +495,7 @@ export default function Fixtures() {
               )
             })}
 
-            {filtered.length === 0 && (
+            {!loadingFix && filtered.length === 0 && (
               <div className="text-center py-20 text-gray-400">No fixtures for the selected team.</div>
             )}
           </div>

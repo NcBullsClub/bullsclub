@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
-import fixtures from '../../data/fixtures.json'
 
 const ALL_TEAMS = [
   { id: 'all',           label: 'All Teams' },
@@ -25,7 +24,6 @@ const STATUS_EMOJI = { in: '✅', out: '❌', maybe: '🤔' }
 export default function AvailabilityTab({ onSelectFixture }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
-  // team filter: superadmin can switch; admin is locked to their team
   const [teamFilter, setTeamFilter] = useState(adminTeam ?? 'all')
   const [responses, setResponses]   = useState([])
   const [loading, setLoading]       = useState(true)
@@ -33,8 +31,15 @@ export default function AvailabilityTab({ onSelectFixture }) {
   const [collapsedKeys, setCollapsedKeys] = useState(new Set())
   const initializedCollapse = useRef(false)
 
+  // Fixtures fetched from Supabase
+  const [fixturesData, setFixturesData] = useState([])
+  useEffect(() => {
+    supabase.from('fixtures').select('*').order('date', { ascending: true })
+      .then(({ data }) => setFixturesData(data || []))
+  }, [])
+
   const fixtureMap = Object.fromEntries(
-    fixtures.map((f) => [`${f.date}::${f.team}`, f]),
+    fixturesData.map((f) => [`${f.date}::${f.team}`, f]),
   )
 
   async function load() {
@@ -211,6 +216,7 @@ Please update your *availability* for our upcoming match:
 ⏰ *Time:* ${fixture.time || 'TBD'}
 ⚔️ *Opponent:* ${fixture.opponent || 'TBD'}
 🏟️ *Ground:* ${fixture.venue || 'TBD'}
+🧢 *Umpires:* ${[fixture.umpire1_team, fixture.umpire2_team].filter(Boolean).reduce((acc, v) => acc === v ? acc : acc ? `${acc} & ${v}` : v, '') || 'TBD'}
 
 👉 Visit the app and mark your availability as ✅ IN, ❌ OUT, or 🤔 MAYBE.
 

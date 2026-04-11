@@ -11,11 +11,12 @@ import FinancesTab           from './admin/FinancesTab'
 import ClubhouseNewsTab    from './admin/ClubhouseNewsTab'
 import ClubhouseEventsTab  from './admin/ClubhouseEventsTab'
 import ClubhouseGalleryTab from './admin/ClubhouseGalleryTab'
+import FixturesTab         from './admin/FixturesTab'
 
 // Row 1 — match day tools
 const ROW1 = [
   { id: 'availability', label: 'Availability', icon: '📋', short: 'Avail.'   },
-  { id: 'whatsapp',     label: 'Selection',    icon: '🏏', short: 'Select.'  },
+  { id: 'fixtures',     label: 'Fixtures',     icon: '🏏', short: 'Fixtures'  },
   { id: 'results',      label: 'Results',      icon: '🏆', short: 'Results'  },
   { id: 'finances',     label: 'Finances',     icon: '💰', short: 'Finances' },
 ]
@@ -165,6 +166,7 @@ export default function AdminDashboard() {
             transition={{ duration: 0.18 }}
           >
             {activeTab === 'availability' && <AvailabilityTab onSelectFixture={handleSelectFixture} />}
+            {activeTab === 'fixtures'     && <FixturesTab />}
             {activeTab === 'whatsapp'     && <WhatsAppSummaryTab initialFixtureKey={selectedFixtureKey} />}
             {activeTab === 'results'      && <ResultsTab />}
             {activeTab === 'finances'     && <FinancesTab />}

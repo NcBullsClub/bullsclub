@@ -1,7 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
 
 function teamLabel(t) {
@@ -17,8 +16,22 @@ function formatDate(dateStr) {
 
 export default function FixtureDetail() {
   const { id } = useParams()
-  const fixture = fixtures.find((f) => String(f.id) === String(id))
-  const [result, setResult] = useState(null)
+  const [fixture, setFixture]   = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [result, setResult]     = useState(null)
+
+  useEffect(() => {
+    setLoading(true)
+    supabase
+      .from('fixtures')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setFixture(data || null)
+        setLoading(false)
+      })
+  }, [id])
 
   useEffect(() => {
     if (!fixture) return
@@ -31,6 +44,14 @@ export default function FixtureDetail() {
       .then(({ data }) => setResult(data))
   }, [fixture?.id])
 
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   if (!fixture) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
@@ -42,7 +63,7 @@ export default function FixtureDetail() {
   }
 
   const isRaising   = fixture.team === 'raising-bulls'
-  const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venueAddress || fixture.venue)}`
+  const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue_address || fixture.venue)}`
   const today       = new Date()
   const [fy, fm, fd] = fixture.date.split('-').map(Number)
   const fixtureDate = new Date(fy, fm - 1, fd)
@@ -97,8 +118,8 @@ export default function FixtureDetail() {
           >
             <h2 className="font-display font-bold text-primary text-lg mb-4">📍 Venue</h2>
             <div className="mb-1 font-semibold text-gray-800 text-base">{fixture.venue}</div>
-            {fixture.venueAddress && (
-              <p className="text-gray-500 text-sm mb-5">{fixture.venueAddress}</p>
+            {fixture.venue_address && (
+              <p className="text-gray-500 text-sm mb-5">{fixture.venue_address}</p>
             )}
             <div className="flex flex-wrap gap-3">
               <a
@@ -139,6 +160,12 @@ export default function FixtureDetail() {
                   <dd className="font-semibold text-gray-800">{fixture.type}</dd>
                 </div>
               )}
+              {fixture.division && (
+                <div>
+                  <dt className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Division</dt>
+                  <dd className="font-semibold text-gray-800">{fixture.division.replace(/^D(\d+)$/, 'Div$1')}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Date</dt>
                 <dd className="font-semibold text-gray-800">{formatDate(fixture.date)}</dd>
@@ -151,6 +178,32 @@ export default function FixtureDetail() {
               )}
             </dl>
           </motion.div>
+
+          {/* Umpiring info */}
+          {(fixture.umpire1_team || fixture.umpire2_team) && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18 }}
+              className="bg-white border border-blue-200 rounded-2xl p-6"
+            >
+              <h2 className="font-display font-bold text-primary text-lg mb-4">🧢 Umpiring</h2>
+              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-6 text-sm">
+                {fixture.umpire1_team && (
+                  <div>
+                    <dt className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Umpire 1</dt>
+                    <dd className="font-semibold text-gray-800">{fixture.umpire1_team}</dd>
+                  </div>
+                )}
+                {fixture.umpire2_team && (
+                  <div>
+                    <dt className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Umpire 2</dt>
+                    <dd className="font-semibold text-gray-800">{fixture.umpire2_team}</dd>
+                  </div>
+                )}
+              </dl>
+            </motion.div>
+          )}
 
           {/* Result (if available) */}
           {result && (

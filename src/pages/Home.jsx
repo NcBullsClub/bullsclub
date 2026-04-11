@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import logo from '../assets/images/cropped_no bg_nc_bulls_club_logo.png'
-import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
 import { turso } from '../lib/turso'
 import sponsors from '../data/sponsors.json'
@@ -51,8 +50,9 @@ export default function Home() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const upcomingRB = fixtures.filter(f => new Date(f.date + 'T00:00:00') >= today && f.team === 'raising-bulls').slice(0, 3)
-  const upcomingRY = fixtures.filter(f => new Date(f.date + 'T00:00:00') >= today && f.team === 'royal-bulls').slice(0, 3)
+  const [allFixtures, setAllFixtures] = useState([])
+  const upcomingRB = allFixtures.filter(f => new Date(f.date + 'T00:00:00') >= today && f.team === 'raising-bulls').slice(0, 3)
+  const upcomingRY = allFixtures.filter(f => new Date(f.date + 'T00:00:00') >= today && f.team === 'royal-bulls').slice(0, 3)
 
   const [latestRBResults, setLatestRBResults] = useState([])
   const [latestRYResults, setLatestRYResults] = useState([])
@@ -109,6 +109,11 @@ export default function Home() {
     setA2hsDismissed(false)
     setShowA2HS(true)
   }
+
+  useEffect(() => {
+    supabase.from('fixtures').select('*').order('date', { ascending: true })
+      .then(({ data }) => setAllFixtures(data || []))
+  }, [])
 
   useEffect(() => {
     turso.execute("SELECT id, title, slug, summary, published_at, cover_image_url FROM news WHERE status='published' ORDER BY published_at DESC LIMIT 3")

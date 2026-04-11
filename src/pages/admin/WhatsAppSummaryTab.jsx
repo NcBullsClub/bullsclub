@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
-import fixtures from '../../data/fixtures.json'
 
 // Only show fixtures within the last 7 days or upcoming
 function isRelevantFixture(f) {
@@ -120,7 +119,14 @@ function NoResponseSection({ players, selected, onToggle }) {
 export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
-  const visibleFixtures = fixtures
+  // Fixtures from Supabase
+  const [allFixtures, setAllFixtures] = useState([])
+  useEffect(() => {
+    supabase.from('fixtures').select('*').order('date', { ascending: true })
+      .then(({ data }) => setAllFixtures(data || []))
+  }, [])
+
+  const visibleFixtures = allFixtures
     .filter((f) => {
       if (!isSuperAdmin && f.team !== adminTeam) return false
       return isRelevantFixture(f)
@@ -147,7 +153,7 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     (f) => `${f.date}::${f.team}` === selectedKey,
   )
 
-  // Auto-set season/division based on selected fixture's team
+  // Auto-set season/division and umpires based on selected fixture
   useEffect(() => {
     if (!selectedFixture) return
     setSeason(
@@ -155,7 +161,13 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
         ? '2026 HT Mega Bash - Division 9'
         : '2026 HT Mega Bash - Division 5',
     )
-  }, [selectedFixture?.team])
+    // Auto-fill umpires from fixture data
+    const u1 = selectedFixture.umpire1_team || ''
+    const u2 = selectedFixture.umpire2_team || ''
+    if (u1 || u2) {
+      setUmpires(u1 === u2 ? u1 : [u1, u2].filter(Boolean).join(' & '))
+    }
+  }, [selectedFixture?.id])
 
   useEffect(() => {
     if (!selectedKey) { setAvailability([]); setAllTeamPlayers([]); setSelected([]); return }
@@ -222,9 +234,10 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
       `Time: ${selectedFixture.time || 'TBD'}`,
       `Venue: ${selectedFixture.venue}`,
     ]
-    if (selectedFixture.venueAddress) lines.push(`*Ground Address: ${selectedFixture.venueAddress}*`)
+    if (umpires) lines.push(`🧢 Umpires: ${umpires}`)
+    if (selectedFixture.venue_address) lines.push(`*Ground Address: ${selectedFixture.venue_address}*`)
     lines.push(`📍 Maps & Details: https://ncbullscricketclub.com/#/fixtures/${selectedFixture.id}`)
-    if (umpires) lines.push(`Umpires: ${umpires}`)
+    
     lines.push('', playerLines, '')
     lines.push(`Please come by ${arriveBy || 'on time'} and acknowledge!!!`)
     return lines.join('\n')

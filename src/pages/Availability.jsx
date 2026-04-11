@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import fixtures from '../data/fixtures.json'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -108,6 +107,27 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
     }
   }
 
+  async function handleClear() {
+    if (!myResponse) return
+    setError('')
+    setSaving(true)
+    try {
+      const { error: sbErr } = await supabase.from('availability')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('fixture_date', fixture.date)
+        .eq('fixture_team', fixture.team)
+      if (sbErr) throw sbErr
+      setStatus('')
+      setNotes('')
+      onResponseSaved()
+    } catch (err) {
+      setError(err.message || 'Failed to clear. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const availablePlayers = counts.players
     .filter((p) => p.status === 'in' || p.status === 'maybe')
     .sort((a, b) => {
@@ -148,6 +168,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
               {teamLabel}
             </span>
             <span className="text-xs bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{fixture.format}</span>
+            <span className="text-xs bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{isRaising ? 'Div5' : 'Div9'}</span>
           </div>
           <div className="font-display font-bold text-white text-base leading-tight truncate">
             vs {fixture.opponent}
@@ -162,6 +183,30 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
       </div>
 
       <div className="px-4 py-4 space-y-4">
+
+        {/* Venue / time info row */}
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
+          {fixture.time && <span>⏰ {fixture.time}</span>}
+          {fixture.venue && (
+            <>
+              <span>·</span>
+              <span>📍 {fixture.venue}</span>
+            </>
+          )}
+          {(fixture.venue_address || fixture.venue) && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue_address || fixture.venue)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
+            >
+              <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
+              </svg>
+              Open in Maps
+            </a>
+          )}
+        </div>
 
         {/* ── SECTION 1: Mark availability (always shown for eligible users) */}
         {isPast ? (
@@ -204,15 +249,27 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
                   {opt.emoji} {opt.label}
                 </button>
               ))}
-              <button
-                type="submit"
-                disabled={saving || !status || (!hasChange && !!myResponse)}
-                className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-primary-dark text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                {saving ? (
-                  <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                ) : saved ? '✓ Saved' : 'Save'}
-              </button>
+              <div className="ml-auto flex items-center gap-1.5">
+                {myResponse && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    disabled={saving}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-red-300 text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={saving || !status || (!hasChange && !!myResponse)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-primary-dark text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  {saving ? (
+                    <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                  ) : saved ? '✓ Saved' : 'Save'}
+                </button>
+              </div>
             </div>
 
             {/* Notes toggle */}
@@ -264,7 +321,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
           </div>
         )}
 
-        {/* ── SECTION 2 & 3: Player list grouped by status */}
+        {/* ── SECTION 2 & 3: Player list — two columns */}
         {user && counts.players.length > 0 && (
           <details open={!isPast}>
             <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
@@ -286,85 +343,328 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
               )}
             </summary>
 
-            <div className="mt-2">
-            {/* In — alphabetical list */}
-            {availablePlayers.filter((p) => p.status === 'in').length > 0 && (
-              <div className="space-y-0.5 mb-1">
-                {availablePlayers.filter((p) => p.status === 'in').map((p, i) => {
-                  const paid = hasPaid(p.name)
-                  return (
-                    <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-green-50">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                      <span className="text-xs font-medium text-green-800 flex-1">{p.name.split(' ')[0]}</span>
-                      {paid !== null && (
-                        <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
-                          paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
-                        }`}>
-                          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
-                          {paid ? 'Paid' : 'Unpaid'}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
+            <div className="mt-2 grid grid-cols-2 gap-x-3">
+              {/* Column 1: Available (in) */}
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">✅ Available</div>
+                {availablePlayers.filter((p) => p.status === 'in').length === 0 ? (
+                  <div className="text-[10px] text-gray-400 italic">None yet</div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {availablePlayers.filter((p) => p.status === 'in').map((p, i) => {
+                      const paid = hasPaid(p.name)
+                      return (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-50">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                          <span className="text-xs font-medium text-green-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                          {paid !== null && (
+                            <span className={`inline-flex text-[9px] font-bold px-1 py-0.5 rounded-full border ${
+                              paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
+                            }`}>
+                              {paid ? 'Paid' : 'Unpaid'}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Maybe — alphabetical list */}
-            {availablePlayers.filter((p) => p.status === 'maybe').length > 0 && (
-              <div className="space-y-0.5 mb-1">
-                {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => {
-                  const paid = hasPaid(p.name)
-                  return (
-                    <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-50">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                      <span className="text-xs font-medium text-amber-800 flex-1">{p.name.split(' ')[0]}</span>
-                      <span className="ml-auto text-[10px] text-amber-500 font-normal">maybe</span>
-                      {paid !== null && (
-                        <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
-                          paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
-                        }`}>
-                          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
-                          {paid ? 'Paid' : 'Unpaid'}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
+              {/* Column 2: Maybe + Out */}
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Out / Maybe</div>
+                {availablePlayers.filter((p) => p.status === 'maybe').length === 0 && outPlayers.length === 0 ? (
+                  <div className="text-[10px] text-gray-400 italic">None yet</div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => {
+                      const paid = hasPaid(p.name)
+                      return (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                          <span className="text-xs font-medium text-amber-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                          {paid !== null && (
+                            <span className={`inline-flex text-[9px] font-bold px-1 py-0.5 rounded-full border ${
+                              paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
+                            }`}>
+                              {paid ? 'Paid' : 'Unpaid'}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {outPlayers.map((p, i) => {
+                      const paid = hasPaid(p.name)
+                      return (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                          <span className="text-xs font-medium text-red-700 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                          {paid !== null && (
+                            <span className={`inline-flex text-[9px] font-bold px-1 py-0.5 rounded-full border ${
+                              paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-500 border-red-300'
+                            }`}>
+                              {paid ? 'Paid' : 'Unpaid'}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Out — collapsible alphabetical list */}
-            {outPlayers.length > 0 && (
-              <details>
-                <summary className="text-[10px] text-gray-400 cursor-pointer hover:text-gray-600 select-none py-0.5">
-                  {outPlayers.length} not available
-                </summary>
-                <div className="space-y-0.5 mt-1">
-                  {outPlayers.map((p, i) => {
-                    const paid = hasPaid(p.name)
-                    return (
-                      <div key={i} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-red-50">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                        <span className="text-xs font-medium text-red-700 flex-1">{p.name.split(' ')[0]}</span>
-                        {paid !== null && (
-                          <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
-                            paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-500 border-red-300'
-                          }`}>
-                            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
-                            {paid ? 'Paid' : 'Unpaid'}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </details>
-            )}
             </div>
           </details>
         )}
 
+      </div>
+    </motion.div>
+  )
+}
+
+// ── Umpiring Assignment Card ───────────────────────────────────────────────
+function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved }) {
+  const { user, profile } = useAuth()
+  const isRaising = assignment.ncb_team === 'raising-bulls'
+  const teamLabel = isRaising ? 'Raising Bulls' : 'Royal Bulls'
+
+  const [ay, am, ad]   = assignment.date.split('-').map(Number)
+  const assignmentDate = new Date(ay, am - 1, ad)
+  const isPast         = assignmentDate < new Date(new Date().setHours(0, 0, 0, 0))
+
+  const counts     = umpAvailMap[assignment.id]     || { in: 0, out: 0, maybe: 0, names: [] }
+  const myResponse = myUmpResponseMap[assignment.id]
+
+  const [status, setStatus] = useState(myResponse?.status || '')
+  const [notes,  setNotes]  = useState(myResponse?.notes  || '')
+  const [saving,  setSaving]  = useState(false)
+  const [saved,   setSaved]   = useState(false)
+  const [error,   setError]   = useState('')
+  const hasChange = status !== (myResponse?.status || '') || notes !== (myResponse?.notes || '')
+
+  useEffect(() => {
+    setStatus(myResponse?.status || '')
+    setNotes(myResponse?.notes  || '')
+  }, [myResponse])
+
+  const canRespond = user && !isPast && profile?.team === assignment.ncb_team
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!status) { setError('Please select your availability.'); return }
+    setError('')
+    setSaving(true)
+    try {
+      const { error: sbErr } = await supabase.from('umpiring_availability').upsert(
+        {
+          user_id:               user.id,
+          umpiring_assignment_id: assignment.id,
+          ncb_team:              assignment.ncb_team,
+          status,
+          notes: notes.trim(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,umpiring_assignment_id' },
+      )
+      if (sbErr) throw sbErr
+      setSaved(true)
+      onResponseSaved()
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setError(err.message || 'Failed to save.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleClear() {
+    if (!myResponse) return
+    setError('')
+    setSaving(true)
+    try {
+      const { error: sbErr } = await supabase.from('umpiring_availability')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('umpiring_assignment_id', assignment.id)
+      if (sbErr) throw sbErr
+      setStatus('')
+      setNotes('')
+      onResponseSaved()
+    } catch (err) {
+      setError(err.message || 'Failed to clear.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const mapsUrl = assignment.venue
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(assignment.venue)}`
+    : null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="bg-white border border-blue-200 rounded-2xl overflow-hidden shadow-sm"
+    >
+      {/* Header */}
+      <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+        <div className="bg-white/10 rounded-lg px-2.5 py-1.5 text-center flex-shrink-0 min-w-[48px]">
+          <div className="text-accent font-display font-bold text-sm leading-none">
+            {assignmentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+          <div className="text-white/50 text-xs mt-0.5">{assignmentDate.getFullYear()}</div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap gap-1 mb-0.5">
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'}`}>
+              {teamLabel}
+            </span>
+            <span className="text-xs bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-full">🧢 Umpiring Duty</span>
+            {assignment.division && (
+              <span className="text-xs bg-white/10 text-white/60 px-2 py-0.5 rounded-full">{assignment.division?.replace(/^D(\d+)$/, 'Div$1')}</span>
+            )}
+          </div>
+          <div className="text-white font-semibold text-sm truncate">
+            {assignment.match_visitor} <span className="font-normal opacity-70">vs</span> {assignment.match_home}
+          </div>
+        </div>
+        {isPast && <span className="text-xs text-white/40 flex-shrink-0">Past</span>}
+      </div>
+
+      <div className="px-4 py-4 space-y-3">
+        {/* Match info */}
+        <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
+          {assignment.time && <span>⏰ {assignment.time}</span>}
+          {assignment.venue && (
+            <>
+              <span>·</span>
+              <span>📍 {assignment.venue}</span>
+              {mapsUrl && (
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors">
+                  <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
+                  </svg>
+                  Open in Maps
+                </a>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Availability form */}
+        {isPast ? (
+          <div className="text-xs text-center text-gray-400 bg-gray-50 rounded-xl px-3 py-2">This assignment has passed</div>
+        ) : !user ? (
+          <div className="text-xs text-center text-gray-400 bg-gray-50 rounded-xl px-3 py-2">Sign in to mark your availability</div>
+        ) : profile?.team !== assignment.ncb_team ? (
+          <div className="text-xs text-center text-gray-400 bg-gray-50 rounded-xl px-3 py-2">Only {teamLabel} players can respond</div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="flex items-center gap-2 flex-wrap">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { setStatus(opt.value); setError('') }}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full border-2 text-xs font-semibold transition-all ${
+                    status === opt.value ? opt.selected : opt.idle
+                  }`}
+                >
+                  {opt.emoji} {status === opt.value && myResponse?.status === opt.value ? 'Saved' : opt.label}
+                </button>
+              ))}
+              <div className="ml-auto flex items-center gap-1.5">
+                {myResponse && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    disabled={saving}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-red-300 text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={saving || !status || (!hasChange && !!myResponse)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-primary-dark text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  {saving ? <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" /> : saved ? '✓ Saved' : 'Save'}
+                </button>
+              </div>
+            </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          </form>
+        )}
+
+        {/* Who's going — two columns */}
+        {user && counts.names.length > 0 && (
+          <details open={!isPast}>
+            <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Umpires</span>
+              {counts.in > 0 && (
+                <span className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">
+                  ✅ {counts.in} in
+                </span>
+              )}
+              {counts.maybe > 0 && (
+                <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                  🤔 {counts.maybe} maybe
+                </span>
+              )}
+              {counts.out > 0 && (
+                <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full">
+                  ❌ {counts.out} out
+                </span>
+              )}
+            </summary>
+
+            <div className="mt-2 grid grid-cols-2 gap-x-3">
+              {/* Column 1: Available (in) */}
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">✅ Available</div>
+                {counts.names.filter(n => n.status === 'in').length === 0 ? (
+                  <div className="text-[10px] text-gray-400 italic">None yet</div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {counts.names.filter(n => n.status === 'in').sort((a, b) => a.name.localeCompare(b.name)).map((n, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                        <span className="text-xs font-medium text-green-800 truncate">{n.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Column 2: Maybe + Out */}
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Out / Maybe</div>
+                {counts.names.filter(n => n.status === 'maybe' || n.status === 'out').length === 0 ? (
+                  <div className="text-[10px] text-gray-400 italic">None yet</div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {counts.names.filter(n => n.status === 'maybe').sort((a, b) => a.name.localeCompare(b.name)).map((n, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                        <span className="text-xs font-medium text-amber-800 truncate">{n.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                    {counts.names.filter(n => n.status === 'out').sort((a, b) => a.name.localeCompare(b.name)).map((n, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                        <span className="text-xs font-medium text-red-700 truncate">{n.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </details>
+        )}
       </div>
     </motion.div>
   )
@@ -379,28 +679,86 @@ export default function Availability() {
 
   const defaultTeam = profile?.team || paramTeam || 'raising-bulls'
   const [teamFilter, setTeamFilter] = useState(defaultTeam)
+  const [activeTab,  setActiveTab]  = useState('playing') // 'playing' | 'umpiring'
 
+  // Fixtures from Supabase
+  const [fixturesData, setFixturesData] = useState([])
+  const [loadingFix,   setLoadingFix]   = useState(true)
+
+  // Playing availability
   const [availabilityMap, setAvailabilityMap] = useState({})
   const [userResponseMap, setUserResponseMap] = useState({})
-  const [loadingData, setLoadingData]         = useState(true)
-  const [financeMap, setFinanceMap]           = useState({})
-  const [financeLoaded, setFinanceLoaded]     = useState(false)
+  const [loadingData,     setLoadingData]     = useState(true)
+  const [financeMap,      setFinanceMap]      = useState({})
+  const [financeLoaded,   setFinanceLoaded]   = useState(false)
 
-  const upcomingFixtures = fixtures.filter(
-    (f) => f.status !== 'completed' && f.team === teamFilter,
-  )
+  // Umpiring assignments + availability
+  const [umpAssignments,  setUmpAssignments]  = useState([])
+  const [loadingUmp,      setLoadingUmp]      = useState(true)
+  const [umpAvailMap,     setUmpAvailMap]     = useState({})
+  const [myUmpResponseMap, setMyUmpResponseMap] = useState({})
+
+  const upcomingFixtures = fixturesData.filter((f) => f.team === teamFilter)
+
+  // Load fixtures from Supabase
+  useEffect(() => {
+    setLoadingFix(true)
+    supabase.from('fixtures').select('*').order('date', { ascending: true })
+      .then(({ data }) => { setFixturesData(data || []); setLoadingFix(false) })
+  }, [])
+
+  // Load umpiring assignments
+  useEffect(() => {
+    setLoadingUmp(true)
+    supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).order('date', { ascending: true })
+      .then(({ data }) => { setUmpAssignments(data || []); setLoadingUmp(false) })
+  }, [teamFilter])
+
+  // Load umpiring availability
+  async function loadUmpAvailability() {
+    const ids = umpAssignments.map((a) => a.id)
+    if (ids.length === 0) { setUmpAvailMap({}); setMyUmpResponseMap({}); return }
+
+    // Step 1: fetch availability rows (no FK join to avoid FK mismatch)
+    const { data: availRows, error: availErr } = await supabase
+      .from('umpiring_availability')
+      .select('*')
+      .in('umpiring_assignment_id', ids)
+    if (availErr || !availRows) return
+
+    // Step 2: fetch profile names for those user_ids
+    const userIds = [...new Set(availRows.map((r) => r.user_id))]
+    let profileMap = {}
+    if (userIds.length > 0) {
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+      profileMap = Object.fromEntries((profileRows || []).map((p) => [p.id, p.full_name]))
+    }
+
+    const agg = {}
+    const mine = {}
+    for (const row of availRows) {
+      const k = row.umpiring_assignment_id
+      if (!agg[k]) agg[k] = { in: 0, out: 0, maybe: 0, names: [] }
+      agg[k][row.status] = (agg[k][row.status] || 0) + 1
+      agg[k].names.push({ name: profileMap[row.user_id] || 'Unknown', status: row.status })
+      if (user && row.user_id === user.id) mine[k] = { status: row.status, notes: row.notes }
+    }
+    setUmpAvailMap(agg)
+    setMyUmpResponseMap(mine)
+  }
+
+  useEffect(() => { loadUmpAvailability() }, [umpAssignments, user])
 
   async function loadData() {
     setLoadingData(true)
     try {
-      const dates = upcomingFixtures.map((f) => f.date)
-      if (dates.length === 0) { setLoadingData(false); return }
-
       const { data, error } = await supabase
         .from('availability')
         .select('fixture_date, fixture_team, status, notes, user_id, profiles(full_name)')
         .eq('fixture_team', teamFilter)
-        .in('fixture_date', dates)
 
       if (error) throw error
 
@@ -659,55 +1017,126 @@ export default function Availability() {
       </section>
 
       <section className="bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex gap-2">
-          {TEAMS.map((t) => (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap gap-2 items-center">
+          {/* Team filter */}
+          <div className="flex gap-2">
+            {TEAMS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTeamFilter(t.id)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {/* Tab switcher */}
+          <div className="flex gap-1.5 ml-auto">
             <button
-              key={t.id}
-              onClick={() => setTeamFilter(t.id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              onClick={() => setActiveTab('playing')}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                activeTab === 'playing' ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
-              {t.label}
+              🏏 Playing
             </button>
-          ))}
+            <button
+              onClick={() => setActiveTab('umpiring')}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                activeTab === 'umpiring' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              🧢 Umpiring
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="py-6 md:py-12 bg-surface min-h-[60vh]">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
-          {loadingData && (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
 
-          {!loadingData && upcomingFixtures.length === 0 && (
-            <div className="text-center py-24 text-gray-400">
-              <div className="text-5xl mb-4">🏏</div>
-              <div className="font-display font-bold text-xl text-gray-500 mb-2">No upcoming fixtures</div>
-              <p className="text-sm mb-6">Check back once the next schedule is announced.</p>
-              <Link to="/fixtures" className="btn-primary text-sm">View All Fixtures</Link>
-            </div>
-          )}
-
-          {!loadingData && upcomingFixtures.length > 0 && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {upcomingFixtures.map((f) => (
-                <div key={f.id} id={`fixture-${f.id}`}>
-                  <FixtureCard
-                    fixture={f}
-                    availabilityMap={availabilityMap}
-                    userResponseMap={userResponseMap}
-                    financeMap={financeMap}
-                    myPaymentPaid={myPaymentStatus}
-                    financeLoaded={financeLoaded}
-                    onResponseSaved={loadData}
-                  />
+          {/* ── Playing Tab ── */}
+          {activeTab === 'playing' && (
+            <>
+              {(loadingData || loadingFix) && (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
                 </div>
-              ))}
-            </div>
+              )}
+
+              {!loadingData && !loadingFix && upcomingFixtures.length === 0 && (
+                <div className="text-center py-24 text-gray-400">
+                  <div className="text-5xl mb-4">🏏</div>
+                  <div className="font-display font-bold text-xl text-gray-500 mb-2">No upcoming fixtures</div>
+                  <p className="text-sm mb-6">Check back once the next schedule is announced.</p>
+                  <Link to="/fixtures" className="btn-primary text-sm">View All Fixtures</Link>
+                </div>
+              )}
+
+              {!loadingData && !loadingFix && upcomingFixtures.length > 0 && (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {upcomingFixtures.map((f) => (
+                    <div key={f.id} id={`fixture-${f.id}`}>
+                      <FixtureCard
+                        fixture={f}
+                        availabilityMap={availabilityMap}
+                        userResponseMap={userResponseMap}
+                        financeMap={financeMap}
+                        myPaymentPaid={myPaymentStatus}
+                        financeLoaded={financeLoaded}
+                        onResponseSaved={loadData}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
+
+          {/* ── Umpiring Tab ── */}
+          {activeTab === 'umpiring' && (
+            <>
+              <div className="mb-5">
+                <h2 className="font-display font-bold text-primary text-xl mb-1">Umpiring Duties</h2>
+                <p className="text-sm text-gray-500">
+                  These are matches where{' '}
+                  <span className="font-semibold">{teamFilter === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}</span>{' '}
+                  has been assigned to provide umpires. Mark if you can go.
+                </p>
+              </div>
+
+              {loadingUmp && (
+                <div className="flex justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+
+              {!loadingUmp && umpAssignments.length === 0 && (
+                <div className="text-center py-24 text-gray-400">
+                  <div className="text-5xl mb-4">🧢</div>
+                  <div className="font-display font-bold text-xl text-gray-500 mb-2">No umpiring assignments yet</div>
+                  <p className="text-sm">Check back when assignments are posted.</p>
+                </div>
+              )}
+
+              {!loadingUmp && umpAssignments.length > 0 && (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {umpAssignments.map((a) => (
+                    <UmpCard
+                      key={a.id}
+                      assignment={a}
+                      umpAvailMap={umpAvailMap}
+                      myUmpResponseMap={myUmpResponseMap}
+                      onResponseSaved={loadUmpAvailability}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
         </div>
       </section>
     </div>

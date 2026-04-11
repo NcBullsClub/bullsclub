@@ -121,7 +121,8 @@ export default function Results() {
                           </div>
                           <div>
                             <div className={`text-[11px] font-bold leading-tight ${r.team === 'raising-bulls' ? 'text-primary-dark' : 'text-primary'}`}>{teamLabel}</div>
-                            {r.format && <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{r.format}</div>}
+                            {r.format && <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{r.format} · {r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</div>}
+                            {!r.format && <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</div>}
                           </div>
                         </div>
                         <div className="text-right">
@@ -215,6 +216,7 @@ export default function Results() {
                               {r.format && (
                                 <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.format}</span>
                               )}
+                              <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
                             </div>
                             <h3 className="font-display font-bold text-primary text-xl mb-1">
                               {teamLabel} vs {r.opponent}

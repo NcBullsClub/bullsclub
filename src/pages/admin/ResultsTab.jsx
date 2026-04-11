@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
-import fixtures from '../../data/fixtures.json'
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -60,6 +59,13 @@ export default function ResultsTab() {
 
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
 
+  // Fixtures from Supabase
+  const [fixturesData, setFixturesData] = useState([])
+  useEffect(() => {
+    supabase.from('fixtures').select('*').order('date', { ascending: true })
+      .then(({ data }) => setFixturesData(data || []))
+  }, [])
+
   const [dbResults, setDbResults] = useState([])
   const [loading, setLoading]     = useState(true)
 
@@ -69,8 +75,7 @@ export default function ResultsTab() {
   const [saving, setSaving]         = useState(false)
   const [saveError, setSaveError]   = useState('')
 
-  // Superadmin sees all fixtures from both teams; regular admin sees only their team
-  const visibleFixtures = fixtures
+  const visibleFixtures = fixturesData
     .filter((f) => isSuperAdmin ? f.team === teamFilter : f.team === adminTeam)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 

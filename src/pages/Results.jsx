@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 
+function isComplete(r) {
+  return !!(r.result && r.ncb_score && r.opp_score)
+}
+
 function isWon(r) {
-  if (!r.result) return false
+  if (!isComplete(r)) return false
   const label = r.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
   return r.result.toLowerCase().includes(label.toLowerCase())
 }
@@ -12,6 +16,16 @@ const teamsFilter = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
   { id: 'royal-bulls', label: 'Royal Bulls' },
 ]
+
+function CoinIcon({ className = 'w-3 h-3 flex-shrink-0' }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="9" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="6.5" stroke="#D97706" strokeWidth="0.75" fill="none" />
+      <circle cx="10" cy="10" r="2" fill="#D97706" />
+    </svg>
+  )
+}
 
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -28,19 +42,21 @@ function formatDate(dateStr) {
 export default function Results() {
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [results, setResults]       = useState([])
+  const [fixtureMap, setFixtureMap] = useState({}) // `date::team` -> fixture
   const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    supabase
-      .from('match_results')
-      .select('*')
-      .eq('team', teamFilter)
-      .order('fixture_date', { ascending: false })
-      .then(({ data }) => {
-        setResults(data || [])
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.from('match_results').select('*').eq('team', teamFilter).order('fixture_date', { ascending: false }),
+      supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter),
+    ]).then(([{ data: resData }, { data: fixData }]) => {
+      setResults(resData || [])
+      const map = {}
+      ;(fixData || []).forEach((f) => { map[`${f.date}::${f.team}`] = f })
+      setFixtureMap(map)
+      setLoading(false)
+    })
   }, [teamFilter])
 
   const wins   = results.filter(isWon).length
@@ -98,9 +114,19 @@ export default function Results() {
           ) : (
             <div className="space-y-3 md:space-y-4">
               {results.map((r, i) => {
+                const complete  = isComplete(r)
                 const won       = isWon(r)
                 const teamLabel = r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
                 const dt        = formatDate(r.fixture_date)
+                const fixture   = fixtureMap[`${r.fixture_date}::${r.team}`]
+                const umpires   = fixture
+                  ? [fixture.umpire1_team, fixture.umpire2_team].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' & ')
+                  : null
+
+                // Border & badge colour helpers
+                const borderColor = complete ? (won ? 'border-l-green-500' : 'border-l-red-400') : 'border-l-amber-400'
+                const badgeBg     = complete ? (won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600') : 'bg-amber-100 text-amber-700'
+                const badgeLabel  = complete ? (won ? 'W' : 'L') : '~'
 
                 return (
                   <motion.div
@@ -111,100 +137,129 @@ export default function Results() {
                     transition={{ delay: i * 0.05 }}
                   >
                     {/* ── Mobile card ── */}
-                    <div className={`sm:hidden bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 border-l-4 ${won ? 'border-l-green-500' : 'border-l-red-400'}`}>
+                    <div className={`sm:hidden bg-white rounded-2xl overflow-hidden border border-gray-100 border-l-4 ${borderColor}`}>
 
-                      {/* Header: W/L + team name + date */}
-                      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-display font-bold text-base flex-shrink-0 ${won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                            {won ? 'W' : 'L'}
-                          </div>
-                          <div>
-                            <div className={`text-[11px] font-bold leading-tight ${r.team === 'raising-bulls' ? 'text-primary-dark' : 'text-primary'}`}>{teamLabel}</div>
-                            {r.format && <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{r.format} · {r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</div>}
-                            {!r.format && <div className="text-[10px] text-gray-400 leading-tight mt-0.5">{r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</div>}
+                      {/* Row 1: badge + match title + date */}
+                      <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-display font-bold text-sm flex-shrink-0 ${badgeBg}`}>
+                          {badgeLabel}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-display font-bold text-primary text-[13px] leading-tight truncate">
+                            {teamLabel} <span className="font-normal text-gray-400 text-xs">vs</span> {r.opponent}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${r.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
+                              {r.format || (r.team === 'raising-bulls' ? 'Div5' : 'Div9')}
+                            </span>
+                            {r.format && <span className="text-[9px] font-bold bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">{r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs font-semibold text-gray-700">{dt.day} {dt.month} {dt.year}</div>
-                          <div className="text-[10px] text-gray-400">{dt.weekday}</div>
+                        <div className="flex-shrink-0 text-right">
+                          <div className="text-[11px] font-semibold text-gray-700 tabular-nums">{dt.day} {dt.month}</div>
+                          <div className="text-[9px] text-gray-400">{dt.weekday} {dt.year}</div>
                         </div>
                       </div>
 
-                      {/* Divider */}
-                      <div className="mx-4 border-t border-gray-100" />
-
-                      {/* Match title + venue */}
-                      <div className="px-4 py-2.5">
-                        <h3 className="font-display font-bold text-primary text-[13px] leading-snug">
-                          {teamLabel} <span className="font-normal text-gray-400 text-xs">vs</span> {r.opponent}
-                        </h3>
-                        {r.venue && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <svg className="w-3 h-3 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                              <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-[10px] text-gray-400 truncate">{r.venue}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Score block */}
+                      {/* Row 2: scores side by side */}
                       {(r.ncb_score || r.opp_score) && (
-                        <div className="mx-4 mb-2.5 grid grid-cols-2 gap-2">
-                          {r.ncb_score && (
-                            <div className="bg-gray-50 rounded-xl px-3 py-2">
-                              <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mb-1 truncate">{teamLabel}</div>
-                              <div className="font-mono font-bold text-sm text-gray-800 leading-none">{r.ncb_score}</div>
-                            </div>
-                          )}
-                          {r.opp_score && (
-                            <div className="bg-gray-50 rounded-xl px-3 py-2">
-                              <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mb-1 truncate">{r.opponent}</div>
-                              <div className="font-mono font-bold text-sm text-gray-500 leading-none">{r.opp_score}</div>
-                            </div>
-                          )}
+                        <div className="px-3 pb-2 grid grid-cols-2 gap-1.5">
+                          <div className={`rounded-xl px-3 py-1.5 ${won ? 'bg-green-50 border border-green-100' : 'bg-gray-50'}`}>
+                            <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide truncate">{teamLabel}</div>
+                            <div className={`font-mono font-bold text-sm leading-tight ${won ? 'text-green-700' : 'text-gray-800'}`}>{r.ncb_score || '—'}</div>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl px-3 py-1.5">
+                            <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide truncate">{r.opponent}</div>
+                            <div className="font-mono font-bold text-sm text-gray-500 leading-tight">{r.opp_score || '—'}</div>
+                          </div>
                         </div>
                       )}
 
-                      {/* Result pill */}
-                      {r.result && (
-                        <div className="px-4 pb-2.5">
-                          <span className={`inline-block text-[10px] font-semibold px-3 py-1 rounded-full ${won ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                            {r.result}
+                      {/* Row 3: venue + umpires in one row */}
+                      {(r.venue || umpires) && (
+                        <div className="px-3 pb-1.5">
+                          <div className="flex items-center gap-1.5 text-[9px] min-w-0">
+                            {r.venue && (
+                              <>
+                                <svg className="w-2.5 h-2.5 text-red-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                  <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-gray-400 truncate">{r.venue}</span>
+                              </>
+                            )}
+                            {r.venue && umpires && <span className="text-gray-300">|</span>}
+                            {umpires && (
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-blue-500">🧢</span>
+                                <span className="font-semibold text-blue-500">Umpires:</span>
+                                <span className="text-blue-600 truncate">{umpires}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Row 4: toss */}
+                      {r.toss && (
+                        <div className="px-3 pb-1.5">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                            <CoinIcon className="w-2.5 h-2.5 flex-shrink-0" /> <span className="font-bold">Toss:</span> {r.toss}
                           </span>
                         </div>
                       )}
 
-                      {/* MoM + Scorecard footer */}
-                      {(r.mom || r.scorecard_url) && (
-                        <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between gap-2">
-                          {r.mom ? (
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-xs flex-shrink-0">🏆</span>
-                              <div className="min-w-0">
-                                <div className="text-[11px] font-semibold text-primary truncate">{r.mom}</div>
-                                {r.mom_stat && <div className="text-[9px] text-gray-400 truncate">{r.mom_stat}</div>}
-                              </div>
-                            </div>
-                          ) : <div />}
+                      {/* Row 5: result + scorecard in one row */}
+                      {(r.result || r.scorecard_url || !complete) && (
+                        <div className="px-3 pb-2 flex items-center justify-between gap-2 min-w-0">
+                          <div className="min-w-0">
+                            {!complete ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                ⏳ Result Pending
+                              </span>
+                            ) : (
+                              r.result && (
+                                <span className={`inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full truncate ${
+                                  won ? 'bg-green-50 text-green-700 border border-green-200'
+                                      : 'bg-red-50 text-red-600 border border-red-200'
+                                }`}>
+                                  {r.result}
+                                </span>
+                              )
+                            )}
+                          </div>
                           {r.scorecard_url && (
                             <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
-                              className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                              Scorecard ↗
+                              className="inline-flex items-center gap-1.5 text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-blue-100 transition-colors flex-shrink-0">
+                              <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              View Scorecard ↗
                             </a>
                           )}
+                        </div>
+                      )}
+
+                      {/* Row 6: MoM */}
+                      {r.mom && (
+                        <div className="border-t border-gray-100 px-3 py-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[10px] flex-shrink-0">🏆</span>
+                            <div className="min-w-0">
+                              <div className="text-[10px] font-semibold text-primary truncate">{r.mom}</div>
+                              {r.mom_stat && <div className="text-[9px] text-gray-400 truncate">{r.mom_stat}</div>}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
 
                     {/* ── Desktop card ── */}
-                    <div className={`hidden sm:block bg-white rounded-2xl border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all ${won ? 'border-green-500' : 'border-red-400'}`}>
+                    <div className={`hidden sm:block bg-white rounded-2xl border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all ${borderColor}`}>
                       <div className="p-5 md:p-6">
                         <div className="flex items-start gap-4">
-                          {/* W/L badge */}
-                          <div className={`w-14 h-14 rounded-full flex items-center justify-center font-display font-bold text-lg flex-shrink-0 ${won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                            {won ? 'W' : 'L'}
+                          {/* W/L/~ badge */}
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center font-display font-bold text-lg flex-shrink-0 ${badgeBg}`}>
+                            {badgeLabel}
                           </div>
 
                           {/* Match info */}
@@ -221,22 +276,51 @@ export default function Results() {
                             <h3 className="font-display font-bold text-primary text-xl mb-1">
                               {teamLabel} vs {r.opponent}
                             </h3>
-                            <div className="text-sm text-gray-400 flex items-center gap-1.5">
+                            <div className="text-sm text-gray-400 flex items-center gap-1.5 min-w-0">
                               {r.venue && (
                                 <>
                                   <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                     <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
                                   </svg>
-                                  <span>{r.venue} ·</span>
+                                  <span className="truncate">{r.venue}</span>
                                 </>
                               )}
+                              {r.venue && umpires && <span className="text-gray-300">|</span>}
+                              {umpires && (
+                                <span className="text-blue-600 truncate">🧢 Umpires: {umpires}</span>
+                              )}
+                              {(r.venue || umpires) && <span className="text-gray-300">|</span>}
                               <span>{dt.full}</span>
                             </div>
-                            {r.result && (
-                              <span className={`inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full ${won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                                {r.result}
-                              </span>
-                            )}
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {r.toss && (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                  <CoinIcon className="w-3.5 h-3.5 flex-shrink-0" /> <span className="font-bold">Toss:</span> {r.toss}
+                                </span>
+                              )}
+                              {r.result && (
+                                <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
+                                  !complete
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : won
+                                      ? 'bg-green-100 text-green-700'
+                                      : 'bg-red-100 text-red-600'
+                                }`}>
+                                  {r.result}
+                                </span>
+                              )}
+                              {!complete && (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                  ⏳ Result Pending
+                                </span>
+                              )}
+                              {r.scorecard_url && (
+                                <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors mt-1">
+                                  📋 Scorecard ↗
+                                </a>
+                              )}
+                            </div>
                           </div>
 
                           {/* Scores + scorecard */}
@@ -252,12 +336,6 @@ export default function Results() {
                                 <div className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5 truncate">{r.opponent}</div>
                                 <div className="font-mono font-bold text-sm text-gray-500">{r.opp_score}</div>
                               </div>
-                            )}
-                            {r.scorecard_url && (
-                              <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors mt-1">
-                                📋 Scorecard ↗
-                              </a>
                             )}
                           </div>
                         </div>

@@ -72,7 +72,7 @@ const mobileNavItems = [
   { path: '/events', label: 'Events' },
   { path: '/news', label: 'News' },
   { path: '/sponsors', label: 'Sponsors' },
-  { path: '/availability', label: 'Availability' },
+  { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
 
@@ -93,7 +93,7 @@ const desktopNavItems = [
     ],
   },
   { path: '/sponsors', label: 'Sponsors' },
-  { path: '/availability', label: 'Availability' },
+  { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
 
@@ -231,6 +231,7 @@ export default function Navbar() {
                   )
                 }
                 if (item.label === 'Join Us' && user) return null
+                if (item.requiresAuth && !user) return null
                 const active = location.pathname === item.path
                 return (
                   <Link
@@ -335,7 +336,7 @@ export default function Navbar() {
                 10 regular items + Join Us (col-span-2) = 12 slots → 3 perfect rows.
               */}
               <div className="grid grid-cols-4 gap-2.5">
-                {mobileNavItems.map((item) => {
+                {mobileNavItems.filter(item => !item.requiresAuth || user).map((item) => {
                   const active = location.pathname === item.path
                   const isJoin = item.label === 'Join Us'
 

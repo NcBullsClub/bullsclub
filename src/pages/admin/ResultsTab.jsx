@@ -297,14 +297,7 @@ export default function ResultsTab() {
                           </button>
                         )}
                       </>
-                    ) : (
-                      <button
-                        onClick={() => setEditingKey(null)}
-                        className="text-sm font-medium text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 transition-all"
-                      >
-                        Cancel
-                      </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -437,13 +430,21 @@ export default function ResultsTab() {
                       />
                     </div>
                     {saveError && <p className="text-red-600 text-sm mb-2">{saveError}</p>}
-                    <button
-                      onClick={() => handleSave(fixture)}
-                      disabled={saving}
-                      className="btn-primary text-sm px-6 py-2.5 disabled:opacity-60"
-                    >
-                      {saving ? 'Saving…' : 'Save Result'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleSave(fixture)}
+                        disabled={saving}
+                        className="btn-primary text-sm px-6 py-2.5 disabled:opacity-60"
+                      >
+                        {saving ? 'Saving…' : 'Save Result'}
+                      </button>
+                      <button
+                        onClick={() => setEditingKey(null)}
+                        className="text-sm font-medium text-gray-500 hover:text-gray-700 px-4 py-2.5 rounded-lg border border-gray-200 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

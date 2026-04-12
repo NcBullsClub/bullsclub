@@ -811,6 +811,680 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
 }
 
 /* ══════════════════════════════════════════════════════
+   Umpiring Fees Panel
+══════════════════════════════════════════════════════ */
+const UMP_FEE = 60
+
+function UmpFeesPanel({ rosterPlayers }) {
+  const [teamFilter, setTeamFilter] = useState('all')
+  const [assignments, setAssignments] = useState([])
+  const [availability, setAvailability] = useState([])
+  const [feeRecords, setFeeRecords] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [toggling, setToggling] = useState(null)               // `${userId}::${assignmentId}`
+  const [confirmPay, setConfirmPay] = useState(null)         // `${userId}::${assignmentId}`
+  const [confirmUncomplete, setConfirmUncomplete] = useState(null) // `${userId}::${assignmentId}`
+  const [savingUncomplete, setSavingUncomplete]   = useState(null) // `${userId}::${assignmentId}`
+  const [expanded, setExpanded] = useState({})               // playerId -> open/close
+  const [markingComplete, setMarkingComplete] = useState(null) // playerId whose picker is open
+  const [savingComplete, setSavingComplete]   = useState(null) // `${playerId}::${assignmentId}`
+  const [reassigning, setReassigning]         = useState(null) // `${userId}::${assignmentId}`
+  const [savingReassign, setSavingReassign]   = useState(null) // `${userId}::${oldId}::${newId}`
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const [{ data: assgn }, { data: avail }, { data: fees }] = await Promise.all([
+      supabase.from('umpiring_assignments').select('*').order('date'),
+      supabase.from('umpiring_availability').select('*').eq('status', 'in'),
+      supabase.from('umpiring_fees').select('*').eq('season', SEASON),
+    ])
+    setAssignments(assgn || [])
+    setAvailability(avail || [])
+    setFeeRecords(fees || [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  // Past assignments only (date already passed)
+  const pastAssignments = assignments.filter((a) => {
+    const [y, m, d] = a.date.split('-').map(Number)
+    return new Date(y, m - 1, d) < today
+  })
+  const pastIds = new Set(pastAssignments.map((a) => a.id))
+
+  // Map: userId -> list of past assignment ids they were 'in' for
+  const completedByUser = {}
+  availability.forEach((av) => {
+    if (!pastIds.has(av.umpiring_assignment_id)) return
+    if (!completedByUser[av.user_id]) completedByUser[av.user_id] = []
+    completedByUser[av.user_id].push(av.umpiring_assignment_id)
+  })
+
+  // Fee record lookup: `userId::assignmentId` -> record
+  const feeMap = {}
+  feeRecords.forEach((r) => { feeMap[`${r.user_id}::${r.umpiring_assignment_id}`] = r })
+
+  const visiblePlayers = teamFilter === 'all'
+    ? rosterPlayers
+    : rosterPlayers.filter((p) => p.team === teamFilter)
+
+  const completedPlayers = visiblePlayers.filter((p) => completedByUser[p.id]?.length > 0)
+  const notCompletedPlayers = visiblePlayers.filter((p) => !completedByUser[p.id]?.length)
+
+  // Stats
+  const totalAssignmentsDone = completedPlayers.reduce((s, p) => s + (completedByUser[p.id]?.length || 0), 0)
+  const totalOwed = totalAssignmentsDone * UMP_FEE
+  const totalPaid = feeRecords.filter((r) => r.paid).reduce((s) => s + UMP_FEE, 0)
+  const totalPending = totalOwed - totalPaid
+
+  async function togglePaid(player, assignmentId) {
+    const key = `${player.id}::${assignmentId}`
+    setToggling(key)
+    const existing = feeMap[key]
+    const assignment = assignments.find((a) => a.id === assignmentId)
+
+    if (existing) {
+      await supabase.from('umpiring_fees')
+        .update({ paid: !existing.paid, paid_at: !existing.paid ? new Date().toISOString() : null })
+        .eq('user_id', player.id)
+        .eq('umpiring_assignment_id', assignmentId)
+    } else {
+      await supabase.from('umpiring_fees').insert({
+        user_id: player.id,
+        player_name: player.full_name,
+        team: player.team,
+        umpiring_assignment_id: assignmentId,
+        season: SEASON,
+        amount: UMP_FEE,
+        paid: true,
+        paid_at: new Date().toISOString(),
+      })
+    }
+    await load()
+    setToggling(null)
+  }
+
+  async function handleAdminMarkUncomplete(player, assignmentId) {
+    const key = `${player.id}::${assignmentId}`
+    setSavingUncomplete(key)
+    // Delete umpiring_availability row — player moves back to Not Completed
+    await supabase.from('umpiring_availability')
+      .delete()
+      .eq('user_id', player.id)
+      .eq('umpiring_assignment_id', assignmentId)
+    // Also clear any fee record for this assignment
+    await supabase.from('umpiring_fees')
+      .delete()
+      .eq('user_id', player.id)
+      .eq('umpiring_assignment_id', assignmentId)
+    await load()
+    setSavingUncomplete(null)
+    setConfirmUncomplete(null)
+    setReassigning(null)
+  }
+
+  async function handleAdminMarkComplete(player, assignmentId) {
+    const key = `${player.id}::${assignmentId}`
+    setSavingComplete(key)
+    await supabase.from('umpiring_availability').upsert(
+      {
+        user_id: player.id,
+        umpiring_assignment_id: assignmentId,
+        ncb_team: player.team,
+        status: 'in',
+        notes: 'Admin marked',
+      },
+      { onConflict: 'user_id,umpiring_assignment_id' }
+    )
+    await load()
+    setSavingComplete(null)
+    setMarkingComplete(null)
+  }
+
+  async function handleReassign(player, oldAssignId, newAssignId) {
+    const saveKey = `${player.id}::${oldAssignId}::${newAssignId}`
+    const newAssgn = assignments.find((a) => a.id === newAssignId)
+    if (!newAssgn) return
+
+    setSavingReassign(saveKey)
+    try {
+      const oldFee = feeMap[`${player.id}::${oldAssignId}`]
+
+      // Add the corrected assignment first so we avoid dropping data on partial failures.
+      const { error: newAvailErr } = await supabase.from('umpiring_availability').upsert(
+        {
+          user_id: player.id,
+          umpiring_assignment_id: newAssignId,
+          ncb_team: newAssgn.ncb_team || player.team,
+          status: 'in',
+          notes: 'Admin reassigned',
+        },
+        { onConflict: 'user_id,umpiring_assignment_id' }
+      )
+      if (newAvailErr) throw newAvailErr
+
+      if (oldFee) {
+        const { error: newFeeErr } = await supabase.from('umpiring_fees').upsert(
+          {
+            user_id: player.id,
+            player_name: player.full_name,
+            team: player.team,
+            umpiring_assignment_id: newAssignId,
+            season: SEASON,
+            amount: UMP_FEE,
+            paid: !!oldFee.paid,
+            paid_at: oldFee.paid ? (oldFee.paid_at || new Date().toISOString()) : null,
+          },
+          { onConflict: 'user_id,umpiring_assignment_id' }
+        )
+        if (newFeeErr) throw newFeeErr
+      }
+
+      const { error: oldAvailErr } = await supabase.from('umpiring_availability')
+        .delete().eq('user_id', player.id).eq('umpiring_assignment_id', oldAssignId)
+      if (oldAvailErr) throw oldAvailErr
+
+      const { error: oldFeeErr } = await supabase.from('umpiring_fees')
+        .delete().eq('user_id', player.id).eq('umpiring_assignment_id', oldAssignId)
+      if (oldFeeErr) throw oldFeeErr
+
+      await load()
+      setReassigning(null)
+    } catch (e) {
+      alert(`Error reassigning match: ${e.message || 'Unknown error'}`)
+    } finally {
+      setSavingReassign(null)
+    }
+  }
+
+  function formatAssignmentDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const isRaising = (p) => p.team === 'raising-bulls'
+
+  return (
+    <div>
+      {/* Stats */}
+      {!loading && (
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mb-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+            <p className="text-xl sm:text-2xl font-black text-blue-700 leading-none">{totalAssignmentsDone}</p>
+            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-blue-400 mt-1">Completed</p>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+            <p className="text-xl sm:text-2xl font-black text-orange-700 leading-none">${totalOwed}</p>
+            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-orange-400 mt-1">Total Owed</p>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+            <p className="text-xl sm:text-2xl font-black text-green-700 leading-none">${totalPaid}</p>
+            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-green-500 mt-1">Paid Out</p>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
+            <p className="text-xl sm:text-2xl font-black text-red-600 leading-none">${totalPending}</p>
+            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-red-400 mt-1">Pending</p>
+          </div>
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {!loading && totalOwed > 0 && (
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Payout progress</span>
+            <span className="font-semibold">{Math.round((totalPaid / totalOwed) * 100)}%</span>
+          </div>
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-500"
+              style={{ width: `${totalOwed ? (totalPaid / totalOwed) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Team filter */}
+      <div className="flex items-center gap-1.5 mb-5 overflow-x-auto pb-0.5">
+        {TEAMS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTeamFilter(t.id)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              teamFilter === t.id
+                ? t.id === 'raising-bulls' ? 'bg-primary-dark text-accent'
+                  : t.id === 'royal-bulls' ? 'bg-primary text-white'
+                  : 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+            }`}
+          >
+            <span className="sm:hidden">
+              {t.id === 'all' ? 'All' : t.id === 'raising-bulls' ? 'Raising' : 'Royal'}
+            </span>
+            <span className="hidden sm:inline">{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+
+          {/* ── Umpiring Completed ── */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100">
+                <span className="text-xs">🧢</span>
+              </div>
+              <h3 className="font-display font-bold text-gray-800 text-sm">Umpiring Completed</h3>
+              <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                {completedPlayers.length} player{completedPlayers.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {completedPlayers.length === 0 ? (
+              <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl px-5 py-8 text-center">
+                <p className="text-sm text-gray-400">No completed umpiring sessions yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {completedPlayers.map((player) => {
+                  const assignIds = completedByUser[player.id] || []
+                  const paidCount = assignIds.filter((aid) => feeMap[`${player.id}::${aid}`]?.paid).length
+                  const allPaid = paidCount === assignIds.length
+                  const totalEarned = assignIds.length * UMP_FEE
+                  const isOpen = !!expanded[player.id]
+
+                  return (
+                    <div
+                      key={player.id}
+                      className={`border rounded-2xl overflow-hidden transition-all ${
+                        allPaid ? 'border-green-200 bg-green-50/40' : 'border-blue-200 bg-white'
+                      }`}
+                    >
+                      {/* Player header row — clickable to expand */}
+                      <button
+                        type="button"
+                        onClick={() => setExpanded((prev) => ({ ...prev, [player.id]: !prev[player.id] }))}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02] transition-colors"
+                      >
+                        {/* Avatar */}
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 ${
+                          allPaid ? 'bg-green-500 text-white' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {(player.full_name || '?')[0].toUpperCase()}
+                        </div>
+
+                        {/* Name + team */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-gray-800">{player.full_name}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                              isRaising(player) ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'
+                            }`}>
+                              {isRaising(player) ? 'Raising' : 'Royal'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-gray-400">
+                              {assignIds.length} umpiring · ${totalEarned} earned
+                            </span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              allPaid
+                                ? 'bg-green-100 text-green-700'
+                                : paidCount > 0
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-red-50 text-red-500'
+                            }`}>
+                              {allPaid ? '✓ All paid' : paidCount > 0 ? `${paidCount}/${assignIds.length} paid` : 'Unpaid'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Total amount + chevron */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`font-black text-base tabular-nums ${allPaid ? 'text-green-600' : 'text-blue-600'}`}>
+                            ${totalEarned}
+                          </span>
+                          <svg
+                            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+
+                      {/* Expanded: per-assignment rows */}
+                      {isOpen && (
+                        <div className="border-t border-gray-100 divide-y divide-gray-100">
+                          {assignIds.map((aid) => {
+                            const assgn = assignments.find((a) => a.id === aid)
+                            if (!assgn) return null
+                            const feeKey = `${player.id}::${aid}`
+                            const record = feeMap[feeKey]
+                            const isPaid = !!record?.paid
+                            const isTogglingThis = toggling === feeKey
+                            const isConfirming = confirmPay === feeKey
+                            const isConfirmingUndo = confirmUncomplete === feeKey
+                            const isSavingUndo = savingUncomplete === feeKey
+                            const isReassigningThis = reassigning === feeKey
+                            const reassignTargets = pastAssignments.filter(
+                              (a) => a.id !== aid && a.ncb_team === player.team && !assignIds.includes(a.id)
+                            )
+                            const isReassignBusy = !!savingReassign && savingReassign.startsWith(`${player.id}::${aid}::`)
+
+                            return (
+                              <div key={aid} className="flex items-center gap-3 px-4 py-2.5">
+                                {/* Assignment info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-semibold text-gray-700 truncate">
+                                    {assgn.match_visitor} <span className="font-normal text-gray-400">vs</span> {assgn.match_home}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    <span className="text-[10px] text-gray-400">{formatAssignmentDate(assgn.date)}</span>
+                                    {assgn.venue && <span className="text-[10px] text-gray-400">· {assgn.venue}</span>}
+                                    {assgn.division && (
+                                      <span className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                        {assgn.division.replace(/^D(\d+)$/, 'Div$1')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {isPaid && record?.paid_at && (
+                                    <p className="text-[10px] text-green-600 mt-0.5">
+                                      Paid {new Date(record.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Amount */}
+                                <span className={`font-black text-sm tabular-nums flex-shrink-0 ${isPaid ? 'text-green-600' : 'text-gray-400'}`}>
+                                  ${UMP_FEE}
+                                </span>
+
+                                {/* Action buttons group */}
+                                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+
+                                  {/* Confirm pay flow / pay toggle */}
+                                  {isConfirming ? (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <p className="text-[10px] text-gray-500 whitespace-nowrap">
+                                        {isPaid ? 'Mark as unpaid?' : 'Mark as paid?'}
+                                      </p>
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          onClick={() => { setConfirmPay(null); togglePaid(player, aid) }}
+                                          disabled={isTogglingThis}
+                                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition-colors disabled:opacity-50 ${
+                                            isPaid ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'
+                                          }`}
+                                        >
+                                          {isTogglingThis
+                                            ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                          }
+                                          Yes
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmPay(null)}
+                                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                        >
+                                          No
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setReassigning(null); setConfirmUncomplete(null); setConfirmPay(feeKey) }}
+                                      disabled={isTogglingThis}
+                                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all disabled:opacity-50 ${
+                                        isPaid
+                                          ? 'bg-green-100 text-green-700 border-green-300 hover:bg-red-50 hover:text-red-600 hover:border-red-300'
+                                          : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-700 hover:border-green-300'
+                                      }`}
+                                    >
+                                      {isTogglingThis ? (
+                                        <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                      ) : isPaid ? (
+                                        <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>Paid</>
+                                      ) : (
+                                        <><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Mark Paid</>
+                                      )}
+                                    </button>
+                                  )}
+
+                                  {/* Confirm undo / move to Not Completed */}
+                                  {isConfirmingUndo ? (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <p className="text-[10px] text-gray-500 whitespace-nowrap">Move to Not Completed?</p>
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          onClick={() => handleAdminMarkUncomplete(player, aid)}
+                                          disabled={isSavingUndo}
+                                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50"
+                                        >
+                                          {isSavingUndo
+                                            ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                          }
+                                          Yes
+                                        </button>
+                                        <button
+                                          onClick={() => setConfirmUncomplete(null)}
+                                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                                        >
+                                          No
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setReassigning(null); setConfirmPay(null); setConfirmUncomplete(feeKey) }}
+                                      disabled={isSavingUndo}
+                                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-semibold border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-50"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                                      Not Completed
+                                    </button>
+                                  )}
+
+                                  {/* Reassign wrong assignment to another past match */}
+                                  {isReassigningThis ? (
+                                    <div className="flex flex-col items-end gap-1.5 max-w-[260px]">
+                                      <p className="text-[10px] text-gray-500 whitespace-nowrap">Select the correct match</p>
+                                      {reassignTargets.length === 0 ? (
+                                        <p className="text-[10px] text-gray-400">No other past matches for this team.</p>
+                                      ) : (
+                                        <div className="w-full flex flex-col gap-1">
+                                          {reassignTargets.map((target) => {
+                                            const saveKey = `${player.id}::${aid}::${target.id}`
+                                            const isSavingThisTarget = savingReassign === saveKey
+                                            return (
+                                              <button
+                                                key={target.id}
+                                                onClick={() => handleReassign(player, aid, target.id)}
+                                                disabled={isReassignBusy}
+                                                className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                                              >
+                                                <span className="truncate">
+                                                  {formatAssignmentDate(target.date)} · {target.match_visitor} vs {target.match_home}
+                                                </span>
+                                                {isSavingThisTarget ? (
+                                                  <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                                                ) : (
+                                                  <span className="text-[9px] font-bold flex-shrink-0">Assign</span>
+                                                )}
+                                              </button>
+                                            )
+                                          })}
+                                        </div>
+                                      )}
+                                      <button
+                                        onClick={() => setReassigning(null)}
+                                        disabled={isReassignBusy}
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setConfirmPay(null); setConfirmUncomplete(null); setReassigning(feeKey) }}
+                                      disabled={isReassignBusy}
+                                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-semibold border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all disabled:opacity-50"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15M4.5 12h7.5M12 19.5V12" /></svg>
+                                      Reassign Match
+                                    </button>
+                                  )}
+
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Not Completed ── */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100">
+                <span className="text-xs">⏳</span>
+              </div>
+              <h3 className="font-display font-bold text-gray-800 text-sm">Not Completed</h3>
+              <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                {notCompletedPlayers.length} player{notCompletedPlayers.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {notCompletedPlayers.length === 0 ? (
+              <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-6 text-center">
+                <p className="text-sm text-green-700 font-semibold">All players have completed at least one umpiring!</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {notCompletedPlayers.map((player) => {
+                  const isOpen = markingComplete === player.id
+                  return (
+                    <div
+                      key={player.id}
+                      className={`border rounded-2xl overflow-hidden transition-all ${
+                        isOpen ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      {/* Player header row */}
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 bg-gray-100 text-gray-400">
+                          {(player.full_name || '?')[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-gray-700">{player.full_name}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                              isRaising(player) ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'
+                            }`}>
+                              {isRaising(player) ? 'Raising' : 'Royal'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {isOpen ? 'Select a past assignment to mark complete' : 'No past umpiring completed'}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setMarkingComplete(isOpen ? null : player.id)}
+                          className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            isOpen
+                              ? 'bg-gray-100 text-gray-500 border-gray-300'
+                              : 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100'
+                          }`}
+                        >
+                          {isOpen ? (
+                            <>
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                              Cancel
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              Mark Complete
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Expanded: past assignment picker */}
+                      {isOpen && (
+                        <div className="border-t border-amber-200 bg-white">
+                          {pastAssignments.length === 0 ? (
+                            <p className="text-xs text-gray-400 text-center py-4">No past assignments found.</p>
+                          ) : (
+                            <div className="divide-y divide-gray-100">
+                              {pastAssignments.map((assgn) => {
+                                const key = `${player.id}::${assgn.id}`
+                                const isSaving = savingComplete === key
+                                return (
+                                  <div key={assgn.id} className="flex items-center gap-3 px-4 py-2.5">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-xs font-semibold text-gray-700 truncate">
+                                        {assgn.match_visitor} <span className="font-normal text-gray-400">vs</span> {assgn.match_home}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        <span className="text-[10px] text-gray-400">{formatAssignmentDate(assgn.date)}</span>
+                                        {assgn.venue && <span className="text-[10px] text-gray-400">· {assgn.venue}</span>}
+                                        {assgn.division && (
+                                          <span className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                            {assgn.division.replace(/^D(\d+)$/, 'Div$1')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => handleAdminMarkComplete(player, assgn.id)}
+                                      disabled={!!isSaving}
+                                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100 transition-all disabled:opacity-50"
+                                    >
+                                      {isSaving ? (
+                                        <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                        <>
+                                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                          Mark Done
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════
    Main FinancesTab
 ══════════════════════════════════════════════════════ */
 export default function FinancesTab() {
@@ -913,6 +1587,15 @@ export default function FinancesTab() {
           <span>🧾</span>
           <span>Team Expenses</span>
         </button>
+        <button
+          onClick={() => setActiveTab('umpiring')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+            activeTab === 'umpiring' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 active:bg-white/50'
+          }`}
+        >
+          <span>🧢</span>
+          <span>Ump Fees</span>
+        </button>
       </div>
 
       {/* Active panel */}
@@ -925,11 +1608,13 @@ export default function FinancesTab() {
           togglePaid={togglePaid}
           toggling={toggling}
         />
-      ) : (
+      ) : activeTab === 'expenses' ? (
         <ExpensesPanel
           rosterPlayers={rosterPlayers}
           currentUserName={rosterPlayers.find((p) => p.email === user?.email)?.full_name}
         />
+      ) : (
+        <UmpFeesPanel rosterPlayers={rosterPlayers} />
       )}
     </div>
   )

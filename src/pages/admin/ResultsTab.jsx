@@ -72,19 +72,17 @@ export default function ResultsTab() {
   // Form state
   const [editingKey, setEditingKey] = useState(null)
   const [form, setForm]             = useState({ ...EMPTY_FORM })
-  const [saving, setSaving]         = useState(false)
-  const [saveError, setSaveError]   = useState('')
+  const [saving, setSaving]             = useState(false)
+  const [saveError, setSaveError]         = useState('')
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState(null)
 
   const visibleFixtures = fixturesData
-    .filter((f) => isSuperAdmin ? f.team === teamFilter : f.team === adminTeam)
+    .filter((f) => f.team === teamFilter)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 
   async function loadResults() {
     setLoading(true)
-    const q = isSuperAdmin
-      ? supabase.from('match_results').select('*')
-      : supabase.from('match_results').select('*').eq('team', adminTeam)
-    const { data } = await q
+    const { data } = await supabase.from('match_results').select('*')
     setDbResults(data || [])
     setLoading(false)
   }
@@ -154,6 +152,7 @@ export default function ResultsTab() {
       .delete()
       .eq('fixture_date', fixture.date)
       .eq('team', fixture.team)
+    setConfirmDeleteKey(null)
     loadResults()
   }
 
@@ -174,33 +173,24 @@ export default function ResultsTab() {
             Enter results after each match. Saves directly to the database.
           </p>
         </div>
-        {!isSuperAdmin && (
-          <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-            adminTeam === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
-          }`}>
-            {teamLabel(adminTeam)}
-          </span>
-        )}
       </div>
 
-      {/* Team filter — superAdmin only */}
-      {isSuperAdmin && (
-        <div className="flex gap-2 mb-6">
-          {TEAMS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTeamFilter(t.id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                teamFilter === t.id
-                  ? t.id === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Team filter */}
+      <div className="flex gap-2 mb-6">
+        {TEAMS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTeamFilter(t.id)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              teamFilter === t.id
+                ? t.id === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-16">
@@ -290,12 +280,30 @@ export default function ResultsTab() {
                           {hasResult ? 'Edit' : matchStatus === 'live' ? 'Live Update' : 'Enter Result'}
                         </button>
                         {hasResult && (
-                          <button
-                            onClick={() => handleDeleteResult(fixture)}
-                            className="text-sm font-medium text-red-400 hover:text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all"
-                          >
-                            Clear
-                          </button>
+                          confirmDeleteKey === key ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-gray-500 font-medium">Clear result?</span>
+                              <button
+                                onClick={() => handleDeleteResult(fixture)}
+                                className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-all"
+                              >
+                                Yes, clear
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteKey(null)}
+                                className="text-xs font-medium text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 transition-all"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteKey(key)}
+                              className="text-sm font-medium text-red-400 hover:text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-400 transition-all"
+                            >
+                              Clear
+                            </button>
+                          )
                         )}
                       </>
                     ) : null}

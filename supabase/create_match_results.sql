@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS match_results (
   mom           TEXT,             -- Man of the Match name (optional)
   mom_stat      TEXT,             -- MoM stat line, e.g. "54 off 32" (optional)
   scorecard_url TEXT,             -- CricHeroes scorecard link (optional)
+  umpiring_details TEXT,          -- override text for umpiring completion details (optional)
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (fixture_date, team)

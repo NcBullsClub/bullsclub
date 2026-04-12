@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 function isComplete(r) {
   return !!(r.result && r.ncb_score && r.opp_score)
@@ -40,9 +41,15 @@ function formatDate(dateStr) {
 }
 
 export default function Results() {
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState('matches')
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [results, setResults]       = useState([])
   const [fixtureMap, setFixtureMap] = useState({}) // `date::team` -> fixture
+  const [umpAssignments, setUmpAssignments] = useState([])
+  const [umpAvailability, setUmpAvailability] = useState([])
+  const [playerMap, setPlayerMap] = useState({})
+  const [rosterPlayers, setRosterPlayers] = useState([])
   const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
@@ -50,17 +57,43 @@ export default function Results() {
     Promise.all([
       supabase.from('match_results').select('*').eq('team', teamFilter).order('fixture_date', { ascending: false }),
       supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter),
-    ]).then(([{ data: resData }, { data: fixData }]) => {
+      supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter),
+      supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter),
+      supabase.from('profiles').select('id, full_name, team').eq('team', teamFilter),
+    ]).then(([{ data: resData }, { data: fixData }, { data: assgnData }, { data: availData }, { data: playersData }]) => {
       setResults(resData || [])
       const map = {}
       ;(fixData || []).forEach((f) => { map[`${f.date}::${f.team}`] = f })
       setFixtureMap(map)
+      setUmpAssignments(assgnData || [])
+      setUmpAvailability(availData || [])
+      setRosterPlayers(playersData || [])
+      const pmap = {}
+      ;(playersData || []).forEach((p) => { pmap[p.id] = p.full_name })
+      setPlayerMap(pmap)
       setLoading(false)
     })
   }, [teamFilter])
 
   const wins   = results.filter(isWon).length
   const losses = results.filter((r) => !isWon(r)).length
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const pastAssignments = umpAssignments.filter((a) => {
+    const [y, m, d] = a.date.split('-').map(Number)
+    return new Date(y, m - 1, d) < today
+  })
+  const pastIds = new Set(pastAssignments.map((a) => a.id))
+
+  const completedByUser = {}
+  umpAvailability.forEach((av) => {
+    if (!pastIds.has(av.umpiring_assignment_id) || av.status !== 'in') return
+    if (!completedByUser[av.user_id]) completedByUser[av.user_id] = []
+    completedByUser[av.user_id].push(av.umpiring_assignment_id)
+  })
+
+  const completedPlayers = rosterPlayers.filter((p) => (completedByUser[p.id] || []).length > 0)
+  const notCompletedPlayers = rosterPlayers.filter((p) => (completedByUser[p.id] || []).length === 0)
 
   return (
     <div>
@@ -78,40 +111,95 @@ export default function Results() {
 
       {/* Filter + record bar */}
       <section className="bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex gap-2">
+              {teamsFilter.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTeamFilter(t.id)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {!loading && results.length > 0 && (
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <span className="bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full">W {wins}</span>
+                <span className="bg-red-50 text-red-600 border border-red-200 px-2.5 py-1 rounded-full">L {losses}</span>
+                <span className="text-gray-400 hidden sm:inline">{results.length} matches</span>
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
-            {teamsFilter.map((t) => (
+            <button
+              onClick={() => setActiveTab('matches')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === 'matches' ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Match Results
+            </button>
+            {user && (
               <button
-                key={t.id}
-                onClick={() => setTeamFilter(t.id)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                onClick={() => setActiveTab('umpiring')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === 'umpiring' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {t.label}
+                Umpirings Completed
               </button>
-            ))}
+            )}
           </div>
-          {!loading && results.length > 0 && (
-            <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full">W {wins}</span>
-              <span className="bg-red-50 text-red-600 border border-red-200 px-2.5 py-1 rounded-full">L {losses}</span>
-              <span className="text-gray-400 hidden sm:inline">{results.length} matches</span>
-            </div>
-          )}
         </div>
       </section>
 
       {/* Results list */}
       <section className="py-6 md:py-12 bg-surface min-h-[60vh]">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8">
+          {!loading && activeTab === 'umpiring' && user && (
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="rounded-2xl border border-blue-200 bg-white p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">✅</span>
+                </div>
+                <div>
+                  <div className="text-2xl font-display font-bold text-blue-700">{completedPlayers.length}</div>
+                  <div className="text-xs text-gray-500 font-medium">Completed</div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-red-200 bg-white p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">⏳</span>
+                </div>
+                <div>
+                  <div className="text-2xl font-display font-bold text-red-500">{notCompletedPlayers.length}</div>
+                  <div className="text-xs text-gray-500 font-medium">Not Completed</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center py-24">
               <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : results.length === 0 ? (
+          ) : activeTab === 'umpiring' && !user ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-4 text-2xl">🔒</div>
+              <h3 className="font-display font-bold text-gray-700 text-lg mb-1">Members Only</h3>
+              <p className="text-sm text-gray-400 mb-4">You need to be logged in to view umpiring records.</p>
+              <a href="/login" className="px-5 py-2 rounded-xl bg-primary-dark text-accent text-sm font-semibold hover:opacity-90 transition-all">
+                Log in
+              </a>
+            </div>
+          ) : activeTab === 'matches' && results.length === 0 ? (
             <div className="text-center py-20 text-gray-400">No results for the selected team yet.</div>
-          ) : (
+          ) : activeTab === 'matches' ? (
             <div className="space-y-3 md:space-y-4">
               {results.map((r, i) => {
                 const complete  = isComplete(r)
@@ -354,6 +442,113 @@ export default function Results() {
                   </motion.div>
                 )
               })}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-100">
+                    <span className="text-xs">🧢</span>
+                  </div>
+                  <h3 className="font-display font-bold text-gray-800 text-sm">Umpiring Completed</h3>
+                  <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                    {completedPlayers.length} player{completedPlayers.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {completedPlayers.length === 0 ? (
+                  <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl px-5 py-8 text-center">
+                    <p className="text-sm text-gray-400">No completed umpiring sessions yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {completedPlayers.map((player) => {
+                      const assignIds = completedByUser[player.id] || []
+                      return (
+                        <div key={player.id} className="border border-blue-200 rounded-2xl bg-white overflow-hidden">
+                          <div className="px-4 py-3 flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 bg-blue-100 text-blue-700">
+                              {(player.full_name || '?')[0].toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm text-gray-800">{player.full_name}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  player.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'
+                                }`}>
+                                  {player.team === 'raising-bulls' ? 'Raising' : 'Royal'}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-gray-400">{assignIds.length} umpiring completed</span>
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-100 divide-y divide-gray-100">
+                            {assignIds.map((aid) => {
+                              const assgn = umpAssignments.find((a) => a.id === aid)
+                              if (!assgn) return null
+                              return (
+                                <div key={aid} className="px-4 py-2.5">
+                                  <div className="text-xs font-semibold text-gray-700 truncate">
+                                    {assgn.match_visitor} <span className="font-normal text-gray-400">vs</span> {assgn.match_home}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap text-[10px] text-gray-400">
+                                    <span>{formatDate(assgn.date).full}</span>
+                                    {assgn.venue && <span>· {assgn.venue}</span>}
+                                    {assgn.division && (
+                                      <span className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                        {assgn.division.replace(/^D(\d+)$/, 'Div$1')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100">
+                    <span className="text-xs">⏳</span>
+                  </div>
+                  <h3 className="font-display font-bold text-gray-800 text-sm">Not Completed</h3>
+                  <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                    {notCompletedPlayers.length} player{notCompletedPlayers.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {notCompletedPlayers.length === 0 ? (
+                  <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-6 text-center">
+                    <p className="text-sm text-green-700 font-semibold">All players have completed umpiring duties.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {notCompletedPlayers.map((player) => (
+                      <div key={player.id} className="border border-gray-200 rounded-2xl bg-white px-4 py-3 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 bg-gray-100 text-gray-400">
+                          {(player.full_name || '?')[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-gray-700">{player.full_name}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                              player.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'
+                            }`}>
+                              {player.team === 'raising-bulls' ? 'Raising' : 'Royal'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5">No past umpiring completed</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

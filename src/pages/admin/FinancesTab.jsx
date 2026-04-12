@@ -884,15 +884,15 @@ function UmpFeesPanel({ rosterPlayers }) {
     const key = `${player.id}::${assignmentId}`
     setToggling(key)
     const existing = feeMap[key]
-    const assignment = assignments.find((a) => a.id === assignmentId)
 
+    let error
     if (existing) {
-      await supabase.from('umpiring_fees')
+      ;({ error } = await supabase.from('umpiring_fees')
         .update({ paid: !existing.paid, paid_at: !existing.paid ? new Date().toISOString() : null })
         .eq('user_id', player.id)
-        .eq('umpiring_assignment_id', assignmentId)
+        .eq('umpiring_assignment_id', assignmentId))
     } else {
-      await supabase.from('umpiring_fees').insert({
+      ;({ error } = await supabase.from('umpiring_fees').insert({
         user_id: player.id,
         player_name: player.full_name,
         team: player.team,
@@ -901,7 +901,12 @@ function UmpFeesPanel({ rosterPlayers }) {
         amount: UMP_FEE,
         paid: true,
         paid_at: new Date().toISOString(),
-      })
+      }))
+    }
+    if (error) {
+      alert(`Failed to update payment: ${error.message}`)
+      setToggling(null)
+      return
     }
     await load()
     setToggling(null)

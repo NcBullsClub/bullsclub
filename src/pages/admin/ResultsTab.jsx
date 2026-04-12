@@ -167,6 +167,7 @@ export default function ResultsTab() {
   return (
     <div>
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+
         <div>
           <h2 className="font-display font-bold text-primary text-2xl mb-1">Match Results</h2>
           <p className="text-sm text-gray-500">

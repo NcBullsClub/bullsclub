@@ -12,6 +12,7 @@ import ClubhouseNewsTab    from './admin/ClubhouseNewsTab'
 import ClubhouseEventsTab  from './admin/ClubhouseEventsTab'
 import ClubhouseGalleryTab from './admin/ClubhouseGalleryTab'
 import FixturesTab         from './admin/FixturesTab'
+import UsersTab            from './admin/UsersTab'
 
 // Row 1 — match day tools
 const ROW1 = [
@@ -21,16 +22,17 @@ const ROW1 = [
   { id: 'finances',     label: 'Finances',     icon: '💰', short: 'Finances' },
 ]
 // Row 2 — management tools
-const ROW2 = [
+const ROW2_BASE = [
   { id: 'access',     label: 'Access',        icon: '🔑', short: 'Access'    },
   { id: 'roster',     label: 'Player Roster',  icon: '👥', short: 'Roster'    },
   { id: 'requests',   label: 'Join Requests',  icon: '📩', short: 'Requests'  },
   { id: 'clubhouse',  label: 'Clubhouse',      icon: '🏠', short: 'Clubhouse' },
 ]
-const TABS = [...ROW1, ...ROW2]
-
+const USERS_TAB = { id: 'users', label: 'Users', icon: '🛡️', short: 'Users' }
+const TABS = [...ROW1, ...ROW2_BASE]
 export default function AdminDashboard() {
   const { profile, isSuperAdmin } = useAuth()
+  const ROW2 = isSuperAdmin ? [...ROW2_BASE, USERS_TAB] : ROW2_BASE
   const [activeTab, setActiveTab]                   = useState('availability')
   const [clubhouseTab, setClubhouseTab]             = useState('news')
   const [selectedFixtureKey, setSelectedFixtureKey] = useState('')
@@ -50,6 +52,8 @@ export default function AdminDashboard() {
   const roleColor = isSuperAdmin
     ? 'bg-purple-100 text-purple-700 border border-purple-200'
     : 'bg-accent/20 border border-accent/40 text-accent'
+
+  const TABS = [...ROW1, ...ROW2]
 
   const activeTabObj = TABS.find((t) => t.id === activeTab)
 
@@ -173,6 +177,7 @@ export default function AdminDashboard() {
             {activeTab === 'access'       && <AllowedEmailsTab onPlayerDeleted={handlePlayerDeleted} />}
             {activeTab === 'roster'       && <PlayerRosterTab key={rosterRefreshKey} />}
             {activeTab === 'requests'     && <JoinRequestsTab onPendingCount={setPendingRequests} />}
+            {activeTab === 'users'        && isSuperAdmin && <UsersTab />}
             {activeTab === 'clubhouse'    && (
               <div>
                 {/* Clubhouse sub-nav */}

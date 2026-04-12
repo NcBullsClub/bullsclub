@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser]         = useState(null)   // supabase auth user
   const [profile, setProfile]   = useState(null)   // row from profiles table
   const [loading, setLoading]   = useState(true)   // initial session check
+  const [profileMissing, setProfileMissing] = useState(false) // logged-in but no profile row
   const [lastAuthEvent, setLastAuthEvent] = useState(null)
 
   // Fetch the profile row for a given auth user id
@@ -16,8 +17,13 @@ export function AuthProvider({ children }) {
       .select('*')
       .eq('id', userId)
       .single()
-    if (!error && data) setProfile(data)
-    else setProfile(null)
+    if (!error && data) {
+      setProfile(data)
+      setProfileMissing(false)
+    } else {
+      setProfile(null)
+      setProfileMissing(true)
+    }
   }
 
   useEffect(() => {
@@ -33,7 +39,7 @@ export function AuthProvider({ children }) {
       setLastAuthEvent(event)
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
-      else setProfile(null)
+      else { setProfile(null); setProfileMissing(false) }
     })
 
     return () => subscription.unsubscribe()
@@ -62,6 +68,7 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
+    setProfileMissing(false)
   }
 
   const isSuperAdmin = profile?.role === 'superadmin'
@@ -70,7 +77,7 @@ export function AuthProvider({ children }) {
   const adminTeam = isSuperAdmin ? null : profile?.team
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isSuperAdmin, adminTeam, lastAuthEvent, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, profileMissing, loading, isAdmin, isSuperAdmin, adminTeam, lastAuthEvent, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

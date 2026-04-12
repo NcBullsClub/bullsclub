@@ -101,7 +101,12 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
       onResponseSaved()
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
-      setError(err.message || 'Failed to save. Please try again.')
+      const msg = err.message || ''
+      if (msg.includes('row-level security') || msg.includes('RLS') || msg.includes('policy')) {
+        setError('You are not currently in the players list. Please contact an admin to restore your access.')
+      } else {
+        setError(msg || 'Failed to save. Please try again.')
+      }
     } finally {
       setSaving(false)
     }
@@ -471,7 +476,12 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
       onResponseSaved()
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
-      setError(err.message || 'Failed to save.')
+      const msg = err.message || ''
+      if (msg.includes('row-level security') || msg.includes('RLS') || msg.includes('policy')) {
+        setError('You are not currently in the players list. Please contact an admin to restore your access.')
+      } else {
+        setError(msg || 'Failed to save.')
+      }
     } finally {
       setSaving(false)
     }
@@ -698,7 +708,14 @@ export default function Availability() {
   const [umpAvailMap,     setUmpAvailMap]     = useState({})
   const [myUmpResponseMap, setMyUmpResponseMap] = useState({})
 
-  const upcomingFixtures = fixturesData.filter((f) => f.team === teamFilter)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const allFixtures     = fixturesData.filter((f) => f.team === teamFilter)
+  const upcomingFixtures = allFixtures.filter((f) => new Date(f.date.replace(/-/g, '/')) >= today)
+  const pastFixtures     = allFixtures.filter((f) => new Date(f.date.replace(/-/g, '/')) < today).reverse()
+  const [pastOpen, setPastOpen] = useState(false)
+  const upcomingUmpAssignments = umpAssignments.filter((a) => new Date(a.date.replace(/-/g, '/')) >= today)
+  const pastUmpAssignments     = umpAssignments.filter((a) => new Date(a.date.replace(/-/g, '/')) < today).reverse()
+  const [pastUmpOpen, setPastUmpOpen] = useState(false)
 
   // Load fixtures from Supabase
   useEffect(() => {
@@ -1066,7 +1083,7 @@ export default function Availability() {
                 </div>
               )}
 
-              {!loadingData && !loadingFix && upcomingFixtures.length === 0 && (
+              {!loadingData && !loadingFix && upcomingFixtures.length === 0 && pastFixtures.length === 0 && (
                 <div className="text-center py-24 text-gray-400">
                   <div className="text-5xl mb-4">🏏</div>
                   <div className="font-display font-bold text-xl text-gray-500 mb-2">No upcoming fixtures</div>
@@ -1075,21 +1092,74 @@ export default function Availability() {
                 </div>
               )}
 
-              {!loadingData && !loadingFix && upcomingFixtures.length > 0 && (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {upcomingFixtures.map((f) => (
-                    <div key={f.id} id={`fixture-${f.id}`}>
-                      <FixtureCard
-                        fixture={f}
-                        availabilityMap={availabilityMap}
-                        userResponseMap={userResponseMap}
-                        financeMap={financeMap}
-                        myPaymentPaid={myPaymentStatus}
-                        financeLoaded={financeLoaded}
-                        onResponseSaved={loadData}
-                      />
+              {!loadingData && !loadingFix && (upcomingFixtures.length > 0 || pastFixtures.length > 0) && (
+                <div className="space-y-8">
+                  {/* ── Past ── */}
+                  {pastFixtures.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setPastOpen((o) => !o)}
+                        className="flex items-center gap-2 mb-3 group"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
+                        <span className="font-display font-bold text-gray-500 text-lg group-hover:text-gray-700 transition-colors">
+                          Past Matches
+                        </span>
+                        <span className="text-xs font-normal text-gray-400">({pastFixtures.length})</span>
+                        <svg
+                          className={`w-4 h-4 text-gray-400 transition-transform ${pastOpen ? 'rotate-180' : ''}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {pastOpen && (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                          {pastFixtures.map((f) => (
+                            <div key={f.id} id={`fixture-${f.id}`}>
+                              <FixtureCard
+                                fixture={f}
+                                availabilityMap={availabilityMap}
+                                userResponseMap={userResponseMap}
+                                financeMap={financeMap}
+                                myPaymentPaid={myPaymentStatus}
+                                financeLoaded={financeLoaded}
+                                onResponseSaved={loadData}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )}
+
+                  {/* ── Upcoming ── */}
+                  <div>
+                    <h3 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-accent inline-block" />
+                      Upcoming Matches
+                      <span className="text-xs font-normal text-gray-400">({upcomingFixtures.length})</span>
+                    </h3>
+                    {upcomingFixtures.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic">No upcoming fixtures scheduled.</p>
+                    ) : (
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {upcomingFixtures.map((f) => (
+                          <div key={f.id} id={`fixture-${f.id}`}>
+                            <FixtureCard
+                              fixture={f}
+                              availabilityMap={availabilityMap}
+                              userResponseMap={userResponseMap}
+                              financeMap={financeMap}
+                              myPaymentPaid={myPaymentStatus}
+                              financeLoaded={financeLoaded}
+                              onResponseSaved={loadData}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </>
@@ -1122,16 +1192,65 @@ export default function Availability() {
               )}
 
               {!loadingUmp && umpAssignments.length > 0 && (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {umpAssignments.map((a) => (
-                    <UmpCard
-                      key={a.id}
-                      assignment={a}
-                      umpAvailMap={umpAvailMap}
-                      myUmpResponseMap={myUmpResponseMap}
-                      onResponseSaved={loadUmpAvailability}
-                    />
-                  ))}
+                <div className="space-y-8">
+                  {/* ── Past ── */}
+                  {pastUmpAssignments.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setPastUmpOpen((o) => !o)}
+                        className="flex items-center gap-2 mb-3 group"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
+                        <span className="font-display font-bold text-gray-500 text-lg group-hover:text-gray-700 transition-colors">
+                          Past Matches
+                        </span>
+                        <span className="text-xs font-normal text-gray-400">({pastUmpAssignments.length})</span>
+                        <svg
+                          className={`w-4 h-4 text-gray-400 transition-transform ${pastUmpOpen ? 'rotate-180' : ''}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {pastUmpOpen && (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                          {pastUmpAssignments.map((a) => (
+                            <UmpCard
+                              key={a.id}
+                              assignment={a}
+                              umpAvailMap={umpAvailMap}
+                              myUmpResponseMap={myUmpResponseMap}
+                              onResponseSaved={loadUmpAvailability}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── Upcoming ── */}
+                  <div>
+                    <h3 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-accent inline-block" />
+                      Upcoming Matches
+                      <span className="text-xs font-normal text-gray-400">({upcomingUmpAssignments.length})</span>
+                    </h3>
+                    {upcomingUmpAssignments.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic">No upcoming umpiring assignments.</p>
+                    ) : (
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {upcomingUmpAssignments.map((a) => (
+                          <UmpCard
+                            key={a.id}
+                            assignment={a}
+                            umpAvailMap={umpAvailMap}
+                            myUmpResponseMap={myUmpResponseMap}
+                            onResponseSaved={loadUmpAvailability}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </>

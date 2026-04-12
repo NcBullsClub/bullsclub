@@ -205,10 +205,299 @@ export default function Fixtures() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const filtered = fixtures.filter((f) => f.team === teamFilter)
+  const filtered          = fixtures.filter((f) => f.team === teamFilter)
+  const upcomingFixtures  = filtered.filter((f) => !isPast(f))
+  const pastFixtures      = filtered.filter((f) => isPast(f)).reverse()
+  const [pastOpen, setPastOpen] = useState(false)
 
   function isPast(f) {
     return getMatchStatus(f) === 'completed'
+  }
+
+  function renderFixtureCard(f, i, past) {
+    const matchStatus = past ? 'completed' : getMatchStatus(f)
+    const isLive    = matchStatus === 'live'
+    const dbResult  = resultMap[`${f.date}::${f.team}`]
+    const teamLabel = f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
+
+    const [year, month, day] = f.date.split('-').map(Number)
+    const d = new Date(year, month - 1, day)
+    const dayNum   = String(day).padStart(2, '0')
+    const monthShort = d.toLocaleDateString('en-US', { month: 'short' })
+    const weekday  = d.toLocaleDateString('en-US', { weekday: 'short' })
+    const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue_address || f.venue)}`
+
+    let avail = { inCount: 0, maybeCount: 0, outCount: 0, inNames: [], maybeNames: [], outNames: [] }
+    if (isSheetConfigured()) {
+      avail = getFixtureAvailability(availRecords, buildFixtureId(f))
+    }
+    const hasAvail = avail.inCount + avail.maybeCount + avail.outCount > 0
+
+    return (
+      <motion.div
+        key={f.id}
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: i * 0.05 }}
+      >
+        {/* ── Mobile card ── */}
+        <div className="sm:hidden bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-accent/60 hover:shadow-md transition-all">
+          {/* Top bar */}
+          <div className="flex items-center gap-2 px-3 pt-3 pb-2">
+            {/* Date pill */}
+            <div className="flex-shrink-0 bg-primary-dark rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+              <span className="font-display font-black text-lg leading-none text-accent">{dayNum}</span>
+              <div className="flex flex-col leading-none">
+                <span className="text-[9px] text-gray-300 uppercase font-semibold">{monthShort}</span>
+                <span className="text-[9px] text-gray-400">{year}</span>
+              </div>
+            </div>
+            {/* Team + format */}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
+                {teamLabel}
+            </span>
+            <span className="text-[10px] text-gray-400 font-medium">{f.format}</span>
+            <div className="flex-1" />
+            {/* Status */}
+            {past ? (
+              <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✓ Completed</span>
+            ) : isLive ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />🔴 Live
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />Upcoming
+              </span>
+            )}
+          </div>
+
+          {/* Match title */}
+          <div className="px-3 pb-1">
+            <h3 className="font-display font-bold text-primary text-base leading-tight">
+              {teamLabel} <span className="font-normal text-gray-400">vs</span> {f.opponent}
+            </h3>
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+              <span>⏰ {f.time}</span>
+              <span>·</span><span>{weekday}</span>
+              <span>·</span><span>{f.type}</span>
+            </div>
+          </div>
+
+          {/* Venue compact */}
+          <div className="px-3 pb-2.5 flex items-center gap-1.5">
+            <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
+            </svg>
+              <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}{f.division ? ` · ${f.division.replace(/^D(\d+)$/, 'Div$1')}` : ''}</span>
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors"
+            >
+              <svg className="w-2.5 h-2.5 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
+              </svg>
+              Open in Maps
+            </a>
+          </div>
+
+          {/* Umpiring info — mobile */}
+          {(f.umpire1_team || f.umpire2_team) && (
+            <div className="px-3 pb-2 flex items-center gap-1.5">
+              <span className="text-[10px] text-blue-600">🧢</span>
+              <span className="text-[10px] text-blue-500 font-semibold">Umpires:</span>
+              <span className="text-[10px] text-blue-600 font-medium truncate">
+                {f.umpire1_team}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}
+              </span>
+            </div>
+          )}
+          {/* Results — collapsible for past matches */}
+          {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
+            <div className="border-t border-gray-100">
+              <button
+                onClick={() => toggleResult(f.id)}
+                className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-[11px] font-semibold text-gray-500">📊 Match Result</span>
+                <svg
+                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${expandedResults.has(f.id) ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {expandedResults.has(f.id) && (
+                <div className="px-3 pb-2.5">
+                  <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                </div>
+              )}
+            </div>
+          )}
+          {/* Availability — only for non-past */}
+          {!past && (
+            <div className="border-t border-gray-100 px-3 py-2 space-y-2">
+              {hasAvail && (
+                <div className="space-y-1">
+                  {avail.inNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 items-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                      {avail.inNames.map((n) => (
+                        <span key={n} className="text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
+                      ))}
+                    </div>
+                  )}
+                  {avail.maybeNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 items-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                      {avail.maybeNames.map((n) => (
+                        <span key={n} className="text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
+                      ))}
+                    </div>
+                  )}
+                  {avail.outNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 items-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                      {avail.outNames.map((n) => (
+                        <span key={n} className="text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <Link
+                to={`/availability?fixture=${f.id}&team=${f.team}`}
+                className="flex items-center justify-center gap-1.5 text-xs font-semibold bg-accent text-primary-dark px-3 py-2 rounded-xl hover:bg-accent-dark transition-colors w-full"
+              >
+                🏏 Mark Availability
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* ── Desktop card ── */}
+        <div className="hidden sm:block bg-white border border-gray-200 rounded-2xl p-5 md:p-6 hover:border-accent hover:shadow-md transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            {/* Date block */}
+            <div className="flex-shrink-0 w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
+              <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
+                {weekday}
+              </div>
+              <div className="bg-primary-dark text-white text-center py-3">
+                <div className="font-display font-black text-4xl leading-none text-accent">{dayNum}</div>
+                <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
+                  {monthShort} {year}
+                </div>
+              </div>
+            </div>
+
+            {/* Match info */}
+            <div className="flex-1">
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
+                  {teamLabel}
+                </span>
+                <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.format}</span>
+                <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
+                <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
+              </div>
+              <h3 className="font-display font-bold text-primary text-xl mb-1">
+                {teamLabel} vs {f.opponent}
+              </h3>
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                <span>⏰ {f.time}</span>
+              </div>
+              <VenueActions venue={f.venue} venueAddress={f.venue_address} />
+            </div>
+
+            {/* Status / result */}
+            <div className="flex-shrink-0 flex flex-col items-end gap-2">
+              {past ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200">
+                  ✓ Completed
+                </span>
+              ) : isLive ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-700 px-3 py-1.5 rounded-full border border-red-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  🔴 Live
+                </span>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    Upcoming
+                  </span>
+                  {hasAvail && (
+                    <div className="space-y-1 w-full">
+                      {avail.inNames.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1 flex-shrink-0" />
+                          {avail.inNames.map((n) => (
+                            <span key={n} className="text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
+                          ))}
+                        </div>
+                      )}
+                      {avail.maybeNames.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 flex-shrink-0" />
+                          {avail.maybeNames.map((n) => (
+                            <span key={n} className="text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
+                          ))}
+                        </div>
+                      )}
+                      {avail.outNames.length > 0 && (
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 flex-shrink-0" />
+                          {avail.outNames.map((n) => (
+                            <span key={n} className="text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {(f.umpire1_team || f.umpire2_team) && (
+                    <div className="text-xs text-blue-600 flex items-center gap-1 mt-1 w-full justify-end">
+                      <span>🧢</span>
+                      <span className="font-semibold text-blue-500">Umpires:</span>
+                      <span className="font-medium">{f.umpire1_team}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}</span>
+                    </div>
+                  )}
+                  <Link
+                    to={`/availability?fixture=${f.id}&team=${f.team}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent text-primary-dark px-3 py-1.5 rounded-full hover:bg-accent-dark transition-colors"
+                  >
+                    🏏 Mark Availability
+                  </Link>
+                </>
+              )}
+              {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    onClick={() => toggleResult(f.id)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    📊 {expandedResults.has(f.id) ? 'Hide Result' : 'Show Result'}
+                    <svg
+                      className={`w-3 h-3 transition-transform duration-200 ${expandedResults.has(f.id) ? 'rotate-180' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {expandedResults.has(f.id) && (
+                    <div className="w-56">
+                      <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
   }
 
   return (
@@ -250,296 +539,50 @@ export default function Fixtures() {
               <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
           )}
-          <div className="space-y-3 md:space-y-4">
-            {!loadingFix && filtered.map((f, i) => {
-              const past      = isPast(f)
-              const matchStatus = getMatchStatus(f)
-              const isLive    = matchStatus === 'live'
-              const dbResult  = resultMap[`${f.date}::${f.team}`]
-              const teamLabel = f.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
-
-              const [year, month, day] = f.date.split('-').map(Number)
-              const d = new Date(year, month - 1, day)
-              const dayNum   = String(day).padStart(2, '0')
-              const monthShort = d.toLocaleDateString('en-US', { month: 'short' })
-              const weekday  = d.toLocaleDateString('en-US', { weekday: 'short' })
-              const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue_address || f.venue)}`
-
-              let avail = { inCount: 0, maybeCount: 0, outCount: 0, inNames: [], maybeNames: [], outNames: [] }
-              if (isSheetConfigured()) {
-                avail = getFixtureAvailability(availRecords, buildFixtureId(f))
-              }
-              const hasAvail = avail.inCount + avail.maybeCount + avail.outCount > 0
-
-              return (
-                <motion.div
-                  key={f.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
+          <div className="space-y-8">
+            {/* ── Past ── */}
+            {!loadingFix && pastFixtures.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setPastOpen((o) => !o)}
+                  className="flex items-center gap-2 mb-3 group"
                 >
-                  {/* ── Mobile card ── */}
-                  <div className="sm:hidden bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-accent/60 hover:shadow-md transition-all">
-                    {/* Top bar */}
-                    <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-                      {/* Date pill */}
-                      <div className="flex-shrink-0 bg-primary-dark rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                        <span className="font-display font-black text-lg leading-none text-accent">{dayNum}</span>
-                        <div className="flex flex-col leading-none">
-                          <span className="text-[9px] text-gray-300 uppercase font-semibold">{monthShort}</span>
-                          <span className="text-[9px] text-gray-400">{year}</span>
-                        </div>
-                      </div>
-                      {/* Team + format */}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
-                          {teamLabel}
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-medium">{f.format}</span>
-                      <div className="flex-1" />
-                      {/* Status */}
-                      {past ? (
-                        <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✓ Completed</span>
-                      ) : isLive ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />🔴 Live
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />Upcoming
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Match title */}
-                    <div className="px-3 pb-1">
-                      <h3 className="font-display font-bold text-primary text-base leading-tight">
-                        {teamLabel} <span className="font-normal text-gray-400">vs</span> {f.opponent}
-                      </h3>
-                      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
-                        <span>⏰ {f.time}</span>
-                        <span>·</span><span>{weekday}</span>
-                        <span>·</span><span>{f.type}</span>
-                      </div>
-                    </div>
-
-                    {/* Venue compact */}
-                    <div className="px-3 pb-2.5 flex items-center gap-1.5">
-                      <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                        <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
-                      </svg>
-                        <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}{f.division ? ` · ${f.division.replace(/^D(\d+)$/, 'Div$1')}` : ''}</span>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors"
-                      >
-                        <svg className="w-2.5 h-2.5 text-red-500" viewBox="0 0 24 24" fill="currentColor">
-                          <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
-                        </svg>
-                        Open in Maps
-                      </a>
-                    </div>
-
-                    {/* Umpiring info — mobile */}
-                    {(f.umpire1_team || f.umpire2_team) && (
-                      <div className="px-3 pb-2 flex items-center gap-1.5">
-                        <span className="text-[10px] text-blue-600">🧢</span>
-                        <span className="text-[10px] text-blue-500 font-semibold">Umpires:</span>
-                        <span className="text-[10px] text-blue-600 font-medium truncate">
-                          {f.umpire1_team}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}
-                        </span>
-                      </div>
-                    )}
-                    {/* Results — collapsible for past matches */}
-                    {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
-                      <div className="border-t border-gray-100">
-                        <button
-                          onClick={() => toggleResult(f.id)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <span className="text-[11px] font-semibold text-gray-500">📊 Match Result</span>
-                          <svg
-                            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${expandedResults.has(f.id) ? 'rotate-180' : ''}`}
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        {expandedResults.has(f.id) && (
-                          <div className="px-3 pb-2.5">
-                            <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* Availability — only for non-past */}
-                    {!past && (
-                      <div className="border-t border-gray-100 px-3 py-2 space-y-2">
-                        {hasAvail && (
-                          <div className="space-y-1">
-                            {avail.inNames.length > 0 && (
-                              <div className="flex flex-wrap gap-1 items-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                                {avail.inNames.map((n) => (
-                                  <span key={n} className="text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
-                                ))}
-                              </div>
-                            )}
-                            {avail.maybeNames.length > 0 && (
-                              <div className="flex flex-wrap gap-1 items-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                                {avail.maybeNames.map((n) => (
-                                  <span key={n} className="text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
-                                ))}
-                              </div>
-                            )}
-                            {avail.outNames.length > 0 && (
-                              <div className="flex flex-wrap gap-1 items-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                                {avail.outNames.map((n) => (
-                                  <span key={n} className="text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <Link
-                          to={`/availability?fixture=${f.id}&team=${f.team}`}
-                          className="flex items-center justify-center gap-1.5 text-xs font-semibold bg-accent text-primary-dark px-3 py-2 rounded-xl hover:bg-accent-dark transition-colors w-full"
-                        >
-                          🏏 Mark Availability
-                        </Link>
-                      </div>
-                    )}
+                  <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
+                  <span className="font-display font-bold text-gray-500 text-lg group-hover:text-gray-700 transition-colors">
+                    Past Matches
+                  </span>
+                  <span className="text-xs font-normal text-gray-400">({pastFixtures.length})</span>
+                  <svg
+                    className={`w-4 h-4 text-gray-400 transition-transform ${pastOpen ? 'rotate-180' : ''}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {pastOpen && (
+                  <div className="space-y-3 md:space-y-4">
+                    {pastFixtures.map((f, i) => renderFixtureCard(f, i, true))}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* ── Desktop card (unchanged layout) ── */}
-                  <div className="hidden sm:block bg-white border border-gray-200 rounded-2xl p-5 md:p-6 hover:border-accent hover:shadow-md transition-all">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                      {/* Date block */}
-                      <div className="flex-shrink-0 w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
-                        <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
-                          {weekday}
-                        </div>
-                        <div className="bg-primary-dark text-white text-center py-3">
-                          <div className="font-display font-black text-4xl leading-none text-accent">{dayNum}</div>
-                          <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
-                            {monthShort} {year}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Match info */}
-                      <div className="flex-1">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
-                            {teamLabel}
-                          </span>
-                          <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.format}</span>
-                          <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
-                          <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
-                        </div>
-                        <h3 className="font-display font-bold text-primary text-xl mb-1">
-                          {teamLabel} vs {f.opponent}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                          <span>⏰ {f.time}</span>
-                        </div>
-                        <VenueActions venue={f.venue} venueAddress={f.venue_address} />
-                      </div>
-
-                      {/* Status / result */}
-                      <div className="flex-shrink-0 flex flex-col items-end gap-2">
-                        {past ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-green-50 text-green-700 px-3 py-1.5 rounded-full border border-green-200">
-                            ✓ Completed
-                          </span>
-                        ) : isLive ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-red-50 text-red-700 px-3 py-1.5 rounded-full border border-red-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            🔴 Live
-                          </span>
-                        ) : (
-                          <>
-                            <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full border border-blue-100">
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                              Upcoming
-                            </span>
-                            {hasAvail && (
-                              <div className="space-y-1 w-full">
-                                {avail.inNames.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 justify-end">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1 flex-shrink-0" />
-                                    {avail.inNames.map((n) => (
-                                      <span key={n} className="text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
-                                    ))}
-                                  </div>
-                                )}
-                                {avail.maybeNames.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 justify-end">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 flex-shrink-0" />
-                                    {avail.maybeNames.map((n) => (
-                                      <span key={n} className="text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
-                                    ))}
-                                  </div>
-                                )}
-                                {avail.outNames.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 justify-end">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 flex-shrink-0" />
-                                    {avail.outNames.map((n) => (
-                                      <span key={n} className="text-[10px] font-medium bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-md">{firstName(n)}</span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {(f.umpire1_team || f.umpire2_team) && (
-                              <div className="text-xs text-blue-600 flex items-center gap-1 mt-1 w-full justify-end">
-                                <span>🧢</span>
-                                <span className="font-semibold text-blue-500">Umpires:</span>
-                                <span className="font-medium">{f.umpire1_team}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}</span>
-                              </div>
-                            )}
-                          <Link
-                              to={`/availability?fixture=${f.id}&team=${f.team}`}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent text-primary-dark px-3 py-1.5 rounded-full hover:bg-accent-dark transition-colors"
-                            >
-                              🏏 Mark Availability
-                            </Link>
-                          </>
-                        )}
-                        {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
-                          <div className="flex flex-col items-end gap-1">
-                            <button
-                              onClick={() => toggleResult(f.id)}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                            >
-                              📊 {expandedResults.has(f.id) ? 'Hide Result' : 'Show Result'}
-                              <svg
-                                className={`w-3 h-3 transition-transform duration-200 ${expandedResults.has(f.id) ? 'rotate-180' : ''}`}
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            {expandedResults.has(f.id) && (
-                              <div className="w-56">
-                                <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+            {/* ── Upcoming ── */}
+            {!loadingFix && (
+              <div>
+                <h3 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-accent inline-block" />
+                  Upcoming Matches
+                  <span className="text-xs font-normal text-gray-400">({upcomingFixtures.length})</span>
+                </h3>
+                {upcomingFixtures.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">No upcoming fixtures scheduled.</p>
+                ) : (
+                  <div className="space-y-3 md:space-y-4">
+                    {upcomingFixtures.map((f, i) => renderFixtureCard(f, i, false))}
                   </div>
-                </motion.div>
-              )
-            })}
-
-            {!loadingFix && filtered.length === 0 && (
-              <div className="text-center py-20 text-gray-400">No fixtures for the selected team.</div>
+                )}
+              </div>
             )}
           </div>
         </div>

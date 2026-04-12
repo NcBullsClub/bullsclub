@@ -189,7 +189,7 @@ export default function Home() {
 
             {/* Platform label */}
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">
-              {a2hsPlatform === 'ios' ? '🍎 iPhone / iPad — Safari' : '🤖 Android — Chrome'}
+              {a2hsPlatform === 'ios' ? '🍎 iPhone / iPad' : '🤖 Android — Chrome'}
             </p>
 
             {/* Steps */}
@@ -198,11 +198,11 @@ export default function Home() {
                 <>
                   <div className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
-                    <p className="text-xs text-gray-700">Tap the <span className="font-bold">Share</span> icon <span className="font-bold text-primary-dark">⬆</span> at the <span className="font-semibold">bottom</span> of Safari</p>
+                    <p className="text-xs text-gray-700">Tap the <span className="font-bold">Share</span> icon <span className="font-bold text-primary-dark">⬆</span> in your browser</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
-                    <p className="text-xs text-gray-700">Scroll down and tap <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span></p>
+                    <p className="text-xs text-gray-700">Look for <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span> — if you don&apos;t see it, tap <span className="font-bold">&ldquo;More Options&rdquo;</span> first</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>

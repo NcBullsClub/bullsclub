@@ -69,9 +69,10 @@ export default function Signup() {
     fullName: '', email: '', phone: '', password: '', confirmPassword: '',
     team: '', playingRole: '', battingHand: '', bowlingStyle: '',
   })
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const [done, setDone]       = useState(false)
+  const [error, setError]         = useState('')
+  const [notAllowed, setNotAllowed] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [done, setDone]         = useState(false)
 
   const handleChange = (e) =>
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))
@@ -102,11 +103,12 @@ export default function Signup() {
     if (formData.password !== formData.confirmPassword) { setError('Passwords do not match.'); return }
 
     setLoading(true)
+    setNotAllowed(false)
     try {
       const { data: allowed, error: rpcErr } = await supabase.rpc('is_email_allowed', { check_email: formData.email.trim() })
       if (rpcErr) throw rpcErr
       if (!allowed) {
-        setError('This email is not on the approved player list. Please contact your club admin.')
+        setNotAllowed(true)
         setLoading(false)
         return
       }
@@ -319,6 +321,27 @@ export default function Signup() {
                 </div>
               </div>
             </div>
+
+            {notAllowed && (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <span className="text-amber-500 text-lg leading-none mt-0.5">⚠️</span>
+                  <div>
+                    <p className="font-semibold text-amber-800 mb-1">Your email isn't on our approved player list yet.</p>
+                    <p className="text-amber-700 leading-relaxed">
+                      Not a member yet? Submit a{' '}
+                      <Link
+                        to="/contact"
+                        className="font-bold underline underline-offset-2 hover:text-amber-900 transition-colors"
+                      >
+                        Join Request
+                      </Link>
+                      {' '}and our admins will review it. Once approved, you'll be able to create your account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">

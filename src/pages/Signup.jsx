@@ -99,6 +99,9 @@ export default function Signup() {
     if (!formData.playingRole) { setError('Please select your playing role.'); return }
     if (showBatting && !formData.battingHand)  { setError('Please select your batting hand.'); return }
     if (showBowling && !formData.bowlingStyle) { setError('Please select your bowling style.'); return }
+    const digitsOnly = formData.phone.replace(/\D/g, '')
+    if (!digitsOnly) { setError('Phone number is required.'); return }
+    if (digitsOnly.length !== 10) { setError('Phone number must be exactly 10 digits.'); return }
     if (formData.password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (formData.password !== formData.confirmPassword) { setError('Passwords do not match.'); return }
 
@@ -196,11 +199,11 @@ export default function Signup() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Phone Number <span className="text-gray-400 font-normal">(optional)</span>
+                    Phone Number
                   </label>
                   <input
                     type="tel" name="phone" value={formData.phone}
-                    onChange={handleChange} autoComplete="tel"
+                    onChange={handleChange} required autoComplete="tel"
                     placeholder="+1 919 XXX XXXX"
                     className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                   />

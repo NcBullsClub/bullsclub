@@ -7,6 +7,19 @@ function teamLabel(t) {
   return t === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
 }
 
+function renderResult(result) {
+  if (!result) return null
+  for (const team of ['Raising Bulls', 'Royal Bulls']) {
+    const idx = result.indexOf(team)
+    if (idx !== -1) {
+      return (
+        <>{result.slice(0, idx)}<strong>{team}</strong>{result.slice(idx + team.length)}</>
+      )
+    }
+  }
+  return result
+}
+
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-US', {
@@ -236,7 +249,7 @@ export default function FixtureDetail() {
                 {result.result && (
                   <div className="col-span-2 sm:col-span-3">
                     <dt className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Result</dt>
-                    <dd className="font-semibold text-green-700">{result.result}</dd>
+                    <dd className="text-base font-semibold text-green-700">{renderResult(result.result)}</dd>
                   </div>
                 )}
               </dl>

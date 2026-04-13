@@ -7,6 +7,19 @@ function isComplete(r) {
   return !!(r.result && r.ncb_score && r.opp_score)
 }
 
+function renderResult(result) {
+  if (!result) return null
+  for (const team of ['Raising Bulls', 'Royal Bulls']) {
+    const idx = result.indexOf(team)
+    if (idx !== -1) {
+      return (
+        <>{result.slice(0, idx)}<strong>{team}</strong>{result.slice(idx + team.length)}</>
+      )
+    }
+  }
+  return result
+}
+
 function isWon(r) {
   if (!isComplete(r)) return false
   const label = r.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
@@ -290,8 +303,8 @@ export default function Results() {
                       {/* Row 4: toss */}
                       {r.toss && (
                         <div className="px-3 pb-1.5">
-                          <span className="inline-flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                            <CoinIcon className="w-2.5 h-2.5 flex-shrink-0" /> <span className="font-bold">Toss:</span> {r.toss}
+                          <span className="inline-flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 italic">
+                            <CoinIcon className="w-2.5 h-2.5 flex-shrink-0" /> <span className="font-bold not-italic">Toss:</span> {r.toss}
                           </span>
                         </div>
                       )}
@@ -306,11 +319,11 @@ export default function Results() {
                               </span>
                             ) : (
                               r.result && (
-                                <span className={`inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full truncate ${
+                                <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full truncate ${
                                   won ? 'bg-green-50 text-green-700 border border-green-200'
                                       : 'bg-red-50 text-red-600 border border-red-200'
                                 }`}>
-                                  {r.result}
+                                  {renderResult(r.result)}
                                 </span>
                               )
                             )}
@@ -382,19 +395,19 @@ export default function Results() {
                             </div>
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {r.toss && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                                  <CoinIcon className="w-3.5 h-3.5 flex-shrink-0" /> <span className="font-bold">Toss:</span> {r.toss}
+                                <span className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full bg-gray-100 text-gray-500 border border-gray-200 italic">
+                                  <CoinIcon className="w-3.5 h-3.5 flex-shrink-0" /> <span className="font-bold not-italic">Toss:</span> {r.toss}
                                 </span>
                               )}
                               {r.result && (
-                                <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
+                                <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full ${
                                   !complete
                                     ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                     : won
                                       ? 'bg-green-100 text-green-700'
                                       : 'bg-red-100 text-red-600'
                                 }`}>
-                                  {r.result}
+                                  {renderResult(r.result)}
                                 </span>
                               )}
                               {!complete && (

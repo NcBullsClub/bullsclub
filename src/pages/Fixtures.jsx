@@ -18,6 +18,19 @@ function firstName(name) {
   return (name || '').split(' ')[0]
 }
 
+function renderResult(result) {
+  if (!result) return null
+  for (const team of ['Raising Bulls', 'Royal Bulls']) {
+    const idx = result.indexOf(team)
+    if (idx !== -1) {
+      return (
+        <>{result.slice(0, idx)}<strong>{team}</strong>{result.slice(idx + team.length)}</>
+      )
+    }
+  }
+  return result
+}
+
 function parseMatchDateTime(dateStr, timeStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
   if (!timeStr) return new Date(y, m - 1, d)
@@ -108,15 +121,18 @@ function CoinIcon({ className = 'w-3 h-3 flex-shrink-0' }) {
   )
 }
 
-function ScorePanel({ teamLabel, opponent, dbResult }) {
+function ScorePanel({ teamLabel, opponent, dbResult, team }) {
   const hasScores = dbResult.ncb_score || dbResult.opp_score
+  const wonLabel  = team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
+  const isWon     = dbResult.result ? dbResult.result.toLowerCase().includes(wonLabel.toLowerCase()) : null
+  const resultColor = isWon === true ? 'text-green-700' : isWon === false ? 'text-red-600' : 'text-gray-700'
   return (
     <div className="space-y-1.5 w-full">
       {/* Toss */}
       {dbResult.toss && (
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-          <CoinIcon className="w-3 h-3 flex-shrink-0 text-amber-500" />
-          <span><span className="font-bold">Toss:</span> {dbResult.toss}</span>
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-full italic">
+          <CoinIcon className="w-3 h-3 flex-shrink-0 text-gray-400" />
+          <span><span className="font-bold not-italic">Toss:</span> {dbResult.toss}</span>
         </div>
       )}
 
@@ -142,7 +158,7 @@ function ScorePanel({ teamLabel, opponent, dbResult }) {
 
       {/* Result verdict */}
       {dbResult.result && (
-        <p className="text-[11px] text-gray-600 font-medium leading-snug text-center">{dbResult.result}</p>
+        <p className={`text-xs font-semibold leading-snug text-center ${resultColor}`}>{renderResult(dbResult.result)}</p>
       )}
 
       {/* Scorecard link */}
@@ -347,14 +363,13 @@ export default function Fixtures() {
                     style={{ overflow: 'hidden' }}
                   >
                     <div className="px-3 pb-2.5">
-                      <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                      <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} team={f.team} />
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           )}
-          {/* Availability — only for non-past */}
           {!past && (
             <div className="border-t border-gray-100 px-3 py-2 space-y-2">
               {hasAvail && (
@@ -517,7 +532,7 @@ export default function Fixtures() {
                         style={{ overflow: 'hidden' }}
                         className="w-56"
                       >
-                        <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                        <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} team={f.team} />
                       </motion.div>
                     )}
                   </AnimatePresence>

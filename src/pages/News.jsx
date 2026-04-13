@@ -107,7 +107,6 @@ const TAG_ICONS = {
   'loss':           '📉',
   // Announcements & Club
   'announcement':   '📢',
-  'announcement':   '📢',
   // Leagues & Competitions
   'league':         '🏅',
   'mega bash':      '⚡',

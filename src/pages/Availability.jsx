@@ -1099,37 +1099,49 @@ export default function Availability() {
                     <div>
                       <button
                         onClick={() => setPastOpen((o) => !o)}
-                        className="flex items-center gap-2 mb-3 group"
+                        className="flex items-center gap-2 mb-3 group touch-manipulation"
                       >
                         <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
                         <span className="font-display font-bold text-gray-500 text-lg group-hover:text-gray-700 transition-colors">
                           Past Matches
                         </span>
                         <span className="text-xs font-normal text-gray-400">({pastFixtures.length})</span>
-                        <svg
-                          className={`w-4 h-4 text-gray-400 transition-transform ${pastOpen ? 'rotate-180' : ''}`}
+                        <motion.svg
+                          animate={{ rotate: pastOpen ? 180 : 0 }}
+                          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                          className="w-4 h-4 text-gray-400 flex-shrink-0"
                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
+                        </motion.svg>
                       </button>
-                      {pastOpen && (
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                          {pastFixtures.map((f) => (
-                            <div key={f.id} id={`fixture-${f.id}`}>
-                              <FixtureCard
-                                fixture={f}
-                                availabilityMap={availabilityMap}
-                                userResponseMap={userResponseMap}
-                                financeMap={financeMap}
-                                myPaymentPaid={myPaymentStatus}
-                                financeLoaded={financeLoaded}
-                                onResponseSaved={loadData}
-                              />
+                      <AnimatePresence initial={false}>
+                        {pastOpen && (
+                          <motion.div
+                            key="past-avail"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } }}
+                            exit={{ height: 0, opacity: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } }}
+                            style={{ overflow: 'hidden' }}
+                          >
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 pb-2">
+                              {pastFixtures.map((f) => (
+                                <div key={f.id} id={`fixture-${f.id}`}>
+                                  <FixtureCard
+                                    fixture={f}
+                                    availabilityMap={availabilityMap}
+                                    userResponseMap={userResponseMap}
+                                    financeMap={financeMap}
+                                    myPaymentPaid={myPaymentStatus}
+                                    financeLoaded={financeLoaded}
+                                    onResponseSaved={loadData}
+                                  />
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
 
@@ -1205,12 +1217,14 @@ export default function Availability() {
                           Past Matches
                         </span>
                         <span className="text-xs font-normal text-gray-400">({pastUmpAssignments.length})</span>
-                        <svg
-                          className={`w-4 h-4 text-gray-400 transition-transform ${pastUmpOpen ? 'rotate-180' : ''}`}
+                        <motion.svg
+                          animate={{ rotate: pastUmpOpen ? 180 : 0 }}
+                          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                          className="w-4 h-4 text-gray-400 flex-shrink-0"
                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
+                        </motion.svg>
                       </button>
                       {pastUmpOpen && (
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
+
+const sectionVariants = {
+  open:   { height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } },
+  closed: { height: 0,      opacity: 0, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+}
 
 const teamsFilter = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -319,21 +324,34 @@ export default function Fixtures() {
             <div className="border-t border-gray-100">
               <button
                 onClick={() => toggleResult(f.id)}
-                className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
               >
                 <span className="text-[11px] font-semibold text-gray-500">📊 Match Result</span>
-                <svg
-                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${expandedResults.has(f.id) ? 'rotate-180' : ''}`}
+                <motion.svg
+                  animate={{ rotate: expandedResults.has(f.id) ? 180 : 0 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                  className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+                </motion.svg>
               </button>
-              {expandedResults.has(f.id) && (
-                <div className="px-3 pb-2.5">
-                  <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
-                </div>
-              )}
+              <AnimatePresence initial={false}>
+                {expandedResults.has(f.id) && (
+                  <motion.div
+                    key={`result-${f.id}`}
+                    initial="closed"
+                    animate="open"
+                    exit="closed"
+                    variants={sectionVariants}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="px-3 pb-2.5">
+                      <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
           {/* Availability — only for non-past */}
@@ -479,18 +497,30 @@ export default function Fixtures() {
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
                   >
                     📊 {expandedResults.has(f.id) ? 'Hide Result' : 'Show Result'}
-                    <svg
-                      className={`w-3 h-3 transition-transform duration-200 ${expandedResults.has(f.id) ? 'rotate-180' : ''}`}
+                    <motion.svg
+                      animate={{ rotate: expandedResults.has(f.id) ? 180 : 0 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                      className="w-3 h-3 text-gray-500 flex-shrink-0"
                       fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
+                    </motion.svg>
                   </button>
-                  {expandedResults.has(f.id) && (
-                    <div className="w-56">
-                      <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
-                    </div>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {expandedResults.has(f.id) && (
+                      <motion.div
+                        key={`result-desktop-${f.id}`}
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        variants={sectionVariants}
+                        style={{ overflow: 'hidden' }}
+                        className="w-56"
+                      >
+                        <ScorePanel teamLabel={teamLabel} opponent={f.opponent} dbResult={dbResult} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>
@@ -545,25 +575,38 @@ export default function Fixtures() {
               <div>
                 <button
                   onClick={() => setPastOpen((o) => !o)}
-                  className="flex items-center gap-2 mb-3 group"
+                  className="flex items-center gap-2 mb-3 group touch-manipulation"
                 >
                   <span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />
                   <span className="font-display font-bold text-gray-500 text-lg group-hover:text-gray-700 transition-colors">
                     Past Matches
                   </span>
                   <span className="text-xs font-normal text-gray-400">({pastFixtures.length})</span>
-                  <svg
-                    className={`w-4 h-4 text-gray-400 transition-transform ${pastOpen ? 'rotate-180' : ''}`}
+                  <motion.svg
+                    animate={{ rotate: pastOpen ? 180 : 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                    className="w-4 h-4 text-gray-400 flex-shrink-0"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
+                  </motion.svg>
                 </button>
-                {pastOpen && (
-                  <div className="space-y-3 md:space-y-4">
-                    {pastFixtures.map((f, i) => renderFixtureCard(f, i, true))}
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {pastOpen && (
+                    <motion.div
+                      key="past-fixtures"
+                      initial="closed"
+                      animate="open"
+                      exit="closed"
+                      variants={sectionVariants}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div className="space-y-3 md:space-y-4 pb-2">
+                        {pastFixtures.map((f, i) => renderFixtureCard(f, i, true))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 

@@ -210,6 +210,131 @@ function UmpAssignmentForm({ initial, onSave, onCancel, saving }) {
   )
 }
 
+// \u2500\u2500 Shared animation variants \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+const sectionVariants = {
+  open:   { height: 'auto', opacity: 1, transition: { height: { type: 'spring', stiffness: 300, damping: 35, mass: 0.5 }, opacity: { duration: 0.2 } } },
+  closed: { height: 0,      opacity: 0, transition: { height: { type: 'spring', stiffness: 300, damping: 35, mass: 0.5 }, opacity: { duration: 0.15 } } },
+}
+
+// \u2500\u2500 FixtureCard \u2014 module-level \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function FixtureCard({ f, onEdit, onDelete, deletingId }) {
+  const past      = isPast(f.date)
+  const isRaising = f.team === 'raising-bulls'
+  const hasUmpires = f.umpire1_team || f.umpire2_team
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18 }}
+      className={`bg-white border rounded-2xl overflow-hidden ${
+        past ? 'border-gray-200 opacity-75' : 'border-gray-200 hover:border-accent/40 hover:shadow-sm'
+      } transition-shadow`}
+    >
+      <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+        <div>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+            isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'
+          }`}>
+            {TEAM_LABELS[f.team]}
+          </span>
+          {f.division && (
+            <span className="ml-2 text-xs text-white/60">{f.division}</span>
+          )}
+        </div>
+      </div>
+      <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-display font-bold text-primary text-base">vs {f.opponent}</span>
+            <span className="text-xs text-gray-400">{f.format} \u00b7 {f.type}</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {formatDate(f.date)}{f.time ? ` \u00b7 ${f.time}` : ''}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{f.venue}{f.venue_address ? ` \u2014 ${f.venue_address}` : ''}</p>
+          {hasUmpires && (
+            <p className="text-xs text-blue-600 mt-1.5">
+              \ud83e\udde2 {f.umpire1_team || '\u2014'}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}
+            </p>
+          )}
+          {!hasUmpires && (
+            <p className="text-xs text-amber-500 mt-1.5">\u26a0\ufe0f Umpires not assigned yet</p>
+          )}
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={() => onEdit(f)}
+            className="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 rounded-lg transition-colors touch-manipulation"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(f.id)}
+            disabled={deletingId === f.id}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 rounded-lg transition-colors disabled:opacity-50 touch-manipulation"
+          >
+            {deletingId === f.id ? '\u2026' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// \u2500\u2500 UmpCard \u2014 module-level \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function UmpCard({ a, onEdit, onDelete, deletingId }) {
+  const past      = isPast(a.date)
+  const isRaising = a.ncb_team === 'raising-bulls'
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18 }}
+      className={`bg-white border rounded-2xl overflow-hidden ${
+        past ? 'border-gray-200 opacity-75' : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
+      } transition-shadow`}
+    >
+      <div className={`px-4 py-2.5 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+          isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'
+        }`}>
+          {TEAM_LABELS[a.ncb_team]}
+        </span>
+        <span className="text-xs text-white/60">Umpiring Duty</span>
+        {a.division && <span className="text-xs text-white/40 ml-auto">{a.division}</span>}
+      </div>
+      <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-800 truncate">
+            {a.match_visitor} <span className="font-normal text-gray-400">vs</span> {a.match_home}
+          </p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {formatDate(a.date)}{a.time ? ` \u00b7 ${a.time}` : ''}
+            {a.venue ? ` \u00b7 ${a.venue}` : ''}
+          </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={() => onEdit(a)}
+            className="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 rounded-lg touch-manipulation"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(a.id)}
+            disabled={deletingId === a.id}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 rounded-lg disabled:opacity-50 touch-manipulation"
+          >
+            {deletingId === a.id ? '\u2026' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function FixturesTab() {
   const { isSuperAdmin, adminTeam } = useAuth()
 
@@ -230,6 +355,10 @@ export default function FixturesTab() {
   const [deletingUmp, setDeletingUmp]   = useState(null)
 
   const [activeSection, setActiveSection] = useState('fixtures')  // 'fixtures' | 'umpiring'
+
+  // Past/Upcoming section collapse state
+  const [pastFixCollapsed, setPastFixCollapsed] = useState(true)
+  const [pastUmpCollapsed, setPastUmpCollapsed]  = useState(true)
 
   // ── Load fixtures ──
   async function loadFixtures() {
@@ -472,73 +601,92 @@ export default function FixturesTab() {
             <div className="flex justify-center py-12">
               <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {fixtures.length === 0 && (
-                <p className="text-center text-gray-400 py-12">No fixtures found. Add one above.</p>
-              )}
-              {fixtures.map((f) => {
-                const past = isPast(f.date)
-                const isRaising = f.team === 'raising-bulls'
-                const hasUmpires = f.umpire1_team || f.umpire2_team
-                return (
-                  <motion.div
-                    key={f.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`bg-white border rounded-2xl overflow-hidden ${past ? 'border-gray-200 opacity-75' : 'border-gray-200 hover:border-accent/40 hover:shadow-sm'} transition-all`}
-                  >
-                    <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
-                      <div>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'}`}>
-                          {TEAM_LABELS[f.team]}
-                        </span>
-                        {f.division && (
-                          <span className="ml-2 text-xs text-white/60">{f.division}</span>
-                        )}
+          ) : (() => {
+            const upcomingFix = fixtures.filter((f) => !isPast(f.date))
+            const pastFix     = fixtures.filter((f) =>  isPast(f.date))
+
+            return (
+              <div className="space-y-6">
+                {fixtures.length === 0 && (
+                  <p className="text-center text-gray-400 py-12">No fixtures found. Add one above.</p>
+                )}
+
+                {/* ── Past Matches ── */}
+                {pastFix.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setPastFixCollapsed((v) => !v)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl text-sm font-semibold text-gray-500 transition-colors mb-0 touch-manipulation"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-gray-400 inline-block" />
+                        Past Matches
+                        <span className="text-xs font-normal text-gray-400">({pastFix.length})</span>
+                      </span>
+                      <motion.svg
+                        animate={{ rotate: pastFixCollapsed ? 0 : 180 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                        width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        className="flex-shrink-0 text-gray-500"
+                      >
+                        <path d="M19 9l-7 7-7-7" />
+                      </motion.svg>
+                    </button>
+                    <motion.div
+                      initial={{ height: pastFixCollapsed ? 0 : 'auto', opacity: pastFixCollapsed ? 0 : 1 }}
+                      animate={{
+                        height: pastFixCollapsed ? 0 : 'auto',
+                        opacity: pastFixCollapsed ? 0 : 1,
+                      }}
+                      transition={{
+                        height: { type: 'spring', stiffness: 300, damping: 35, mass: 0.5 },
+                        opacity: { duration: 0.2 },
+                      }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div className="space-y-3 pt-3">
+                        {pastFix.map((f) => (
+                          <FixtureCard
+                            key={f.id}
+                            f={f}
+                            onEdit={setEditingFix}
+                            onDelete={deleteFixture}
+                            deletingId={deletingFix}
+                          />
+                        ))}
                       </div>
-                      {past && <span className="text-xs text-white/40 ml-auto">Past</span>}
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* ── Upcoming Matches ── */}
+                <div>
+                  <div className="flex items-center gap-2 px-1 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-accent inline-block" />
+                    <span className="text-sm font-semibold text-gray-700">Upcoming Matches</span>
+                    <span className="text-xs font-normal text-gray-400">({upcomingFix.length})</span>
+                  </div>
+                  {upcomingFix.length === 0 ? (
+                    <p className="text-center text-gray-400 py-8">No upcoming fixtures.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingFix.map((f) => (
+                        <FixtureCard
+                          key={f.id}
+                          f={f}
+                          onEdit={setEditingFix}
+                          onDelete={deleteFixture}
+                          deletingId={deletingFix}
+                        />
+                      ))}
                     </div>
-                    <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-display font-bold text-primary text-base">vs {f.opponent}</span>
-                          <span className="text-xs text-gray-400">{f.format} · {f.type}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          {formatDate(f.date)}{f.time ? ` · ${f.time}` : ''}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">{f.venue}{f.venue_address ? ` — ${f.venue_address}` : ''}</p>
-                        {hasUmpires && (
-                          <p className="text-xs text-blue-600 mt-1.5">
-                            🧢 {f.umpire1_team || '—'}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}
-                          </p>
-                        )}
-                        {!hasUmpires && (
-                          <p className="text-xs text-amber-500 mt-1.5">⚠️ Umpires not assigned yet</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => setEditingFix(f)}
-                          className="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteFixture(f.id)}
-                          disabled={deletingFix === f.id}
-                          className="px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all disabled:opacity-50"
-                        >
-                          {deletingFix === f.id ? '…' : 'Delete'}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </div>
-          )}
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -584,52 +732,92 @@ export default function FixturesTab() {
             <div className="flex justify-center py-12">
               <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {assignments.length === 0 && (
-                <p className="text-center text-gray-400 py-12">No umpiring duties found.</p>
-              )}
-              {assignments.map((a) => {
-                const past = isPast(a.date)
-                const isRaising = a.ncb_team === 'raising-bulls'
-                return (
-                  <motion.div
-                    key={a.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`bg-white border rounded-2xl overflow-hidden ${past ? 'border-gray-200 opacity-75' : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'} transition-all`}
-                  >
-                    <div className={`px-4 py-2.5 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'}`}>
-                        {TEAM_LABELS[a.ncb_team]}
+          ) : (() => {
+            const upcomingUmp = assignments.filter((a) => !isPast(a.date))
+            const pastUmp     = assignments.filter((a) =>  isPast(a.date))
+
+            return (
+              <div className="space-y-6">
+                {assignments.length === 0 && (
+                  <p className="text-center text-gray-400 py-12">No umpiring duties found.</p>
+                )}
+
+                {/* ── Past Duties ── */}
+                {pastUmp.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setPastUmpCollapsed((v) => !v)}
+                      className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl text-sm font-semibold text-gray-500 transition-colors mb-0 touch-manipulation"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-gray-400 inline-block" />
+                        Past Duties
+                        <span className="text-xs font-normal text-gray-400">({pastUmp.length})</span>
                       </span>
-                      <span className="text-xs text-white/60">Umpiring Duty</span>
-                      {a.division && <span className="text-xs text-white/40 ml-auto">{a.division}</span>}
-                    </div>
-                    <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-800">{a.match_visitor} <span className="font-normal text-gray-400">vs</span> {a.match_home}</p>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          {formatDate(a.date)}{a.time ? ` · ${a.time}` : ''}
-                          {a.venue ? ` · ${a.venue}` : ''}
-                        </p>
+                      <motion.svg
+                        animate={{ rotate: pastUmpCollapsed ? 0 : 180 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                        width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        className="flex-shrink-0 text-gray-500"
+                      >
+                        <path d="M19 9l-7 7-7-7" />
+                      </motion.svg>
+                    </button>
+                    <motion.div
+                      initial={{ height: pastUmpCollapsed ? 0 : 'auto', opacity: pastUmpCollapsed ? 0 : 1 }}
+                      animate={{
+                        height: pastUmpCollapsed ? 0 : 'auto',
+                        opacity: pastUmpCollapsed ? 0 : 1,
+                      }}
+                      transition={{
+                        height: { type: 'spring', stiffness: 300, damping: 35, mass: 0.5 },
+                        opacity: { duration: 0.2 },
+                      }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <div className="space-y-3 pt-3">
+                        {pastUmp.map((a) => (
+                          <UmpCard
+                            key={a.id}
+                            a={a}
+                            onEdit={setEditingUmp}
+                            onDelete={deleteAssignment}
+                            deletingId={deletingUmp}
+                          />
+                        ))}
                       </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button onClick={() => setEditingUmp(a)} className="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Edit</button>
-                        <button
-                          onClick={() => deleteAssignment(a.id)}
-                          disabled={deletingUmp === a.id}
-                          className="px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-600 rounded-lg disabled:opacity-50"
-                        >
-                          {deletingUmp === a.id ? '…' : 'Delete'}
-                        </button>
-                      </div>
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* ── Upcoming Duties ── */}
+                <div>
+                  <div className="flex items-center gap-2 px-1 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-accent inline-block" />
+                    <span className="text-sm font-semibold text-gray-700">Upcoming Duties</span>
+                    <span className="text-xs font-normal text-gray-400">({upcomingUmp.length})</span>
+                  </div>
+                  {upcomingUmp.length === 0 ? (
+                    <p className="text-center text-gray-400 py-8">No upcoming umpiring duties.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingUmp.map((a) => (
+                        <UmpCard
+                          key={a.id}
+                          a={a}
+                          onEdit={setEditingUmp}
+                          onDelete={deleteAssignment}
+                          deletingId={deletingUmp}
+                        />
+                      ))}
                     </div>
-                  </motion.div>
-                )
-              })}
-            </div>
-          )}
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>

@@ -22,7 +22,6 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AdminDashboard from './pages/AdminDashboard'
-import ExistingPlayerOnboarding from './pages/ExistingPlayerOnboarding'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -73,7 +72,6 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/player-onboarding" element={<ExistingPlayerOnboarding />} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

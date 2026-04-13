@@ -33,8 +33,6 @@ const FILTERS = [
 export default function JoinRequestsTab({ onPendingCount }) {
   const { profile } = useAuth()
   const [subTab, setSubTab]               = useState('players')
-  // 'new' = public join requests | 'existing' = existing player onboarding
-  const [requestView, setRequestView]     = useState('new')
   const [requests, setRequests]           = useState([])
   const [loading, setLoading]             = useState(true)
   const [filter, setFilter]               = useState('pending')
@@ -50,8 +48,24 @@ export default function JoinRequestsTab({ onPendingCount }) {
       .select('*')
       .order('created_at', { ascending: false })
     const all = data || []
-    setRequests(all)
-    onPendingCount?.(all.filter((r) => r.status === 'pending').length)
+
+    // Fetch reviewer names from profiles for any reviewed requests
+    const reviewerIds = [...new Set(all.map((r) => r.reviewed_by).filter(Boolean))]
+    let reviewerMap = {}
+    if (reviewerIds.length > 0) {
+      const { data: reviewers } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', reviewerIds)
+      for (const p of reviewers || []) reviewerMap[p.id] = p.full_name
+    }
+
+    const enriched = all.map((r) => ({
+      ...r,
+      reviewer_name: r.reviewed_by ? reviewerMap[r.reviewed_by] || null : null,
+    }))
+    setRequests(enriched)
+    onPendingCount?.(enriched.filter((r) => r.status === 'pending').length)
     setLoading(false)
   }
 
@@ -103,13 +117,7 @@ export default function JoinRequestsTab({ onPendingCount }) {
     setConfirmAction(action)
   }
 
-  const viewRequests = requests.filter((r) =>
-    requestView === 'existing'
-      ? r.request_type === 'existing_player'
-      : r.request_type !== 'existing_player'
-  )
-
-  const filtered = viewRequests.filter((r) => {
+  const filtered = requests.filter((r) => {
     const matchesFilter = filter === 'all' || r.status === filter
     const q = search.toLowerCase()
     const matchesSearch =
@@ -118,8 +126,7 @@ export default function JoinRequestsTab({ onPendingCount }) {
     return matchesFilter && matchesSearch
   })
 
-  const pendingCount         = requests.filter((r) => r.status === 'pending' && r.request_type !== 'existing_player').length
-  const existingPendingCount = requests.filter((r) => r.status === 'pending' && r.request_type === 'existing_player').length
+  const pendingCount = requests.filter((r) => r.status === 'pending').length
   const [sponsorNewCount, setSponsorNewCount] = useState(0)
 
   return (
@@ -155,46 +162,9 @@ export default function JoinRequestsTab({ onPendingCount }) {
       )}
 
       {subTab === 'players' && (<div>
-        {/* ── Request-type toggle ── */}
-        <div className="flex gap-2 mb-5">
-          {[
-            { id: 'new',      label: 'New Requests',      icon: '📩', count: pendingCount },
-            { id: 'existing', label: 'Existing Players',  icon: '🏏', count: existingPendingCount },
-          ].map((v) => (
-            <button
-              key={v.id}
-              onClick={() => { setRequestView(v.id); setFilter('pending'); setSearch('') }}
-              className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                requestView === v.id
-                  ? 'bg-primary-dark text-accent'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <span>{v.icon}</span>{v.label}
-              {v.count > 0 && (
-                <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">
-                  {v.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {requestView === 'existing' && (
-          <div className="mb-5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-            <p className="text-xs font-semibold text-blue-700 mb-0.5">Existing Player Onboarding</p>
-            <p className="text-xs text-blue-600 leading-relaxed">
-              These players submitted the fast-track onboarding form. Approving adds them directly to
-              the allowed list with their team pre-set — they only need to set a password to activate their account.
-            </p>
-          </div>
-        )}
-
-        {requestView === 'new' && (
-          <p className="text-sm text-gray-500 mb-5">
-            Players who submitted the Join the Club form. Approve to add them to the allowed list.
-          </p>
-        )}
+        <p className="text-sm text-gray-500 mb-5">
+          Players who submitted the Join the Club form. Approve to add them to the allowed list.
+        </p>
 
       {/* Filters + search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -344,17 +314,23 @@ export default function JoinRequestsTab({ onPendingCount }) {
                 )}
 
                 {req.status === 'approved' && (
-                  <p className="text-xs text-green-600 font-medium">
-                    ✓ {req.team ? `Added to allowed list · ${TEAM_LABELS[req.team] || req.team}` : 'Added to approved players list'}
-                    {req.reviewed_at && ` · ${new Date(req.reviewed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-                  </p>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-green-600 font-medium">
+                      ✓ {req.team ? `Added to allowed list · ${TEAM_LABELS[req.team] || req.team}` : 'Added to approved players list'}
+                    </p>
+                    {req.reviewer_name && (
+                      <p className="text-xs text-green-600 font-medium">✓ Approved by {req.reviewer_name}</p>
+                    )}
+                  </div>
                 )}
 
                 {req.status === 'rejected' && (
-                  <p className="text-xs text-red-500 font-medium">
-                    Request rejected
-                    {req.reviewed_at && ` · ${new Date(req.reviewed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-                  </p>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-red-500 font-medium">✕ Request rejected</p>
+                    {req.reviewer_name && (
+                      <p className="text-xs text-red-500 font-medium">✕ By {req.reviewer_name}</p>
+                    )}
+                  </div>
                 )}
               </div>
             )

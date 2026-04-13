@@ -10,11 +10,16 @@ const ROLES = [
   { value: 'beginner',       label: '🌱 Beginner / Learning' },
 ]
 
+const TEAMS = [
+  { value: 'raising-bulls', label: 'Raising Bulls' },
+  { value: 'royal-bulls',   label: 'Royal Bulls' },
+]
+
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
-  const [formData, setFormData]   = useState({ full_name: '', email: '', playing_role: '', message: '' })
+  const [formData, setFormData]   = useState({ full_name: '', email: '', team: '', playing_role: '', message: '' })
 
   const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -22,10 +27,12 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (!formData.team) { setError('Please select a team.'); setLoading(false); return }
     setLoading(true)
     const { error: err } = await supabase.from('join_requests').insert({
       full_name:    formData.full_name.trim(),
       email:        formData.email.trim().toLowerCase(),
+      team:         formData.team || null,
       playing_role: formData.playing_role,
       message:      formData.message.trim() || null,
     })
@@ -152,6 +159,28 @@ export default function Contact() {
                       className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                       placeholder="your@email.com"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Team <span className="text-red-400">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {TEAMS.map((t) => (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, team: t.value }))}
+                          className={`px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-all ${
+                            formData.team === t.value
+                              ? 'border-primary-dark bg-primary-dark text-white'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>

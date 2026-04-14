@@ -19,7 +19,9 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
-  const [formData, setFormData]   = useState({ full_name: '', email: '', team: '', playing_role: '', message: '' })
+  const [formData, setFormData]   = useState({ full_name: '', email: '', phone: '', team: '', playing_role: '', message: '' })
+
+  const normalizePhone = (value) => value.replace(/\D/g, '')
 
   const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -28,10 +30,18 @@ export default function Contact() {
     e.preventDefault()
     setError('')
     if (!formData.team) { setError('Please select a team.'); setLoading(false); return }
+    const phoneDigits = normalizePhone(formData.phone)
+    if (!phoneDigits) { setError('Mobile number is required.'); setLoading(false); return }
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      setError('Please enter a valid mobile number (10 to 15 digits).')
+      setLoading(false)
+      return
+    }
     setLoading(true)
     const { error: err } = await supabase.from('join_requests').insert({
       full_name:    formData.full_name.trim(),
       email:        formData.email.trim().toLowerCase(),
+      phone:        formData.phone.trim(),
       team:         formData.team || null,
       playing_role: formData.playing_role,
       message:      formData.message.trim() || null,
@@ -162,6 +172,23 @@ export default function Contact() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="phone">
+                      Mobile Number <span className="text-red-400">*</span>
+                      <span className="text-gray-400 font-normal text-xs"> (WhatsApp preferred)</span>
+                    </label>
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                      placeholder="e.g. +1 919 555 1234"
+                    />
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Team <span className="text-red-400">*</span>
                     </label>
@@ -230,7 +257,7 @@ export default function Contact() {
                   </button>
 
                   <p className="text-xs text-gray-400 text-center">
-                    Admins will review and add you to the approved list. You'll then be able to sign up.
+                    Admins will review your request and contact you on WhatsApp or email once approved.
                   </p>
                 </form>
               )}

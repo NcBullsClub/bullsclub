@@ -30,6 +30,48 @@ const FILTERS = [
   { value: 'rejected', label: 'Rejected' },
 ]
 
+function buildApprovalWhatsAppMessage(fullName) {
+  const firstName = (fullName || 'there').split(' ')[0]
+  return [
+    `Hi ${firstName},`,
+    '',
+    'Great news. Your request to join NC Bulls Cricket Club has been approved.',
+    'Please create your account using your approved email in the app/website.',
+    '',
+    'Welcome to the NC Bulls Cricket Club family. We are excited to have you with us.',
+    '',
+    'Regards,',
+    'NC Bulls Cricket Club Admin Team',
+  ].join('\n')
+}
+
+function buildApprovalEmail(fullName) {
+  const firstName = (fullName || 'Player').split(' ')[0]
+  const subject = 'Your NC Bulls Join Request Has Been Approved'
+  const body = [
+    `Dear ${firstName},`,
+    '',
+    'We are pleased to let you know that your request to join NC Bulls Cricket Club has been approved.',
+    'Please create your account using your approved email address to complete your onboarding.',
+    '',
+    'Welcome to NC Bulls Cricket Club. We look forward to seeing you on the field.',
+    '',
+    'Best regards,',
+    'NC Bulls Cricket Club Admin Team',
+  ].join('\n')
+  return { subject, body }
+}
+
+function toWhatsAppNumber(phone) {
+  if (!phone) return null
+  let normalized = phone.trim()
+  if (normalized.startsWith('+')) normalized = normalized.slice(1)
+  normalized = normalized.replace(/\D/g, '')
+  if (!normalized) return null
+  if (normalized.startsWith('00')) normalized = normalized.slice(2)
+  return normalized || null
+}
+
 export default function JoinRequestsTab({ onPendingCount }) {
   const { profile } = useAuth()
   const [subTab, setSubTab]               = useState('players')
@@ -115,6 +157,21 @@ export default function JoinRequestsTab({ onPendingCount }) {
   function askConfirm(req, action) {
     setConfirmId(req.id)
     setConfirmAction(action)
+  }
+
+  function openApprovalWhatsApp(req) {
+    const waNumber = toWhatsAppNumber(req.phone)
+    if (!waNumber) return
+    const message = buildApprovalWhatsAppMessage(req.full_name)
+    const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  function openApprovalEmail(req) {
+    if (!req.email) return
+    const { subject, body } = buildApprovalEmail(req.full_name)
+    const mailto = `mailto:${encodeURIComponent(req.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.location.href = mailto
   }
 
   const filtered = requests.filter((r) => {
@@ -314,13 +371,31 @@ export default function JoinRequestsTab({ onPendingCount }) {
                 )}
 
                 {req.status === 'approved' && (
-                  <div className="space-y-0.5">
+                  <div className="space-y-2">
                     <p className="text-xs text-green-600 font-medium">
                       ✓ {req.team ? `Added to allowed list · ${TEAM_LABELS[req.team] || req.team}` : 'Added to approved players list'}
                     </p>
                     {req.reviewer_name && (
                       <p className="text-xs text-green-600 font-medium">✓ Approved by {req.reviewer_name}</p>
                     )}
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <button
+                        onClick={() => openApprovalWhatsApp(req)}
+                        disabled={!toWhatsAppNumber(req.phone)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={toWhatsAppNumber(req.phone) ? 'Open WhatsApp message' : 'No valid mobile number on this request'}
+                      >
+                        WhatsApp Approval
+                      </button>
+                      <button
+                        onClick={() => openApprovalEmail(req)}
+                        disabled={!req.email}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={req.email ? 'Open email draft' : 'No email found on this request'}
+                      >
+                        Email Approval
+                      </button>
+                    </div>
                   </div>
                 )}
 

@@ -769,8 +769,8 @@ export default function Availability() {
 
   useEffect(() => { loadUmpAvailability() }, [umpAssignments, user])
 
-  async function loadData() {
-    setLoadingData(true)
+  async function loadData({ showSpinner = true } = {}) {
+    if (showSpinner) setLoadingData(true)
     try {
       const { data, error } = await supabase
         .from('availability')
@@ -798,11 +798,11 @@ export default function Availability() {
     } catch {
       // silently skip
     } finally {
-      setLoadingData(false)
+      if (showSpinner) setLoadingData(false)
     }
   }
 
-  useEffect(() => { loadData() }, [teamFilter, user])
+  useEffect(() => { loadData({ showSpinner: true }) }, [teamFilter, user])
 
   useEffect(() => {
     supabase
@@ -1134,7 +1134,7 @@ export default function Availability() {
                                     financeMap={financeMap}
                                     myPaymentPaid={myPaymentStatus}
                                     financeLoaded={financeLoaded}
-                                    onResponseSaved={loadData}
+                                    onResponseSaved={() => loadData({ showSpinner: false })}
                                   />
                                 </div>
                               ))}
@@ -1165,7 +1165,7 @@ export default function Availability() {
                               financeMap={financeMap}
                               myPaymentPaid={myPaymentStatus}
                               financeLoaded={financeLoaded}
-                              onResponseSaved={loadData}
+                              onResponseSaved={() => loadData({ showSpinner: false })}
                             />
                           </div>
                         ))}

@@ -33,12 +33,13 @@ const FILTERS = [
 function buildApprovalWhatsAppMessage(fullName) {
   const firstName = (fullName || 'there').split(' ')[0]
   return [
-    `Hi ${firstName},`,
+    `Hi ${firstName} 👋,`,
     '',
-    'Great news. Your request to join NC Bulls Cricket Club has been approved.',
-    'Please create your account using your approved email in the app/website.',
+    '✅ Great news. Your request to join NC Bulls Cricket Club has been approved.',
+    '📝 Please create your account using your approved email on our app/website.',
     '',
-    'Welcome to the NC Bulls Cricket Club family. We are excited to have you with us.',
+    '🏏 Welcome to the NC Bulls Cricket Club family.',
+    'We are excited to have you with us.',
     '',
     'Regards,',
     'NC Bulls Cricket Club Admin Team',
@@ -48,17 +49,19 @@ function buildApprovalWhatsAppMessage(fullName) {
 function buildApprovalEmail(fullName) {
   const firstName = (fullName || 'Player').split(' ')[0]
   const subject = 'Your NC Bulls Join Request Has Been Approved'
-  const body = [
+  const bodyLines = [
     `Dear ${firstName},`,
     '',
     'We are pleased to let you know that your request to join NC Bulls Cricket Club has been approved.',
-    'Please create your account using your approved email address to complete your onboarding.',
+    'Please create your account using your approved email address to complete onboarding.',
     '',
     'Welcome to NC Bulls Cricket Club. We look forward to seeing you on the field.',
     '',
     'Best regards,',
     'NC Bulls Cricket Club Admin Team',
-  ].join('\n')
+  ]
+  // Use CRLF so mobile mail clients render line breaks consistently.
+  const body = bodyLines.join('\r\n')
   return { subject, body }
 }
 

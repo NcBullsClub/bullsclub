@@ -30,13 +30,15 @@ const FILTERS = [
   { value: 'rejected', label: 'Rejected' },
 ]
 
-function buildApprovalWhatsAppMessage(fullName) {
+function buildApprovalWhatsAppMessage(fullName, email) {
   const firstName = (fullName || 'there').split(' ')[0]
+  const approvedEmail = email || 'your registered email'
   return [
     `Hi ${firstName} 👋,`,
     '',
     '✅ Great news. Your request to join NC Bulls Cricket Club has been approved.',
-    '📝 Please create your account using your approved email on our app/website.',
+    `📧 Approved email: ${approvedEmail}`,
+    '📝 Please create your account using this email on our app/website.',
     '',
     '🏏 Welcome to the NC Bulls Cricket Club family.',
     'We are excited to have you with us.',
@@ -46,14 +48,16 @@ function buildApprovalWhatsAppMessage(fullName) {
   ].join('\n')
 }
 
-function buildApprovalEmail(fullName) {
+function buildApprovalEmail(fullName, email) {
   const firstName = (fullName || 'Player').split(' ')[0]
+  const approvedEmail = email || 'your registered email'
   const subject = 'Your NC Bulls Join Request Has Been Approved'
   const bodyLines = [
     `Dear ${firstName},`,
     '',
     'We are pleased to let you know that your request to join NC Bulls Cricket Club has been approved.',
-    'Please create your account using your approved email address to complete onboarding.',
+    `Approved email: ${approvedEmail}`,
+    'Please create your account using this email address to complete onboarding.',
     '',
     'Welcome to NC Bulls Cricket Club. We look forward to seeing you on the field.',
     '',
@@ -165,14 +169,14 @@ export default function JoinRequestsTab({ onPendingCount }) {
   function openApprovalWhatsApp(req) {
     const waNumber = toWhatsAppNumber(req.phone)
     if (!waNumber) return
-    const message = buildApprovalWhatsAppMessage(req.full_name)
+    const message = buildApprovalWhatsAppMessage(req.full_name, req.email)
     const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   function openApprovalEmail(req) {
     if (!req.email) return
-    const { subject, body } = buildApprovalEmail(req.full_name)
+    const { subject, body } = buildApprovalEmail(req.full_name, req.email)
     const mailto = `mailto:${encodeURIComponent(req.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     window.location.href = mailto
   }

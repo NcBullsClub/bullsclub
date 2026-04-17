@@ -93,6 +93,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
           fixture_team:     fixture.team,
           status,
           notes: notes.trim(),
+          user_name:        profile?.full_name || 'Unknown',
         },
         { onConflict: 'user_id,fixture_date,fixture_team' },
       )
@@ -467,6 +468,7 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
           ncb_team:              assignment.ncb_team,
           status,
           notes: notes.trim(),
+          user_name:             profile?.full_name || 'Unknown',
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id,umpiring_assignment_id' },
@@ -736,15 +738,15 @@ export default function Availability() {
     const ids = umpAssignments.map((a) => a.id)
     if (ids.length === 0) { setUmpAvailMap({}); setMyUmpResponseMap({}); return }
 
-    // Step 1: fetch availability rows (no FK join to avoid FK mismatch)
+    // Step 1: fetch availability rows (include user_name)
     const { data: availRows, error: availErr } = await supabase
       .from('umpiring_availability')
-      .select('*')
+      .select('user_id, umpiring_assignment_id, status, notes, user_name')
       .in('umpiring_assignment_id', ids)
     if (availErr || !availRows) return
 
-    // Step 2: fetch profile names for those user_ids
-    const userIds = [...new Set(availRows.map((r) => r.user_id))]
+    // Step 2: fetch profile names for those user_ids (for active users)
+    const userIds = [...new Set(availRows.map((r) => r.user_id).filter(Boolean))]
     let profileMap = {}
     if (userIds.length > 0) {
       const { data: profileRows } = await supabase
@@ -760,7 +762,9 @@ export default function Availability() {
       const k = row.umpiring_assignment_id
       if (!agg[k]) agg[k] = { in: 0, out: 0, maybe: 0, names: [] }
       agg[k][row.status] = (agg[k][row.status] || 0) + 1
-      agg[k].names.push({ name: profileMap[row.user_id] || 'Unknown', status: row.status })
+      // Use user_name if available, otherwise profile name, otherwise Unknown
+      const name = row.user_name || (row.user_id ? profileMap[row.user_id] : null) || 'Unknown'
+      agg[k].names.push({ name, status: row.status })
       if (user && row.user_id === user.id) mine[k] = { status: row.status, notes: row.notes }
     }
     setUmpAvailMap(agg)
@@ -774,7 +778,7 @@ export default function Availability() {
     try {
       const { data, error } = await supabase
         .from('availability')
-        .select('fixture_date, fixture_team, status, notes, user_id, profiles(full_name)')
+        .select('fixture_date, fixture_team, status, notes, user_id, user_name, profiles(full_name)')
         .eq('fixture_team', teamFilter)
 
       if (error) throw error
@@ -786,7 +790,7 @@ export default function Availability() {
         const k = `${row.fixture_date}::${row.fixture_team}`
         if (!agg[k]) agg[k] = { in: 0, out: 0, maybe: 0, players: [] }
         agg[k][row.status] = (agg[k][row.status] || 0) + 1
-        agg[k].players.push({ name: row.profiles?.full_name || 'Unknown', status: row.status })
+        agg[k].players.push({ name: row.user_name || row.profiles?.full_name || 'Unknown', status: row.status })
 
         if (user && row.user_id === user.id) {
           mine[k] = { status: row.status, notes: row.notes }

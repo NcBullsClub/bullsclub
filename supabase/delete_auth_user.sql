@@ -25,8 +25,22 @@ BEGIN
   END IF;
 
   -- Nullify FK references that don't have ON DELETE CASCADE/SET NULL
-  -- (join_requests.reviewed_by and sponsor_inquiries.reviewed_by reference auth.users directly)
-  UPDATE public.join_requests     SET reviewed_by = NULL WHERE reviewed_by = target_user_id;
+  -- For legacy join requests created before phone became mandatory, preserve the row
+  -- by converting invalid public requests to existing_player before nulling reviewed_by.
+  UPDATE public.join_requests
+  SET
+    reviewed_by = NULL,
+    request_type = CASE
+      WHEN request_type = 'public'
+        AND (
+          phone IS NULL
+          OR btrim(phone) = ''
+          OR char_length(regexp_replace(phone, '\D', '', 'g')) NOT BETWEEN 10 AND 15
+        ) THEN 'existing_player'
+      ELSE request_type
+    END
+  WHERE reviewed_by = target_user_id;
+
   UPDATE public.sponsor_inquiries SET reviewed_by = NULL WHERE reviewed_by = target_user_id;
 
   -- Delete from auth.users; profile row cascades automatically

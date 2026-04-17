@@ -85,12 +85,20 @@ export default function UsersTab() {
     if (newRole === user.role) { setEditingRole(null); return }
     setSaving(user.id)
     setErrorMsg('')
+
+    const originalRole = user.role
+    setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: newRole } : u))
+
     const { error } = await supabase
       .from('profiles')
       .update({ role: newRole })
       .eq('id', user.id)
-    if (error) setErrorMsg(`Failed to update role: ${error.message}`)
-    await load()
+
+    if (error) {
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: originalRole } : u))
+      setErrorMsg(`Failed to update role: ${error.message}`)
+    }
+
     setSaving(null)
     setEditingRole(null)
   }
@@ -99,12 +107,20 @@ export default function UsersTab() {
     if (newTeam === user.team) { setEditingTeam(null); return }
     setSaving(user.id)
     setErrorMsg('')
+
+    const originalTeam = user.team
+    setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, team: newTeam } : u))
+
     const { error } = await supabase
       .from('profiles')
       .update({ team: newTeam })
       .eq('id', user.id)
-    if (error) setErrorMsg(`Failed to update team: ${error.message}`)
-    await load()
+
+    if (error) {
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, team: originalTeam } : u))
+      setErrorMsg(`Failed to update team: ${error.message}`)
+    }
+
     setSaving(null)
     setEditingTeam(null)
   }
@@ -112,17 +128,21 @@ export default function UsersTab() {
   async function handleDelete(userId) {
     setDeleting(userId)
     setErrorMsg('')
+
+    const removedUser = users.find((u) => u.id === userId)
+    setUsers((prev) => prev.filter((u) => u.id !== userId))
+
     const { error } = await supabase.rpc('delete_auth_user', { target_user_id: userId })
     if (error) {
       console.error('delete_auth_user error:', error)
       alert(`Delete failed: ${error.message}`)
+      if (removedUser) setUsers((prev) => [...prev, removedUser])
       setErrorMsg(`Failed to delete user: ${error.message}`)
-      setDeleting(null)
     } else {
       setConfirmDelete(null)
-      setDeleting(null)
-      await load()
     }
+
+    setDeleting(null)
   }
 
   const totalCount      = users.length

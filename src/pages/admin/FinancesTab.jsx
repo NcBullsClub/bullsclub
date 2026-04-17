@@ -184,12 +184,17 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                     )}
                   </div>
                   <p className="text-[11px] text-gray-400">{player.email}</p>
+                  {record?.updated_by && record?.updated_at && (
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Updated by {record.updated_by} on {new Date(record.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right flex-shrink-0 hidden sm:block">
                   <p className={`text-sm font-bold tabular-nums ${paid ? 'text-green-600' : 'text-gray-400'}`}>${SEASON_FEE}</p>
                   {record?.paid_at && (
                     <p className="text-[10px] text-gray-400">
-                      {new Date(record.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      Paid {new Date(record.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </p>
                   )}
                 </div>
@@ -1504,7 +1509,7 @@ export default function FinancesTab() {
     setLoading(true)
     const [{ data: profileData }, { data: finData }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, team, role').order('full_name'),
-      supabase.from('player_finances').select('*').eq('season', SEASON),
+      supabase.from('player_finances').select('id, player_name, team, season, amount_due, paid, paid_at, created_at, updated_at, updated_by').eq('season', SEASON),
     ])
     setRosterPlayers(profileData || [])
     const map = {}
@@ -1524,6 +1529,20 @@ export default function FinancesTab() {
     setToggling(player.id)
     const existing = getRecord(player)
     const nowPaid  = !existing?.paid
+    const currentUserName = rosterPlayers.find((p) => p.email === user?.email)?.full_name || 'Unknown'
+
+    // Optimistic update
+    const optimisticRecord = {
+      ...existing,
+      paid: nowPaid,
+      paid_at: nowPaid ? new Date().toISOString() : null,
+      updated_by: currentUserName,
+      updated_at: new Date().toISOString(),
+    }
+    setFinanceMap((prev) => ({
+      ...prev,
+      [`${player.full_name}::${player.team}`]: optimisticRecord,
+    }))
 
     let error
     if (existing) {
@@ -1531,8 +1550,10 @@ export default function FinancesTab() {
       const res = await supabase
         .from('player_finances')
         .update({
-          paid:    nowPaid,
-          paid_at: nowPaid ? new Date().toISOString() : null,
+          paid:       nowPaid,
+          paid_at:    nowPaid ? new Date().toISOString() : null,
+          updated_by: currentUserName,
+          updated_at: new Date().toISOString(),
         })
         .eq('player_name', player.full_name)
         .eq('team',        player.team)
@@ -1549,14 +1570,25 @@ export default function FinancesTab() {
           amount_due:  SEASON_FEE,
           paid:        nowPaid,
           paid_at:     nowPaid ? new Date().toISOString() : null,
+          updated_by:  currentUserName,
+          updated_at:  new Date().toISOString(),
         })
       error = res.error
     }
 
     if (error) {
       console.error('togglePaid error:', error.message)
+      // Revert optimistic update on error
+      setFinanceMap((prev) => {
+        const newMap = { ...prev }
+        if (existing) {
+          newMap[`${player.full_name}::${player.team}`] = existing
+        } else {
+          delete newMap[`${player.full_name}::${player.team}`]
+        }
+        return newMap
+      })
     }
-    await loadAll()
     setToggling(null)
   }
 

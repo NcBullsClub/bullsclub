@@ -666,11 +666,11 @@ export default function ClubhouseGalleryTab() {
                 </div>
 
                 {/* Match Date + Uploaded By */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="min-w-0">
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Match Date</label>
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <span className="hidden sm:block absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                           <line x1="16" y1="2" x2="16" y2="6"/>
@@ -682,17 +682,17 @@ export default function ClubhouseGalleryTab() {
                         type="date"
                         value={form.match_date}
                         onChange={(e) => setForm((f) => ({ ...f, match_date: e.target.value }))}
-                        className="w-full border border-gray-200 rounded-lg pl-8 pr-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        className="w-full min-w-0 border border-gray-200 rounded-lg pl-3 sm:pl-8 pr-8 py-2 text-[11px] sm:text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
                       />
                     </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Uploaded By</label>
                     <input
                       type="text"
                       value={form.uploaded_by}
                       onChange={(e) => setForm((f) => ({ ...f, uploaded_by: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full min-w-0 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                 </div>

@@ -207,11 +207,11 @@ export default function Gallery() {
     })
   }
 
-  const videoItems        = items.filter((g) => g.video_url && !g.image_url)
-  const photoItems        = items.filter((g) => !!g.image_url)
+  const videoItems        = items.filter((g) => g.video_url && !g.image_url && g.tags.includes('_public'))
+  const photoItems        = items.filter((g) => !!g.image_url && g.tags.includes('_public'))
   const trophyItems       = photoItems.filter((g) => isTrophy(g.tags))
   const momentItems       = photoItems.filter((g) => !isTrophy(g.tags))
-  const momentTags        = [...new Set(momentItems.flatMap((g) => g.tags))].sort()
+  const momentTags        = [...new Set(momentItems.flatMap((g) => g.tags.filter((t) => t !== '_public')))].sort()
   const filters           = ['All', ...momentTags]
   const filteredMoments   = filter === 'All' ? momentItems : momentItems.filter((g) => g.tags.includes(filter))
 

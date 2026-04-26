@@ -130,6 +130,16 @@ export default function Gallery() {
     if (lightbox) { setZoom(1); setPan({ x: 0, y: 0 }); setIsGesturing(false) }
   }, [lightbox])
 
+  // Keep modal interactions reliable on mobile/PWA by preventing background scroll.
+  useEffect(() => {
+    if (!lightbox) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [lightbox])
+
   // Keep refs in sync with state so touch handlers always have latest values
   useEffect(() => { zoomRef.current = zoom }, [zoom])
   useEffect(() => { panRef.current = pan }, [pan])
@@ -188,10 +198,12 @@ export default function Gallery() {
     el.addEventListener('touchstart', onTouchStart, { passive: false })
     el.addEventListener('touchmove',  onTouchMove,  { passive: false })
     el.addEventListener('touchend',   onTouchEnd)
+    el.addEventListener('touchcancel', onTouchEnd)
     return () => {
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchmove',  onTouchMove)
       el.removeEventListener('touchend',   onTouchEnd)
+      el.removeEventListener('touchcancel', onTouchEnd)
     }
   }, [lightbox])
 
@@ -447,7 +459,7 @@ export default function Gallery() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-50 flex flex-col"
+            className="fixed inset-0 bg-black z-[120] flex flex-col"
             onClick={() => setLightbox(null)}
           >
             {/* top bar */}
@@ -504,6 +516,7 @@ export default function Gallery() {
             <div
               ref={imgAreaRef}
               className="flex-1 flex items-center justify-center min-h-0 safe-area-inset overflow-hidden"
+              style={{ touchAction: 'none' }}
               onClick={(e) => e.stopPropagation()}
             >
               {lightbox.image_url ? (

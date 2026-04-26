@@ -301,7 +301,10 @@ export default function Fixtures() {
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
               <span>⏰ {f.time}</span>
-              <span>·</span><span>{weekday}</span>
+              <span>·</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-1.5 py-0.5 rounded-full">
+                {weekday}
+              </span>
               <span>·</span><span>{f.type}</span>
             </div>
           </div>
@@ -441,6 +444,9 @@ export default function Fixtures() {
               </h3>
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                 <span>⏰ {f.time}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
+                  {weekday}
+                </span>
               </div>
               <VenueActions venue={f.venue} venueAddress={f.venue_address} />
             </div>

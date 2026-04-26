@@ -373,8 +373,13 @@ export default function Home() {
                         <span className="font-bold text-primary-dark text-sm leading-tight truncate">vs {f.opponent}</span>
                         <span className="ml-auto flex-shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{f.format}</span>
                       </div>
-                      {/* Row 2: venue · time */}
-                      <div className="text-xs text-gray-400 truncate mb-2.5">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
+                      {/* Row 2: venue · time · day */}
+                      <div className="flex items-center gap-1.5 mb-2.5 min-w-0">
+                        <div className="text-xs text-gray-400 truncate">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
+                        <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-primary-dark bg-accent/15 border border-accent/50 px-2 py-0.5 rounded-full">
+                          {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
                       {/* Row 3: CTA */}
                       <Link
                         to={`/availability?fixture=${f.id}&team=raising-bulls`}
@@ -397,7 +402,12 @@ export default function Home() {
                     >
                       <div className="text-xs font-bold uppercase tracking-widest text-accent mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
                       <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
-                      <div className="text-sm text-gray-500 mb-3">{f.time} &middot; {f.format}</div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="text-sm text-gray-500">{f.time} &middot; {f.format}</div>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-primary-dark bg-accent/10 border border-accent/50 px-2 py-0.5 rounded-full">
+                          {new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
                       <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
@@ -440,8 +450,13 @@ export default function Home() {
                         <span className="font-bold text-primary-dark text-sm leading-tight truncate">vs {f.opponent}</span>
                         <span className="ml-auto flex-shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{f.format}</span>
                       </div>
-                      {/* Row 2: venue · time */}
-                      <div className="text-xs text-gray-400 truncate mb-2.5">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
+                      {/* Row 2: venue · time · day */}
+                      <div className="flex items-center gap-1.5 mb-2.5 min-w-0">
+                        <div className="text-xs text-gray-400 truncate">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
+                        <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
+                          {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
                       {/* Row 3: CTA */}
                       <Link
                         to={`/availability?fixture=${f.id}&team=royal-bulls`}
@@ -464,7 +479,12 @@ export default function Home() {
                     >
                       <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
                       <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
-                      <div className="text-sm text-gray-500 mb-3">{f.time} &middot; {f.format}</div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="text-sm text-gray-500">{f.time} &middot; {f.format}</div>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
+                          {new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
                       <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
@@ -605,6 +625,60 @@ export default function Home() {
               className="inline-flex items-center gap-2 border-2 border-primary text-primary font-semibold px-6 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all text-sm"
             >
               Become a Sponsor →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Clubhouse Hub — News, Events, Gallery in One Row */}
+      <section className="py-6 sm:py-12 bg-surface">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-8 mb-5 sm:mb-8">
+            <div>
+              <h2 className="section-heading text-2xl sm:text-3xl">🏠 Clubhouse</h2>
+              <p className="text-gray-500 text-xs sm:text-sm mt-1">Your hub for club news, events & moments</p>
+            </div>
+          </div>
+
+          {/* Three feature cards in one row — responsive for mobile */}
+          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-4">
+            {/* News */}
+            <Link
+              to="/news"
+              className="group flex flex-col items-center justify-center p-3 sm:p-5 rounded-xl border border-gray-200 bg-white hover:shadow-md hover:border-primary transition-all text-center"
+            >
+              <div className="text-4xl sm:text-5xl mb-2 sm:mb-3 group-hover:scale-110 transition-transform">📰</div>
+              <h3 className="font-display font-bold text-gray-800 text-sm sm:text-base leading-tight mb-1">News</h3>
+              <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-2">Latest updates from the club</p>
+              <span className="inline-flex items-center gap-1 text-primary text-[10px] sm:text-xs font-medium mt-2 sm:mt-3">
+                View All →
+              </span>
+            </Link>
+
+            {/* Events */}
+            <Link
+              to="/events"
+              className="group flex flex-col items-center justify-center p-3 sm:p-5 rounded-xl border border-gray-200 bg-white hover:shadow-md hover:border-accent transition-all text-center"
+            >
+              <div className="text-4xl sm:text-5xl mb-2 sm:mb-3 group-hover:scale-110 transition-transform">📅</div>
+              <h3 className="font-display font-bold text-gray-800 text-sm sm:text-base leading-tight mb-1">Events</h3>
+              <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-2">Upcoming club activities</p>
+              <span className="inline-flex items-center gap-1 text-accent text-[10px] sm:text-xs font-medium mt-2 sm:mt-3">
+                View All →
+              </span>
+            </Link>
+
+            {/* Gallery */}
+            <Link
+              to="/gallery"
+              className="group flex flex-col items-center justify-center p-3 sm:p-5 rounded-xl border border-gray-200 bg-white hover:shadow-md hover:border-primary-dark transition-all text-center"
+            >
+              <div className="text-4xl sm:text-5xl mb-2 sm:mb-3 group-hover:scale-110 transition-transform">🖼️</div>
+              <h3 className="font-display font-bold text-gray-800 text-sm sm:text-base leading-tight mb-1">Gallery</h3>
+              <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-2">Photos & moments</p>
+              <span className="inline-flex items-center gap-1 text-primary-dark text-[10px] sm:text-xs font-medium mt-2 sm:mt-3">
+                View All →
+              </span>
             </Link>
           </div>
         </div>

@@ -36,6 +36,8 @@ function YouTubeIcon() {
 
 /* ── Photo tile ─────────────────────────────────────── */
 function PhotoTile({ item, onClick, trophy = false }) {
+  const [imageError, setImageError] = useState(false)
+
   return (
     <motion.button
       initial={{ opacity: 0 }}
@@ -48,12 +50,20 @@ function PhotoTile({ item, onClick, trophy = false }) {
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary-dark to-primary" />
       {item.image_url ? (
-        <img
-          src={convertDriveUrl(item.thumb_url || item.image_url)}
-          alt={item.title}
-          className="absolute inset-0 w-full h-full object-cover group-active:scale-95 sm:group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-        />
+        <>
+          <img
+            src={convertDriveUrl(item.thumb_url || item.image_url)}
+            alt={item.title}
+            className={`absolute inset-0 w-full h-full object-cover group-active:scale-95 sm:group-hover:scale-105 transition-transform duration-500 ${imageError ? 'hidden' : ''}`}
+            loading="lazy"
+            onError={() => setImageError(true)}
+          />
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs text-center p-2">
+              <span>Unable to load image</span>
+            </div>
+          )}
+        </>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
           <span className={`font-display font-bold text-2xl ${trophy ? 'text-amber-400/20' : 'text-white/10'}`}>NCB</span>

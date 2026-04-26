@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../../lib/turso'
 import { useAuth } from '../../contexts/AuthContext'
+import CloudinaryUpload from '../../components/ui/CloudinaryUpload'
 
 const TROPHY_TAGS = new Set(['trophy', 'trophies', 'honours', 'award', 'winners', 'champion', 'champions'])
 const isTrophy = (tags) => Array.isArray(tags) && tags.some((t) => TROPHY_TAGS.has(t.toLowerCase()))
@@ -21,6 +22,9 @@ function convertDriveUrl(url) {
   // Other Drive URL with ?id= param
   const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
   if (idMatch && url.includes('drive.google.com')) return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1600`
+  // Cloudinary URLs - keep as is
+  if (url.includes('cloudinary.com')) return url
+  // Already a direct URL
   return url
 }
 
@@ -42,6 +46,7 @@ export default function ClubhouseGalleryTab() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [lightbox, setLightbox] = useState(null)
   const [mediaType, setMediaType] = useState('photo') // 'photo' | 'video'
+  const [imageErrors, setImageErrors] = useState({}) // Track broken images
   const titleRef = useRef(null)
 
   const load = () => {
@@ -52,6 +57,8 @@ export default function ClubhouseGalleryTab() {
         setItems(
           rows.map((r) => ({
             ...r,
+            image_url: r.image_url ? convertDriveUrl(r.image_url) : r.image_url,
+            thumb_url: r.thumb_url ? convertDriveUrl(r.thumb_url) : r.thumb_url,
             tags: r.tags ? JSON.parse(r.tags) : [],
           }))
         )
@@ -152,45 +159,62 @@ export default function ClubhouseGalleryTab() {
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="bg-white rounded-xl border-l-4 border-accent px-4 py-3 shadow-sm flex-shrink-0">
-          <div className="text-2xl font-display font-bold text-primary-dark">{items.length}</div>
-          <div className="text-xs text-gray-500">Total Photos</div>
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-3 sm:p-4 mb-4 sm:mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display font-bold text-primary-dark text-base sm:text-lg">Gallery Manager</h3>
+          <span className="text-[10px] sm:text-xs font-semibold bg-primary-dark/10 text-primary-dark px-2 py-1 rounded-full">
+            {filtered.length} shown
+          </span>
         </div>
-        <div className="flex gap-2">
-          <div className="bg-amber-50 rounded-xl border-l-4 border-amber-400 px-3 py-2 flex-shrink-0">
-            <div className="text-lg font-display font-bold text-amber-700">{items.filter((g) => isTrophy(g.tags)).length}</div>
-            <div className="text-[10px] text-amber-500">🏆 Trophies</div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 px-2 py-2">
+            <div className="text-lg sm:text-xl leading-none font-display font-bold text-primary-dark">{items.length}</div>
+            <div className="text-[10px] text-gray-500 mt-1">Photos</div>
           </div>
-          <div className="bg-blue-50 rounded-xl border-l-4 border-blue-400 px-3 py-2 flex-shrink-0">
-            <div className="text-lg font-display font-bold text-blue-700">{items.filter((g) => !!g.image_url && !isTrophy(g.tags)).length}</div>
-            <div className="text-[10px] text-blue-500">📸 Moments</div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-2">
+            <div className="text-sm sm:text-lg leading-none font-display font-bold text-amber-700">{items.filter((g) => isTrophy(g.tags)).length}</div>
+            <div className="text-[10px] text-amber-600 mt-1">🏆 Trophy</div>
           </div>
-          <div className="bg-red-50 rounded-xl border-l-4 border-red-400 px-3 py-2 flex-shrink-0">
-            <div className="text-lg font-display font-bold text-red-600">{items.filter((g) => g.video_url && !g.image_url).length}</div>
-            <div className="text-[10px] text-red-400">🎬 Videos</div>
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-2 py-2">
+            <div className="text-sm sm:text-lg leading-none font-display font-bold text-blue-700">{items.filter((g) => !!g.image_url && !isTrophy(g.tags)).length}</div>
+            <div className="text-[10px] text-blue-600 mt-1">📸 Moments</div>
+          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 px-2 py-2">
+            <div className="text-sm sm:text-lg leading-none font-display font-bold text-red-600">{items.filter((g) => g.video_url && !g.image_url).length}</div>
+            <div className="text-[10px] text-red-500 mt-1">🎬 Videos</div>
           </div>
         </div>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search gallery…"
-          className="flex-1 min-w-[160px] px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => openAdd('photo')}
-            className="flex items-center gap-1.5 bg-primary-dark text-accent px-3 py-2 rounded-lg text-sm font-semibold hover:bg-primary transition-colors"
-          >
-            📸 Photo
-          </button>
-          <button
-            onClick={() => openAdd('video')}
-            className="flex items-center gap-1.5 bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
-          >
-            🎬 Video
-          </button>
+
+        {/* Search + Actions */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by title, caption, or tags"
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => openAdd('photo')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-primary-dark text-accent px-3 py-2 rounded-xl text-sm font-semibold hover:bg-primary transition-colors"
+            >
+              <span>📸</span>
+              <span>Add Photo</span>
+            </button>
+            <button
+              onClick={() => openAdd('video')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-red-600 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors"
+            >
+              <span>🎬</span>
+              <span>Add Video</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -206,7 +230,7 @@ export default function ClubhouseGalleryTab() {
           <p className="text-sm">Add your first photo to the gallery.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {filtered.map((g, i) => (
             <motion.div
               key={g.id}
@@ -214,20 +238,40 @@ export default function ClubhouseGalleryTab() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.04 }}
-              className="group relative bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all"
+              className="group relative bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               {/* Thumbnail */}
               <div
-                className="aspect-square cursor-pointer overflow-hidden bg-gradient-to-br from-primary-dark to-primary"
+                className="aspect-square cursor-pointer overflow-hidden bg-gradient-to-br from-primary-dark to-primary relative group/thumb"
                 onClick={() => setLightbox(g)}
               >
                 {g.image_url ? (
-                  <img
-                    src={g.thumb_url || g.image_url}
-                    alt={g.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => { e.target.style.display = 'none' }}
-                  />
+                  <>
+                    <img
+                      src={convertDriveUrl(g.thumb_url || g.image_url)}
+                      alt={g.title}
+                      className={`w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300 ${imageErrors[g.id] ? 'hidden' : ''}`}
+                      onError={(e) => {
+                        setImageErrors((prev) => ({ ...prev, [g.id]: true }))
+                        console.warn(`Failed to load image: ${convertDriveUrl(g.thumb_url || g.image_url)}`)
+                      }}
+                    />
+                    {imageErrors[g.id] && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 text-white p-2">
+                        <div className="text-2xl mb-1">⚠️</div>
+                        <p className="text-[10px] font-semibold text-center leading-tight mb-1">Image not accessible</p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openEdit(g)
+                          }}
+                          className="text-[9px] text-blue-300 hover:text-blue-100 underline"
+                        >
+                          Fix URL
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : g.video_url ? (
                   (() => {
                     const ytMatch = g.video_url.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/)
@@ -235,7 +279,7 @@ export default function ClubhouseGalleryTab() {
                     return (
                       <div className="relative w-full h-full">
                         {thumb ? (
-                          <img src={thumb} alt={g.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <img src={thumb} alt={g.title} className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gray-900">
                             <span className="text-3xl">▶️</span>
@@ -254,10 +298,11 @@ export default function ClubhouseGalleryTab() {
                     <span className="font-display text-accent/30 text-4xl font-bold">NCB</span>
                   </div>
                 )}
+
               </div>
 
               {/* Card info */}
-              <div className="p-2.5">
+              <div className="p-3">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                     g.video_url && !g.image_url ? 'bg-red-50 text-red-500' : isTrophy(g.tags) ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-500'
@@ -320,7 +365,7 @@ export default function ClubhouseGalleryTab() {
                 ) : (
                   <motion.div
                     key="actions"
-                    className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   >
                     <button
                       onClick={() => openEdit(g)}
@@ -341,7 +386,7 @@ export default function ClubhouseGalleryTab() {
               </AnimatePresence>
 
               {/* Expand hint */}
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 pointer-events-none hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="bg-black/40 rounded-lg px-2 py-1 text-white text-[10px] font-semibold -mt-6">
                   Click to expand
                 </div>
@@ -371,7 +416,7 @@ export default function ClubhouseGalleryTab() {
             >
               {lightbox.image_url ? (
                 <img
-                  src={lightbox.image_url}
+                  src={convertDriveUrl(lightbox.image_url)}
                   alt={lightbox.title}
                   className="w-full rounded-2xl max-h-[78vh] object-contain shadow-2xl"
                 />
@@ -481,7 +526,7 @@ export default function ClubhouseGalleryTab() {
                 {mediaType === 'photo' && form.image_url && (
                   <div className="rounded-xl overflow-hidden border border-gray-200 h-44 bg-gray-50">
                     <img
-                      src={form.thumb_url || form.image_url}
+                      src={convertDriveUrl(form.thumb_url || form.image_url)}
                       alt="preview"
                       className="w-full h-full object-cover"
                       onError={(e) => (e.target.style.display = 'none')}
@@ -507,6 +552,32 @@ export default function ClubhouseGalleryTab() {
                 {/* ── PHOTO fields ── */}
                 {mediaType === 'photo' && (
                   <>
+                    {/* Cloudinary Upload */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-2.5 uppercase tracking-wide">
+                        Upload Image to Cloudinary
+                      </label>
+                      <CloudinaryUpload
+                        onUploadSuccess={(uploadedData) => {
+                          setForm((f) => ({
+                            ...f,
+                            image_url: uploadedData.secure_url,
+                            thumb_url: uploadedData.thumb_url,
+                          }))
+                        }}
+                        onUploadError={(error) => {
+                          alert(`Upload failed: ${error}`)
+                        }}
+                        disabled={saving}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 py-2">
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-xs text-gray-400 font-medium">OR</span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Image URL</label>
                       <input

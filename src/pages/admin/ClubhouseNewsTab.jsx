@@ -328,32 +328,32 @@ export default function ClubhouseNewsTab() {
   return (
     <div>
       {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {[
           { label: 'Total Articles', value: stats.total,     cls: 'border-gray-300'  },
           { label: 'Published',      value: stats.published, cls: 'border-green-400' },
           { label: 'Drafts',         value: stats.draft,     cls: 'border-amber-400' },
         ].map((s) => (
-          <div key={s.label} className={`bg-white rounded-xl border-l-4 ${s.cls} px-4 py-3 shadow-sm`}>
-            <div className="text-2xl font-display font-bold text-primary-dark">{s.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+          <div key={s.label} className={`bg-white rounded-lg sm:rounded-xl border-l-4 ${s.cls} px-2.5 sm:px-4 py-1.5 sm:py-3 shadow-sm`}>
+            <div className="text-lg sm:text-2xl font-display font-bold text-primary-dark">{s.value}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3 sm:mb-4">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search articles…"
-          className="flex-1 min-w-[160px] px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="flex-1 min-w-[140px] px-2.5 sm:px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="px-2.5 sm:px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           <option value="all">All Status</option>
           <option value="published">Published</option>
@@ -362,7 +362,7 @@ export default function ClubhouseNewsTab() {
         <select
           value={filterTeam}
           onChange={(e) => setFilterTeam(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="px-2.5 sm:px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
           <option value="all">All Teams</option>
           <option value="raising-bulls">Raising Bulls</option>
@@ -371,7 +371,7 @@ export default function ClubhouseNewsTab() {
         </select>
         <button
           onClick={openAdd}
-          className="flex items-center gap-1.5 bg-primary-dark text-accent px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary transition-colors"
+          className="flex items-center gap-1.5 bg-primary-dark text-accent px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold hover:bg-primary transition-colors"
         >
           + Add Article
         </button>

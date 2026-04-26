@@ -59,83 +59,74 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      {/* Header */}
-      <section className="bg-primary-dark text-white py-10 md:py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header — Compact for mobile */}
+      <section className="bg-primary-dark text-white py-4 md:py-10 lg:py-14">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-4 ${roleColor}`}>
-              🔐 {roleLabel} Dashboard
+            <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] sm:text-xs font-semibold mb-2 sm:mb-3 md:mb-4 ${roleColor}`}>
+              🔐 {roleLabel}
             </div>
-            <h1 className="font-display text-4xl md:text-6xl font-bold mb-2">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-1 sm:mb-2 leading-tight">
               ADMIN <span className="text-accent">PANEL</span>
             </h1>
-            <p className="text-gray-400 text-sm">
-              Logged in as{' '}
-              <strong className="text-white">{profile?.full_name}</strong>
+            <p className="text-gray-400 text-[11px] sm:text-xs md:text-sm">
+              <span className="text-white font-medium">{profile?.full_name}</span>
               {!isSuperAdmin && profile?.team && (
-                <> &middot; <span className="text-accent">{
-                  profile.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
-                }</span></>
+                <> · <span className="text-accent">{profile.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}</span></>
               )}
-              {isSuperAdmin && (
-                <> &middot; <span className="text-purple-400">All Teams</span></>
-              )}
+              {isSuperAdmin && <> · <span className="text-purple-400">All Teams</span></>}
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* ── Mobile tab grid — 2 rows of 4 ── */}
-      <section className="md:hidden bg-white border-b border-gray-100 shadow-sm px-3 py-3 sticky top-16 z-30">
-        <div className="space-y-1.5">
-          {[ROW1, ROW2].map((row, ri) => (
-            <div key={ri} className="grid grid-cols-4 gap-1.5">
-              {row.map((tab) => {
-                const active = activeTab === tab.id
-                const badge  = tab.id === 'requests' && pendingRequests > 0
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl text-center transition-all ${
-                      active
-                        ? 'bg-primary-dark text-accent'
-                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="text-2xl leading-none">{tab.icon}</span>
-                    <span className="text-[10px] font-semibold leading-tight">{tab.short}</span>
-                    {badge && (
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-amber-400 text-primary-dark rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
-                        {pendingRequests}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          ))}
+      {/* ── Mobile tab grid — Compact 4-column single row ── */}
+      <section className="md:hidden bg-white border-b border-gray-100 shadow-sm px-2 py-2 sticky top-16 z-30">
+        <div className="grid grid-cols-4 gap-1">
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id
+            const badge = tab.id === 'requests' && pendingRequests > 0
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-lg text-center transition-all ${
+                  active
+                    ? 'bg-primary-dark text-accent'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-xl leading-none">{tab.icon}</span>
+                <span className="text-[9px] font-semibold leading-tight">{tab.short}</span>
+                {badge && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-primary-dark rounded-full text-[8px] font-bold flex items-center justify-center leading-none">
+                    {pendingRequests}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
       </section>
 
       {/* ── Desktop tab bar — 2 rows ── */}
       <section className="hidden md:block bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           {[ROW1, ROW2].map((row, ri) => (
-            <div key={ri} className={`flex gap-1 ${ri === 0 ? 'pt-2 pb-1' : 'pb-2'} ${ri === 0 ? 'border-b border-gray-100' : ''}`}>
+            <div key={ri} className={`flex gap-1 ${ri === 0 ? 'pt-2 pb-1' : 'pb-2 pt-1'} ${ri === 0 ? 'border-b border-gray-100' : ''}`}>
               {row.map((tab) => {
                 const badge = tab.id === 'requests' && pendingRequests > 0
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                       activeTab === tab.id
                         ? 'bg-primary-dark text-accent'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-primary'
                     }`}
                   >
-                    <span className="text-xl">{tab.icon}</span>
+                    <span className="text-lg">{tab.icon}</span>
                     {tab.label}
                     {badge && (
                       <span className="ml-0.5 bg-amber-400 text-primary-dark rounded-full px-1.5 text-[10px] font-bold leading-none py-0.5">
@@ -150,16 +141,16 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Tab content */}
-      <section className="py-8 md:py-10 bg-surface min-h-[70vh]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Active tab title on mobile */}
-          <div className="md:hidden flex items-center gap-2 mb-5">
-            <span className="text-xl">{activeTabObj?.icon}</span>
-            <h2 className="font-display font-bold text-primary text-xl">{activeTabObj?.label}</h2>
+      {/* Tab content — Compact for mobile */}
+      <section className="py-4 md:py-8 lg:py-10 bg-surface min-h-[calc(100vh-300px)]">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          {/* Active tab title on mobile (hidden for clubhouse; handled inline with sub-nav) */}
+          <div className={`md:hidden flex items-center gap-2 mb-3 ${activeTab === 'clubhouse' ? 'hidden' : ''}`}>
+            <span className="text-lg">{activeTabObj?.icon}</span>
+            <h2 className="font-display font-bold text-primary text-base">{activeTabObj?.label}</h2>
             {activeTabObj?.id === 'requests' && pendingRequests > 0 && (
-              <span className="text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
-                {pendingRequests} pending
+              <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                {pendingRequests}
               </span>
             )}
           </div>
@@ -180,8 +171,34 @@ export default function AdminDashboard() {
             {activeTab === 'users'        && isSuperAdmin && <UsersTab />}
             {activeTab === 'clubhouse'    && (
               <div>
-                {/* Clubhouse sub-nav */}
-                <div className="flex gap-2 mb-6">
+                {/* Clubhouse title + sub-nav in one row on mobile */}
+                <div className="md:hidden flex items-center gap-2 mb-3 overflow-x-auto whitespace-nowrap pb-1 -mx-3 px-3">
+                  <div className="flex items-center gap-1.5 flex-shrink-0 pr-1">
+                    <span className="text-base">🏠</span>
+                    <h2 className="font-display font-bold text-primary text-base">Clubhouse</h2>
+                  </div>
+                  {[
+                    { id: 'news', label: 'News', icon: '📰' },
+                    { id: 'events', label: 'Events', icon: '📅' },
+                    { id: 'gallery', label: 'Gallery', icon: '🖼️' },
+                  ].map((s) => (
+                    <button
+                      key={`mobile-${s.id}`}
+                      onClick={() => setClubhouseTab(s.id)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
+                        clubhouseTab === s.id
+                          ? 'bg-primary-dark text-accent'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-sm">{s.icon}</span>
+                      <span>{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Clubhouse sub-nav — Single row with responsive sizing */}
+                <div className="hidden md:flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-3 sm:mx-0 px-3 sm:px-0">
                   {[
                     { id: 'news',    label: 'News',    icon: '📰' },
                     { id: 'events',  label: 'Events',  icon: '📅' },
@@ -190,13 +207,15 @@ export default function AdminDashboard() {
                     <button
                       key={s.id}
                       onClick={() => setClubhouseTab(s.id)}
-                      className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                      className={`flex items-center gap-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
                         clubhouseTab === s.id
                           ? 'bg-primary-dark text-accent'
                           : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                       }`}
                     >
-                      <span>{s.icon}</span>{s.label}
+                      <span className="text-base sm:text-lg">{s.icon}</span>
+                      <span className="hidden sm:inline">{s.label}</span>
+                      <span className="sm:hidden text-[10px]">{s.label}</span>
                     </button>
                   ))}
                 </div>

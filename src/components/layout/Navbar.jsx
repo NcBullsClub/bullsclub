@@ -141,7 +141,7 @@ export default function Navbar() {
     <>
       {/* ── Top bar ──────────────────────────────────────────── */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-[70] transition-all duration-300 ${
           scrolled ? 'bg-primary-dark shadow-lg' : 'bg-primary-dark/95'
         }`}
       >
@@ -323,7 +323,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed inset-x-0 top-16 bottom-0 z-40 lg:hidden bg-primary-dark flex flex-col"
+            className="fixed inset-x-0 top-16 bottom-0 z-[65] lg:hidden bg-primary-dark flex flex-col"
           >
             {/* Scrollable nav grid area */}
             <div className="flex-1 overflow-y-auto px-4 pt-5 pb-4">

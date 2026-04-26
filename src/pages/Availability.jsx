@@ -56,6 +56,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
 
   const [fy, fm, fd] = fixture.date.split('-').map(Number)
   const fixtureDate = new Date(fy, fm - 1, fd)
+  const fixtureWeekday = fixtureDate.toLocaleDateString('en-US', { weekday: 'short' })
   const isPast = fixtureDate < new Date(new Date().setHours(0, 0, 0, 0))
 
   const key = `${fixture.date}::${fixture.team}`
@@ -167,6 +168,15 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
             {fixtureDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </div>
           <div className="text-white/50 text-xs mt-0.5">{fixtureDate.getFullYear()}</div>
+          <div
+            className={`mt-1 inline-flex items-center justify-center text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
+              isRaising
+                ? 'text-accent bg-accent/10 border-accent/40'
+                : 'text-white bg-white/10 border-white/30'
+            }`}
+          >
+            {fixtureWeekday}
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap gap-1 mb-0.5">
@@ -192,11 +202,13 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
 
         {/* Venue / time info row */}
         <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
-          {fixture.time && <span>⏰ {fixture.time}</span>}
           {fixture.venue && (
+            <span>📍 {fixture.venue}</span>
+          )}
+          {fixture.time && (
             <>
-              <span>·</span>
-              <span>📍 {fixture.venue}</span>
+              {fixture.venue && <span>·</span>}
+              <span>⏰ {fixture.time}</span>
             </>
           )}
           {(fixture.venue_address || fixture.venue) && (

@@ -71,14 +71,27 @@ function buildApprovalEmail(fullName, email) {
   return { subject, body }
 }
 
-function toWhatsAppNumber(phone) {
-  if (!phone) return null
-  let normalized = phone.trim()
-  if (normalized.startsWith('+')) normalized = normalized.slice(1)
-  normalized = normalized.replace(/\D/g, '')
-  if (!normalized) return null
-  if (normalized.startsWith('00')) normalized = normalized.slice(2)
-  return normalized || null
+function toDigits(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function toWhatsAppNumber(phone, countryCode = '1') {
+  const phoneDigits = toDigits(phone)
+  if (!phoneDigits) return null
+
+  const cc = toDigits(countryCode) || '1'
+  // Backward compatibility: older rows may already include country code in phone.
+  if (phoneDigits.startsWith(cc) && phoneDigits.length > 10) return phoneDigits
+  if (phoneDigits.startsWith('00')) return phoneDigits.slice(2)
+  return `${cc}${phoneDigits}`
+}
+
+function formatPhoneDisplay(phone, countryCode = '1') {
+  const phoneDigits = toDigits(phone)
+  if (!phoneDigits) return ''
+  const cc = toDigits(countryCode) || '1'
+  if (phoneDigits.startsWith(cc) && phoneDigits.length > 10) return `+${phoneDigits}`
+  return `+${cc} ${phoneDigits}`
 }
 
 export default function JoinRequestsTab({ onPendingCount }) {
@@ -169,7 +182,7 @@ export default function JoinRequestsTab({ onPendingCount }) {
   }
 
   function openApprovalWhatsApp(req) {
-    const waNumber = toWhatsAppNumber(req.phone)
+    const waNumber = toWhatsAppNumber(req.phone, req.country_code)
     if (!waNumber) return
     const message = buildApprovalWhatsAppMessage(req.full_name, req.email)
     const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`
@@ -314,7 +327,7 @@ export default function JoinRequestsTab({ onPendingCount }) {
                     </span>
                   )}
                   {req.phone && (
-                    <span className="text-xs text-gray-400">📞 {req.phone}</span>
+                    <span className="text-xs text-gray-400">📞 {formatPhoneDisplay(req.phone, req.country_code)}</span>
                   )}
                   <span className="text-xs text-gray-400">
                     {new Date(req.created_at).toLocaleDateString('en-US', {
@@ -390,9 +403,9 @@ export default function JoinRequestsTab({ onPendingCount }) {
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <button
                         onClick={() => openApprovalWhatsApp(req)}
-                        disabled={!toWhatsAppNumber(req.phone)}
+                        disabled={!toWhatsAppNumber(req.phone, req.country_code)}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={toWhatsAppNumber(req.phone) ? 'Open WhatsApp message' : 'No valid mobile number on this request'}
+                        title={toWhatsAppNumber(req.phone, req.country_code) ? 'Open WhatsApp message' : 'No valid mobile number on this request'}
                       >
                         WhatsApp Approval
                       </button>

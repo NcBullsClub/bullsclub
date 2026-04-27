@@ -15,13 +15,19 @@ const TEAMS = [
   { value: 'royal-bulls',   label: 'Royal Bulls' },
 ]
 
+const COUNTRY_CODE_OPTIONS = [
+  { value: 'us', label: '🇺🇸 +1 (USA)' },
+  { value: 'other', label: '🌍 Other' },
+]
+
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
-  const [formData, setFormData]   = useState({ full_name: '', email: '', phone: '', team: '', playing_role: '', message: '' })
+  const [formData, setFormData]   = useState({ full_name: '', email: '', country_code_option: 'us', country_code: '1', phone: '', team: '', playing_role: '', message: '' })
 
   const normalizePhone = (value) => value.replace(/\D/g, '')
+  const normalizeCountryCode = (value) => value.replace(/\D/g, '')
 
   const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -30,7 +36,20 @@ export default function Contact() {
     e.preventDefault()
     setError('')
     if (!formData.team) { setError('Please select a team.'); setLoading(false); return }
-    const phoneDigits = normalizePhone(formData.phone)
+    const countryCode = formData.country_code_option === 'other'
+      ? normalizeCountryCode(formData.country_code)
+      : '1'
+    if (!countryCode) {
+      setError('Please enter a valid country code (digits only).')
+      setLoading(false)
+      return
+    }
+    let phoneDigits = normalizePhone(formData.phone)
+    // If a user pasted a full international number, keep country code in its own field.
+    if (phoneDigits.startsWith(countryCode) && phoneDigits.length > 10) {
+      const localPart = phoneDigits.slice(countryCode.length)
+      if (localPart.length >= 10) phoneDigits = localPart
+    }
     if (!phoneDigits) { setError('Mobile number is required.'); setLoading(false); return }
     if (phoneDigits.length < 10 || phoneDigits.length > 15) {
       setError('Please enter a valid mobile number (10 to 15 digits).')
@@ -41,7 +60,8 @@ export default function Contact() {
     const { error: err } = await supabase.from('join_requests').insert({
       full_name:    formData.full_name.trim(),
       email:        formData.email.trim().toLowerCase(),
-      phone:        formData.phone.trim(),
+      country_code: countryCode,
+      phone:        phoneDigits,
       team:         formData.team || null,
       playing_role: formData.playing_role,
       message:      formData.message.trim() || null,
@@ -176,16 +196,50 @@ export default function Contact() {
                       Mobile Number <span className="text-red-400">*</span>
                       <span className="text-gray-400 font-normal text-xs"> (WhatsApp preferred)</span>
                     </label>
-                    <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-                      placeholder="e.g. +1 919 555 1234"
-                    />
+                    <div className={`grid gap-2 ${formData.country_code_option === 'other' ? 'grid-cols-[5.25rem_4.25rem_1fr] sm:grid-cols-[8rem_5.5rem_1fr]' : 'grid-cols-[6.5rem_1fr] sm:grid-cols-[9.5rem_1fr]'}`}>
+                      <select
+                        id="country_code_option"
+                        name="country_code_option"
+                        value={formData.country_code_option}
+                        onChange={(e) => {
+                          const selected = e.target.value
+                          setFormData((prev) => ({
+                            ...prev,
+                            country_code_option: selected,
+                            country_code: selected === 'us' ? '1' : prev.country_code,
+                          }))
+                        }}
+                        className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors bg-white"
+                      >
+                        {COUNTRY_CODE_OPTIONS.map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                      {formData.country_code_option === 'other' && (
+                        <input
+                          id="country_code"
+                          name="country_code"
+                          type="text"
+                          required
+                          inputMode="numeric"
+                          value={formData.country_code}
+                          onChange={handleChange}
+                          className="border border-gray-200 rounded-lg px-2.5 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                          placeholder="Code"
+                        />
+                      )}
+                      <input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        required
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                        placeholder="9195551234"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">Default country code is +1 (USA). Choose Other to enter your own code.</p>
                   </div>
 
                   <div>

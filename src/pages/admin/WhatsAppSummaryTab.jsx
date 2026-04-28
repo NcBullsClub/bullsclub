@@ -116,6 +116,122 @@ function NoResponseSection({ players, selected, onToggle }) {
   )
 }
 
+// ─── Guest Players Section ──────────────────────────────────────────────────
+function GuestPlayersSection({ guests, selected, onToggle, onAdd, onRemove }) {
+  const [expanded, setExpanded] = useState(false)
+  const [inputVal, setInputVal] = useState('')
+  const [err, setErr] = useState('')
+  const selectedCount = guests.filter((g) => selected.includes(g)).length
+
+  function handleAdd() {
+    const name = inputVal.trim()
+    if (!name) { setErr('Enter a name first.'); return }
+    if (name.length < 2) { setErr('Name is too short.'); return }
+    if (guests.some((g) => g.toLowerCase() === name.toLowerCase())) {
+      setErr('Already added.'); return
+    }
+    onAdd(name)
+    setInputVal('')
+    setErr('')
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); handleAdd() }
+  }
+
+  return (
+    <div className="border border-dashed border-blue-200 rounded-xl overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2.5 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors touch-manipulation"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-blue-600">
+            ➕ Guest Players
+          </span>
+          {selectedCount > 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-dark text-accent">
+              {selectedCount} selected
+            </span>
+          )}
+          {guests.length > 0 && selectedCount === 0 && (
+            <span className="text-[10px] font-normal text-blue-400">({guests.length} added)</span>
+          )}
+        </div>
+        <span className={`text-blue-400 text-xs transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>
+          ▼
+        </span>
+      </button>
+
+      {/* Body */}
+      {expanded && (
+        <div className="px-3 py-3 bg-white space-y-2.5">
+          <p className="text-[11px] text-gray-400">
+            Temporary players not on the roster — available for this match only.
+          </p>
+
+          {/* Input row */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={inputVal}
+              onChange={(e) => { setInputVal(e.target.value); setErr('') }}
+              onKeyDown={handleKey}
+              placeholder="Full name e.g. Ravi Kumar"
+              maxLength={50}
+              className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-gray-300"
+            />
+            <button
+              onClick={handleAdd}
+              className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all"
+            >
+              Add
+            </button>
+          </div>
+          {err && <p className="text-[11px] text-red-500">{err}</p>}
+
+          {/* Guest list */}
+          {guests.length > 0 && (
+            <div className="space-y-1 pt-0.5">
+              {guests.map((name) => {
+                const isSel = selected.includes(name)
+                return (
+                  <div key={name} className="flex items-center gap-1">
+                    <div className="flex-1 min-w-0">
+                      <PlayerPickerRow
+                        name={name}
+                        isSel={isSel}
+                        onToggle={() => onToggle(name)}
+                        badge="Guest"
+                      />
+                    </div>
+                    <button
+                      onClick={() => onRemove(name)}
+                      title="Remove guest player"
+                      className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-all"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {guests.length === 0 && (
+            <p className="text-[11px] text-gray-400 text-center py-1">
+              No guest players added yet.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   const { isSuperAdmin, adminTeam } = useAuth()
 
@@ -138,6 +254,7 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   const [allTeamPlayers, setAllTeamPlayers] = useState([])
   const [loading, setLoading]            = useState(false)
   const [selected, setSelected]          = useState([])
+  const [guestPlayers, setGuestPlayers]   = useState([])
 
   // Sync when parent navigates here with a pre-selected fixture
   useEffect(() => {
@@ -174,6 +291,7 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     const [date, team] = selectedKey.split('::')
     setLoading(true)
     setSelected([])
+    setGuestPlayers([])
     Promise.all([
       supabase
         .from('availability')
@@ -197,6 +315,17 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     setSelected((prev) =>
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     )
+  }
+
+  function addGuest(name) {
+    setGuestPlayers((prev) => [...prev, name])
+    // Auto-select them into the XI immediately
+    setSelected((prev) => prev.includes(name) ? prev : [...prev, name])
+  }
+
+  function removeGuest(name) {
+    setGuestPlayers((prev) => prev.filter((g) => g !== name))
+    setSelected((prev) => prev.filter((n) => n !== name))
   }
 
   function moveUp(idx) {
@@ -414,6 +543,15 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
                       onToggle={togglePlayer}
                     />
                   )}
+
+                  {/* ── Guest Players ── */}
+                  <GuestPlayersSection
+                    guests={guestPlayers}
+                    selected={selected}
+                    onToggle={togglePlayer}
+                    onAdd={addGuest}
+                    onRemove={removeGuest}
+                  />
 
                   {inPlayers.length === 0 && maybePlayers.length === 0 && noResponsePlayers.length === 0 && (
                     <p className="text-sm text-gray-400 text-center py-4">No players found for this team.</p>

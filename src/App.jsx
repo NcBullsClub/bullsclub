@@ -22,6 +22,7 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AdminDashboard from './pages/AdminDashboard'
+import PwaDiagnostics from './pages/PwaDiagnostics'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/pwa-diagnostics" element={<PwaDiagnostics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>

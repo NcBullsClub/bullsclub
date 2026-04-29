@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 const teams = [
   {
@@ -30,7 +32,85 @@ const teams = [
   },
 ]
 
+const squadCards = [
+  {
+    id: 'raising-bulls',
+    label: 'Raising Bulls',
+    sub: 'Mega Bash',
+    url: 'https://cricheroes.com/team-profile/12480147/raising-bulls/members',
+    bg: 'from-primary-dark to-primary',
+    badge: 'RB',
+  },
+  {
+    id: 'royal-bulls',
+    label: 'Royal Bulls',
+    sub: 'Mega Bash',
+    url: 'https://cricheroes.com/team-profile/12480151/royal-bulls/members',
+    bg: 'from-primary to-primary-light',
+    badge: 'RY',
+  },
+]
+
+function firstNameOf(fullName) {
+  return (fullName || '').trim().split(/\s+/)[0] || ''
+}
+
 export default function Teams() {
+  const [rosterByTeam, setRosterByTeam] = useState({
+    'raising-bulls': [],
+    'royal-bulls': [],
+  })
+  const [loadingRoster, setLoadingRoster] = useState(true)
+  const [rosterError, setRosterError] = useState('')
+
+  useEffect(() => {
+    let active = true
+
+    async function loadRoster() {
+      setLoadingRoster(true)
+      setRosterError('')
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, team')
+        .in('team', ['raising-bulls', 'royal-bulls'])
+        .not('full_name', 'is', null)
+
+      if (!active) return
+
+      if (error) {
+        setRosterError('Unable to load squad list right now.')
+        setLoadingRoster(false)
+        return
+      }
+
+      const grouped = {
+        'raising-bulls': [],
+        'royal-bulls': [],
+      }
+
+      for (const player of data || []) {
+        const first = firstNameOf(player.full_name)
+        if (!first || !grouped[player.team]) continue
+        grouped[player.team].push(first)
+      }
+
+      grouped['raising-bulls'].sort((a, b) => a.localeCompare(b))
+      grouped['royal-bulls'].sort((a, b) => a.localeCompare(b))
+
+      setRosterByTeam(grouped)
+      setLoadingRoster(false)
+    }
+
+    loadRoster()
+    return () => { active = false }
+  }, [])
+
+  const totalRosterCount = useMemo(
+    () => rosterByTeam['raising-bulls'].length + rosterByTeam['royal-bulls'].length,
+    [rosterByTeam],
+  )
+
   return (
     <div>
       {/* Header — compact on mobile */}
@@ -104,25 +184,13 @@ export default function Teams() {
       <section className="py-8 md:py-16 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="section-heading mb-6 md:mb-10 text-center text-xl md:text-3xl">Our Squads</h2>
+          {!loadingRoster && !rosterError && (
+            <p className="text-center text-xs sm:text-sm text-gray-500 mb-4 md:mb-6">
+              Showing {totalRosterCount} roster players by first name (A-Z).
+            </p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 md:gap-6 max-w-3xl mx-auto">
-            {[
-              {
-                id: 'raising-bulls',
-                label: 'Raising Bulls',
-                sub: 'Mega Bash',
-                url: 'https://cricheroes.com/team-profile/12480147/raising-bulls/members',
-                bg: 'from-primary-dark to-primary',
-                badge: 'RB',
-              },
-              {
-                id: 'royal-bulls',
-                label: 'Royal Bulls',
-                sub: 'Mega Bash',
-                url: 'https://cricheroes.com/team-profile/12480151/royal-bulls/members',
-                bg: 'from-primary to-primary-light',
-                badge: 'RY',
-              },
-            ].map((squad) => (
+            {squadCards.map((squad) => (
               <motion.div
                 key={squad.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -135,6 +203,41 @@ export default function Teams() {
                 </div>
                 <h3 className="font-display font-bold text-base sm:text-2xl mb-0.5 sm:mb-1">{squad.label}</h3>
                 <p className="text-gray-300 text-xs sm:text-sm mb-4 sm:mb-6">{squad.sub}</p>
+
+                <div className="w-full bg-white/10 border border-white/20 rounded-xl p-2.5 sm:p-3 mb-4 sm:mb-6 text-left">
+                  <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/70 mb-2">
+                    Player Roster
+                  </p>
+
+                  {loadingRoster && (
+                    <div className="flex justify-center py-2">
+                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+
+                  {!loadingRoster && rosterError && (
+                    <p className="text-[10px] sm:text-xs text-red-100">{rosterError}</p>
+                  )}
+
+                  {!loadingRoster && !rosterError && rosterByTeam[squad.id].length === 0 && (
+                    <p className="text-[10px] sm:text-xs text-white/70">No players found in roster.</p>
+                  )}
+
+                  {!loadingRoster && !rosterError && rosterByTeam[squad.id].length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {rosterByTeam[squad.id].map((first, idx) => (
+                        <span
+                          key={`${squad.id}-${first}-${idx}`}
+                          className="text-[10px] sm:text-xs bg-white/15 border border-white/15 rounded-md px-2 py-1 truncate sm:text-left text-center"
+                          title={first}
+                        >
+                          {first}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <a
                   href={squad.url}
                   target="_blank"

@@ -1,0 +1,12 @@
+{
+  "web_apps": [
+    {
+      "manifest": "https://ncbullscricketclub.com/manifest.webmanifest",
+      "details": {
+        "paths": [
+          "/*"
+        ]
+      }
+    }
+  ]
+}

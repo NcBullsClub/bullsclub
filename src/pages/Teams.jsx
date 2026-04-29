@@ -206,7 +206,7 @@ export default function Teams() {
 
                 <div className="w-full bg-white/10 border border-white/20 rounded-xl p-2.5 sm:p-3 mb-4 sm:mb-6 text-left">
                   <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/70 mb-2">
-                    Player Roster
+                    Player Roster - {rosterByTeam[squad.id].length}
                   </p>
 
                   {loadingRoster && (

@@ -186,7 +186,7 @@ export default function Teams() {
           <h2 className="section-heading mb-6 md:mb-10 text-center text-xl md:text-3xl">Our Squads</h2>
           {!loadingRoster && !rosterError && (
             <p className="text-center text-xs sm:text-sm text-gray-500 mb-4 md:mb-6">
-              Showing {totalRosterCount} roster players by first name (A-Z).
+              Showing {totalRosterCount} roster players.
             </p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 md:gap-6 max-w-3xl mx-auto">

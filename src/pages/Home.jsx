@@ -58,6 +58,7 @@ export default function Home() {
   const [latestRYResults, setLatestRYResults] = useState([])
   const [rbWins, setRbWins] = useState(0)
   const [ryWins, setRyWins] = useState(0)
+  const totalWins = rbWins + ryWins
   const [latestNews, setLatestNews] = useState([])
   const [showA2HS, setShowA2HS]         = useState(false)
   const [a2hsPlatform, setA2hsPlatform] = useState('ios')
@@ -325,7 +326,7 @@ export default function Home() {
             {[
               { label: 'Total Players', value: 119, suffix: '+' },
               { label: 'Matches Played', value: 170, suffix: '+' },
-              { label: 'Wins 2025 Winter Season', value: 8, suffix: '' },
+              { label: 'Wins This Season', value: totalWins, suffix: '' },
               { label: 'Years in Cricket', value: 4, suffix: '+' },
             ].map((stat) => (
               <div key={stat.label} className="text-primary-dark">

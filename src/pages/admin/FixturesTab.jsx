@@ -41,6 +41,36 @@ function isPast(dateStr) {
   return new Date(y, m - 1, d) < today
 }
 
+function decodeUnicodeEscapes(value) {
+  if (!value) return ''
+  return String(value).replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
+    try {
+      return String.fromCharCode(parseInt(hex, 16))
+    } catch {
+      return ''
+    }
+  })
+}
+
+function cleanText(value) {
+  if (!value) return ''
+  return decodeUnicodeEscapes(value)
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function normalizeUmpire(value) {
+  if (!value) return ''
+  return cleanText(value)
+    .replace(/\\u[dD][0-9a-fA-F]{3}\\u[dD][0-9a-fA-F]{3}/g, '')
+    .replace(/\\u[0-9a-fA-F]{4}/g, '')
+    .replace(/ud83e|udde2/gi, '')
+    .replace(/🧢/g, '')
+    .replace(/^umpires?:\s*/i, '')
+    .replace(/^[-:|]+\s*/, '')
+    .trim()
+}
+
 // ── Fixture Form (add / edit) ──────────────────────────────────────────────
 function FixtureForm({ initial, onSave, onCancel, saving }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
@@ -220,7 +250,13 @@ const sectionVariants = {
 function FixtureCard({ f, onEdit, onDelete, deletingId }) {
   const past      = isPast(f.date)
   const isRaising = f.team === 'raising-bulls'
-  const hasUmpires = f.umpire1_team || f.umpire2_team
+  const ump1 = normalizeUmpire(f.umpire1_team)
+  const ump2 = normalizeUmpire(f.umpire2_team)
+  const fmt = cleanText(f.format)
+  const typ = cleanText(f.type)
+  const venue = cleanText(f.venue)
+  const venueAddress = cleanText(f.venue_address)
+  const hasUmpires = ump1 || ump2
   return (
     <motion.div
       layout
@@ -247,19 +283,19 @@ function FixtureCard({ f, onEdit, onDelete, deletingId }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-display font-bold text-primary text-base">vs {f.opponent}</span>
-            <span className="text-xs text-gray-400">{f.format} \u00b7 {f.type}</span>
+            <span className="text-xs text-gray-400">{fmt} | {typ}</span>
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
-            {formatDate(f.date)}{f.time ? ` \u00b7 ${f.time}` : ''}
+            {formatDate(f.date)}{f.time ? ` | ${f.time}` : ''}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5 truncate">{f.venue}{f.venue_address ? ` \u2014 ${f.venue_address}` : ''}</p>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{venue}{venueAddress ? ` - ${venueAddress}` : ''}</p>
           {hasUmpires && (
             <p className="text-xs text-blue-600 mt-1.5">
-              \ud83e\udde2 {f.umpire1_team || '\u2014'}{f.umpire2_team && f.umpire2_team !== f.umpire1_team ? ` & ${f.umpire2_team}` : ''}
+              Umpires: {ump1 || '\u2014'}{ump2 && ump2 !== ump1 ? ` & ${ump2}` : ''}
             </p>
           )}
           {!hasUmpires && (
-            <p className="text-xs text-amber-500 mt-1.5">\u26a0\ufe0f Umpires not assigned yet</p>
+            <p className="text-xs text-amber-500 mt-1.5">Umpires not assigned yet</p>
           )}
         </div>
         <div className="flex gap-2 flex-shrink-0">
@@ -399,16 +435,16 @@ export default function FixturesTab() {
     try {
       const payload = {
         date:          form.date,
-        time:          form.time || null,
-        opponent:      form.opponent,
+        time:          cleanText(form.time) || null,
+        opponent:      cleanText(form.opponent),
         team:          form.team,
-        venue:         form.venue,
-        venue_address: form.venue_address || null,
-        format:        form.format || 'HT',
-        type:          form.type || 'Mega Bash',
-        division:      form.division || null,
-        umpire1_team:  form.umpire1_team || null,
-        umpire2_team:  form.umpire2_team || null,
+        venue:         cleanText(form.venue),
+        venue_address: cleanText(form.venue_address) || null,
+        format:        cleanText(form.format) || 'HT',
+        type:          cleanText(form.type) || 'Mega Bash',
+        division:      cleanText(form.division) || null,
+        umpire1_team:  normalizeUmpire(form.umpire1_team) || null,
+        umpire2_team:  normalizeUmpire(form.umpire2_team) || null,
       }
       if (editingFix === 'new') {
         const { error } = await supabase.from('fixtures').insert(payload)
@@ -434,7 +470,7 @@ export default function FixturesTab() {
       if (error) throw error
       await loadFixtures()
     } catch (e) {
-      alert('Error: ' + e.message)
+      alert('Error deleting fixture: ' + e.message)
     } finally {
       setDeletingFix(null)
     }
@@ -484,16 +520,16 @@ export default function FixturesTab() {
   const editInitial = editingFix && editingFix !== 'new'
     ? {
         date:          editingFix.date,
-        time:          editingFix.time || '',
-        opponent:      editingFix.opponent,
+        time:          cleanText(editingFix.time) || '',
+        opponent:      cleanText(editingFix.opponent),
         team:          editingFix.team,
-        venue:         editingFix.venue,
-        venue_address: editingFix.venue_address || '',
-        format:        editingFix.format || 'HT',
-        type:          editingFix.type || 'Mega Bash',
-        division:      editingFix.division || '',
-        umpire1_team:  editingFix.umpire1_team || '',
-        umpire2_team:  editingFix.umpire2_team || '',
+        venue:         cleanText(editingFix.venue),
+        venue_address: cleanText(editingFix.venue_address) || '',
+        format:        cleanText(editingFix.format) || 'HT',
+        type:          cleanText(editingFix.type) || 'Mega Bash',
+        division:      cleanText(editingFix.division) || '',
+        umpire1_team:  normalizeUmpire(editingFix.umpire1_team) || '',
+        umpire2_team:  normalizeUmpire(editingFix.umpire2_team) || '',
       }
     : null
 

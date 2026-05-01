@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { turso } from '../lib/turso'
+import { supabase } from '../lib/supabase'
 
 const categoryMeta = {
   'pre-season': {
@@ -81,9 +81,22 @@ export default function Events() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    turso.execute('SELECT * FROM events ORDER BY date DESC')
-      .then(({ rows }) => setEvents(rows))
-      .finally(() => setLoading(false))
+    async function loadEvents() {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: false })
+
+      if (error) {
+        console.error('Failed to load events from Supabase:', error)
+      } else {
+        setEvents(data || [])
+      }
+
+      setLoading(false)
+    }
+
+    loadEvents()
   }, [])
 
   const upcomingEvents = events

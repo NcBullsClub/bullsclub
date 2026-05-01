@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../../lib/supabase'
 import { turso } from '../../lib/turso'
 
 const CATEGORIES = [
@@ -37,17 +38,35 @@ export default function ClubhouseEventsTab() {
   const [saving, setSaving]     = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
+  const [galleryItems, setGalleryItems] = useState([])
+  const [gallerySearch, setGallerySearch] = useState('')
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
   const titleRef = useRef(null)
 
   const load = () => {
     setLoading(true)
-    turso
-      .execute('SELECT * FROM events ORDER BY date ASC')
-      .then(({ rows }) => setEvents(rows))
+    supabase
+      .from('events')
+      .select('*')
+      .order('date', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to load events:', error)
+          setEvents([])
+          return
+        }
+        setEvents(data || [])
+      })
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    turso
+      .execute("SELECT id, title, image_url, thumb_url FROM gallery WHERE image_url IS NOT NULL AND image_url != '' ORDER BY created_at DESC")
+      .then(({ rows }) => setGalleryItems(rows || []))
+      .catch(() => {})
+  }, [])
   useEffect(() => { if (showForm && titleRef.current) titleRef.current.focus() }, [showForm])
 
   const filtered = events.filter((e) => {
@@ -59,7 +78,13 @@ export default function ClubhouseEventsTab() {
     return true
   })
 
-  function openAdd()  { setEditItem(null); setForm(EMPTY); setShowForm(true) }
+  function openAdd()  {
+    setEditItem(null)
+    setForm(EMPTY)
+    setGallerySearch('')
+    setShowGalleryPicker(false)
+    setShowForm(true)
+  }
   function openEdit(e) {
     setEditItem(e)
     setForm({
@@ -75,9 +100,17 @@ export default function ClubhouseEventsTab() {
       status:          e.status          ?? 'upcoming',
       category:        e.category        ?? 'social',
     })
+    setGallerySearch('')
+    setShowGalleryPicker(false)
     setShowForm(true)
   }
-  function closeForm() { setShowForm(false); setEditItem(null); setForm(EMPTY) }
+  function closeForm() {
+    setShowForm(false)
+    setEditItem(null)
+    setForm(EMPTY)
+    setGallerySearch('')
+    setShowGalleryPicker(false)
+  }
 
   function handleTitleChange(val) {
     setForm((f) => ({ ...f, title: val, slug: editItem ? f.slug : slugify(val) }))
@@ -86,35 +119,35 @@ export default function ClubhouseEventsTab() {
   async function handleSave() {
     if (!form.title.trim()) return
     setSaving(true)
-    const now = new Date().toISOString()
+    const payload = {
+      title: form.title,
+      slug: form.slug,
+      description: form.description,
+      type: form.type,
+      date: form.date || null,
+      time: form.time,
+      venue: form.venue,
+      venue_address: form.venue_address,
+      cover_image_url: form.cover_image_url,
+      status: form.status,
+      category: form.category,
+    }
+
     try {
       if (editItem) {
-        await turso.execute({
-          sql: `UPDATE events
-                SET title=?, slug=?, description=?, type=?, date=?, time=?,
-                    venue=?, venue_address=?, cover_image_url=?, status=?, category=?, updated_at=?
-                WHERE id=?`,
-          args: [
-            form.title, form.slug, form.description, form.category, form.date, form.time,
-            form.venue, form.venue_address, form.cover_image_url, form.status, form.category, now,
-            editItem.id,
-          ],
-        })
+        const { error } = await supabase
+          .from('events')
+          .update(payload)
+          .eq('id', editItem.id)
+        if (error) throw error
       } else {
-        await turso.execute({
-          sql: `INSERT INTO events
-                  (title, slug, description, type, date, time, venue, venue_address,
-                   cover_image_url, status, category, created_at, updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-          args: [
-            form.title, form.slug, form.description, form.category, form.date, form.time,
-            form.venue, form.venue_address, form.cover_image_url, form.status, form.category,
-            now, now,
-          ],
-        })
+        const { error } = await supabase.from('events').insert(payload)
+        if (error) throw error
       }
       load()
       closeForm()
+    } catch (error) {
+      console.error('Failed to save event:', error)
     } finally {
       setSaving(false)
     }
@@ -123,21 +156,32 @@ export default function ClubhouseEventsTab() {
   async function handleDelete(id) {
     if (!confirm('Delete this event? This cannot be undone.')) return
     setDeletingId(id)
-    await turso.execute({ sql: 'DELETE FROM events WHERE id=?', args: [id] })
-    setEvents((prev) => prev.filter((e) => e.id !== id))
-    setDeletingId(null)
+    try {
+      const { error } = await supabase.from('events').delete().eq('id', id)
+      if (error) throw error
+      setEvents((prev) => prev.filter((e) => e.id !== id))
+    } catch (error) {
+      console.error('Failed to delete event:', error)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   async function toggleStatus(e) {
     setTogglingId(e.id)
     const newStatus = e.status === 'upcoming' ? 'past' : 'upcoming'
-    const now = new Date().toISOString()
-    await turso.execute({
-      sql:  'UPDATE events SET status=?, updated_at=? WHERE id=?',
-      args: [newStatus, now, e.id],
-    })
-    setEvents((prev) => prev.map((x) => (x.id === e.id ? { ...x, status: newStatus } : x)))
-    setTogglingId(null)
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: newStatus })
+        .eq('id', e.id)
+      if (error) throw error
+      setEvents((prev) => prev.map((x) => (x.id === e.id ? { ...x, status: newStatus } : x)))
+    } catch (error) {
+      console.error('Failed to update event status:', error)
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   const stats = {
@@ -145,6 +189,12 @@ export default function ClubhouseEventsTab() {
     upcoming: events.filter((e) => e.status === 'upcoming').length,
     past:     events.filter((e) => e.status === 'past').length,
   }
+
+  const filteredGalleryItems = galleryItems.filter((item) => {
+    if (!gallerySearch) return true
+    const q = gallerySearch.toLowerCase()
+    return (item.title || '').toLowerCase().includes(q)
+  })
 
   return (
     <div>
@@ -397,7 +447,70 @@ export default function ClubhouseEventsTab() {
 
                 {/* Cover image */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Cover Image URL</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">Cover Image URL</label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowGalleryPicker((v) => !v); setGallerySearch('') }}
+                      className="text-[10px] font-semibold text-primary hover:text-accent transition-colors flex items-center gap-1"
+                    >
+                      🖼️ {showGalleryPicker ? 'Close Gallery' : 'Pick from Gallery'}
+                    </button>
+                  </div>
+
+                  {/* Gallery picker */}
+                  {showGalleryPicker && (
+                    <div className="mb-3 border border-gray-200 rounded-xl overflow-hidden">
+                      <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={gallerySearch}
+                          onChange={(e) => setGallerySearch(e.target.value)}
+                          placeholder="Search gallery images…"
+                          className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                        />
+                      </div>
+                      {galleryItems.length === 0 ? (
+                        <div className="py-8 text-center text-xs text-gray-400">No gallery images found.</div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-1.5 p-2.5 max-h-56 overflow-y-auto">
+                          {galleryItems
+                            .filter((g) => !gallerySearch || g.title?.toLowerCase().includes(gallerySearch.toLowerCase()))
+                            .map((g) => {
+                              const thumb = g.thumb_url || g.image_url
+                              const isSelected = form.cover_image_url === g.image_url
+                              return (
+                                <button
+                                  key={g.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm((f) => ({ ...f, cover_image_url: g.image_url }))
+                                    setShowGalleryPicker(false)
+                                  }}
+                                  className={`relative rounded-lg overflow-hidden aspect-square border-2 transition-all ${
+                                    isSelected ? 'border-accent scale-95' : 'border-transparent hover:border-primary/40'
+                                  }`}
+                                  title={g.title || 'Gallery image'}
+                                >
+                                  <img
+                                    src={thumb}
+                                    alt={g.title || ''}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { e.target.style.display = 'none' }}
+                                  />
+                                  {isSelected && (
+                                    <div className="absolute inset-0 bg-accent/30 flex items-center justify-center">
+                                      <span className="text-white text-lg font-bold">✓</span>
+                                    </div>
+                                  )}
+                                </button>
+                              )
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {form.cover_image_url && (
                     <div className="mb-2 h-28 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
                       <img
@@ -408,11 +521,12 @@ export default function ClubhouseEventsTab() {
                       />
                     </div>
                   )}
+
                   <input
                     type="text"
                     value={form.cover_image_url}
                     onChange={(e) => setForm((f) => ({ ...f, cover_image_url: e.target.value }))}
-                    placeholder="https://..."
+                    placeholder="https://... or pick from gallery above"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>

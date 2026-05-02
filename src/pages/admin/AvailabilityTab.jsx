@@ -341,7 +341,7 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
       `⚔️ *Match:* ${assignment.match_visitor} vs ${assignment.match_home}`,
       assignment.division ? `Division: ${assignment.division}` : '',
       '',
-      `🧑‍⚖️ *Selected Umpires:*`,
+      `🧑‍⚖️ *Representing ${teamLabel(assignment.ncb_team)} as Umpires:*`,
       names,
       '',
       `👉 Please reach by ${arriveBy}.`,
@@ -576,7 +576,7 @@ Please update your *umpiring availability* for the duty assignment below:
                 <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
                   <div>
                     <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                      Selected Umpires ({selected.length})
+                      Representing {teamLabel(assignment.ncb_team)} as Umpires ({selected.length})
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {selected.map((n) => (

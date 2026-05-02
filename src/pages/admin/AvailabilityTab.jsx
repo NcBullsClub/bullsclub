@@ -310,9 +310,10 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
   const isCollapsed = collapsedIds.has(assignment.id)
 
   // ── Inline selector state (completely local — no overlay, no scroll lock) ──
-  const [selectorOpen, setSelectorOpen] = useState(false)
-  const [selected, setSelected]         = useState([])
-  const [arriveBy, setArriveBy]         = useState('30 mins before start')
+  const [selectorOpen, setSelectorOpen]     = useState(false)
+  const [selected, setSelected]             = useState([])
+  const [arriveBy, setArriveBy]             = useState('30 mins before start')
+  const [noResponseOpen, setNoResponseOpen] = useState(false)
 
   const teamPlayers   = playersByTeam[assignment.ncb_team] || []
   const respondedIds  = useMemo(() => new Set(rows.map((r) => r.user_id).filter(Boolean)), [rows])
@@ -329,24 +330,26 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
     if (!assignment || selected.length === 0) return ''
     const names = [...selected]
       .sort((a, b) => a.split(' ')[0].localeCompare(b.split(' ')[0]))
-      .map((name, i) => `${String(i + 1).padStart(2, ' ')}. ${name}`)
+      .map((name, i) => ` ${i + 1}. ${name.split(' ')[0]}`)
       .join('\n')
-    return [
-      `🧢 *NC Bulls Cricket Club — Umpiring Duty*`,
+    const lines = [
+      `🧢 *${teamLabel(assignment.ncb_team)} — Umpiring Duty*`,
       '',
-      `🧢 *Team:* ${teamLabel(assignment.ncb_team)}`,
       `📅 *Date:* ${formatLongDate(assignment.date)}`,
       `⏰ *Time:* ${assignment.time || 'TBD'}`,
       `🏟️ *Ground:* ${assignment.venue || 'TBD'}`,
       `⚔️ *Match:* ${assignment.match_visitor} vs ${assignment.match_home}`,
-      assignment.division ? `Division: ${assignment.division}` : '',
+    ]
+    if (assignment.division) lines.push(`🏆 *Division:* ${assignment.division}`)
+    lines.push(
       '',
       `🧑‍⚖️ *Representing ${teamLabel(assignment.ncb_team)} as Umpires:*`,
       names,
       '',
       `👉 Please reach by ${arriveBy}.`,
       `Thanks team.`,
-    ].filter(Boolean).join('\n')
+    )
+    return lines.join('\n')
   }, [assignment, selected, arriveBy])
 
   return (
@@ -481,22 +484,6 @@ Please update your *umpiring availability* for the duty assignment below:
                 🧑‍⚖️ Select Umpires for this Duty
               </p>
 
-              {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-green-50 border border-green-200 p-2.5 text-center">
-                  <p className="text-xl font-black text-green-700 leading-none">{inList.length}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-green-500 mt-1">Available</p>
-                </div>
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-center">
-                  <p className="text-xl font-black text-amber-700 leading-none">{maybeList.length}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mt-1">Maybe</p>
-                </div>
-                <div className="rounded-xl bg-gray-100 border border-gray-200 p-2.5 text-center">
-                  <p className="text-xl font-black text-gray-700 leading-none">{noResponseRows.length}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mt-1">No Reply</p>
-                </div>
-              </div>
-
               {/* Player picker */}
               <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-4">
                 {inList.length > 0 && (
@@ -539,18 +526,42 @@ Please update your *umpiring availability* for the duty assignment below:
 
                 {noResponseRows.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-600 mb-2">⚠️ No Response ({noResponseRows.length})</p>
-                    <div className="space-y-1.5">
-                      {noResponseRows.map((p) => (
-                        <PlayerSelectRow
-                          key={p.id}
-                          name={p.full_name}
-                          isSelected={selected.includes(p.full_name)}
-                          onToggle={() => toggle(p.full_name)}
-                          note="No Reply"
-                        />
-                      ))}
-                    </div>
+                    <button
+                      onClick={() => setNoResponseOpen((v) => !v)}
+                      className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 mb-2 hover:text-gray-700 transition-colors"
+                    >
+                      <span>⚠️ No Response ({noResponseRows.length})</span>
+                      <motion.svg
+                        animate={{ rotate: noResponseOpen ? 180 : 0 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <path d="M19 9l-7 7-7-7" />
+                      </motion.svg>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {noResponseOpen && (
+                        <motion.div
+                          key="no-response"
+                          initial="closed" animate="open" exit="closed"
+                          variants={sectionVariants}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div className="space-y-1.5">
+                            {noResponseRows.map((p) => (
+                              <PlayerSelectRow
+                                key={p.id}
+                                name={p.full_name}
+                                isSelected={selected.includes(p.full_name)}
+                                onToggle={() => toggle(p.full_name)}
+                                note="No Reply"
+                              />
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )}
 

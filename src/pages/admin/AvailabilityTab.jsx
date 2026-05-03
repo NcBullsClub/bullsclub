@@ -181,7 +181,7 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
             <button
               onClick={() => {
                 const msg =
-`🏏 *NC Bulls Cricket Club — ${teamLabel(team)}*
+`🏏 *${teamLabel(team)} -- NC Bulls Cricket Club*
 
 Hi Team 👋,
 Please update your *availability* for our upcoming match:
@@ -198,7 +198,7 @@ Please update your *availability* for our upcoming match:
               className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-green-600/90 hover:bg-green-500 text-white border border-green-400/30 transition-all whitespace-nowrap shadow-sm"
             >
               <span className="hidden sm:inline">Send Availability Notification</span>
-              <span className="sm:hidden">Notify</span>
+              <span className="sm:hidden">Notify Availability</span>
             </button>
           )}
         </div>
@@ -312,7 +312,7 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
   // ── Inline selector state (completely local — no overlay, no scroll lock) ──
   const [selectorOpen, setSelectorOpen]     = useState(false)
   const [selected, setSelected]             = useState([])
-  const [arriveBy, setArriveBy]             = useState('30 mins before start')
+  const [arriveBy, setArriveBy]             = useState('30 mins before game start')
   const [noResponseOpen, setNoResponseOpen] = useState(false)
 
   const teamPlayers   = playersByTeam[assignment.ncb_team] || []
@@ -346,7 +346,7 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
       `🧑‍⚖️ *Representing ${teamLabel(assignment.ncb_team)} as Umpires:*`,
       names,
       '',
-      `👉 Please reach by ${arriveBy}.`,
+      `👉 Please acknowledge and reach by ${arriveBy}.`,
       `Thanks team.`,
     )
     return lines.join('\n')
@@ -413,7 +413,7 @@ Please update your *umpiring availability* for the duty assignment below:
                 onClick={() => {
                   setSelectorOpen((v) => !v)
                   // reset selection when closing
-                  if (selectorOpen) { setSelected([]); setArriveBy('30 mins before start') }
+                  if (selectorOpen) { setSelected([]); setArriveBy('30 mins before game start') }
                 }}
                 className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap active:scale-95 ${
                   selectorOpen
@@ -578,7 +578,7 @@ Please update your *umpiring availability* for the duty assignment below:
                   value={arriveBy}
                   onChange={(e) => setArriveBy(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  placeholder="e.g. 30 mins before start"
+                  placeholder="e.g. 30 mins before gamestart"
                 />
               </div>
 

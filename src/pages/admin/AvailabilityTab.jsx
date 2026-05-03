@@ -2,6 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import groundsData from '../../data/grounds.json'
+
+// venue name → Google Maps URL
+const GROUNDS_MAP = Object.fromEntries(
+  groundsData.map((g) => [
+    g.name.toLowerCase(),
+    `https://maps.google.com/?q=${encodeURIComponent(g.address)}`,
+  ]),
+)
+function groundMapsUrl(venueName) {
+  if (!venueName) return null
+  return GROUNDS_MAP[venueName.toLowerCase()] || `https://maps.google.com/?q=${encodeURIComponent(venueName)}`
+}
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -45,11 +58,26 @@ function parseDate(dateStr) {
   return new Date(y, m - 1, d)
 }
 
-function isPastDate(dateStr) {
-  const dt = parseDate(dateStr)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return dt < today
+function isPastDateTime(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  let dt
+  if (timeStr) {
+    // parse "4:00 PM" / "10:30 AM" style strings
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+    if (match) {
+      let hours = parseInt(match[1], 10)
+      const minutes = parseInt(match[2], 10)
+      const meridiem = match[3].toUpperCase()
+      if (meridiem === 'PM' && hours !== 12) hours += 12
+      if (meridiem === 'AM' && hours === 12) hours = 0
+      dt = new Date(y, m - 1, d, hours, minutes, 0)
+    }
+  }
+  if (!dt) {
+    // no time — treat whole day as past only once the day is over (midnight)
+    dt = new Date(y, m - 1, d, 23, 59, 59)
+  }
+  return dt < new Date()
 }
 
 function formatLongDate(dateStr) {
@@ -157,7 +185,7 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
   const inList      = rows.filter((r) => r.status === 'in')
   const outList     = rows.filter((r) => r.status === 'out')
   const maybeList   = rows.filter((r) => r.status === 'maybe')
-  const isPastCard  = isPastDate(date)
+  const isPastCard  = isPastDateTime(date, fixture?.time)
   const isRaising   = team === 'raising-bulls'
   const isCollapsed = collapsedKeys.has(cardKey)
 
@@ -181,7 +209,7 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
             <button
               onClick={() => {
                 const msg =
-`🏏 *NC Bulls Cricket Club — ${teamLabel(team)}*
+`🏏 *${teamLabel(team)} -- NC Bulls Cricket Club*
 
 Hi Team 👋,
 Please update your *availability* for our upcoming match:
@@ -198,7 +226,7 @@ Please update your *availability* for our upcoming match:
               className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-green-600/90 hover:bg-green-500 text-white border border-green-400/30 transition-all whitespace-nowrap shadow-sm"
             >
               <span className="hidden sm:inline">Send Availability Notification</span>
-              <span className="sm:hidden">Notify</span>
+              <span className="sm:hidden">Notify Availability</span>
             </button>
           )}
         </div>
@@ -305,14 +333,14 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
   const inList    = rows.filter((r) => r.status === 'in')
   const outList   = rows.filter((r) => r.status === 'out')
   const maybeList = rows.filter((r) => r.status === 'maybe')
-  const isPast    = isPastDate(assignment.date)
+  const isPast    = isPastDateTime(assignment.date, assignment.time)
   const isRaising = assignment.ncb_team === 'raising-bulls'
   const isCollapsed = collapsedIds.has(assignment.id)
 
   // ── Inline selector state (completely local — no overlay, no scroll lock) ──
   const [selectorOpen, setSelectorOpen]     = useState(false)
   const [selected, setSelected]             = useState([])
-  const [arriveBy, setArriveBy]             = useState('30 mins before start')
+  const [arriveBy, setArriveBy]             = useState('30 mins before game start')
   const [noResponseOpen, setNoResponseOpen] = useState(false)
 
   const teamPlayers   = playersByTeam[assignment.ncb_team] || []
@@ -341,12 +369,14 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
       `⚔️ *Match:* ${assignment.match_visitor} vs ${assignment.match_home}`,
     ]
     if (assignment.division) lines.push(`🏆 *Division:* ${assignment.division}`)
+    const mapsUrl = groundMapsUrl(assignment.venue)
+    if (mapsUrl) lines.push(`📍 *Maps:* ${mapsUrl}`)
     lines.push(
       '',
       `🧑‍⚖️ *Representing ${teamLabel(assignment.ncb_team)} as Umpires:*`,
       names,
       '',
-      `👉 Please reach by ${arriveBy}.`,
+      `👉 Please acknowledge and reach by ${arriveBy}.`,
       `Thanks team.`,
     )
     return lines.join('\n')
@@ -413,7 +443,7 @@ Please update your *umpiring availability* for the duty assignment below:
                 onClick={() => {
                   setSelectorOpen((v) => !v)
                   // reset selection when closing
-                  if (selectorOpen) { setSelected([]); setArriveBy('30 mins before start') }
+                  if (selectorOpen) { setSelected([]); setArriveBy('30 mins before game start') }
                 }}
                 className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap active:scale-95 ${
                   selectorOpen
@@ -578,7 +608,7 @@ Please update your *umpiring availability* for the duty assignment below:
                   value={arriveBy}
                   onChange={(e) => setArriveBy(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  placeholder="e.g. 30 mins before start"
+                  placeholder="e.g. 30 mins before gamestart"
                 />
               </div>
 
@@ -600,9 +630,27 @@ Please update your *umpiring availability* for the duty assignment below:
 
                   <div>
                     <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Message Preview</p>
-                    <pre className="text-xs bg-gray-900 text-green-400 rounded-xl p-3 whitespace-pre-wrap overflow-x-auto leading-relaxed">
-                      {message}
-                    </pre>
+                    <div className="text-xs bg-gray-900 text-green-400 rounded-xl p-3 leading-relaxed font-mono">
+                      {message.split('\n').map((line, i) => {
+                        const mapsMatch = line.match(/^📍 \*Maps:\* (.+)$/)
+                        if (mapsMatch) {
+                          return (
+                            <div key={i} className="flex items-center gap-2 my-0.5">
+                              <span>📍 <span className="font-semibold">Maps:</span></span>
+                              <a
+                                href={mapsMatch[1]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-md transition-colors no-underline"
+                              >
+                                📍 Open Maps ↗
+                              </a>
+                            </div>
+                          )
+                        }
+                        return <div key={i} className="whitespace-pre-wrap min-h-[1em]">{line || '\u00A0'}</div>
+                      })}
+                    </div>
                   </div>
 
                   <a
@@ -743,8 +791,12 @@ export default function AvailabilityTab({ onSelectFixture }) {
     playingInitializedCollapse.current = true
     const pastKeys = new Set(
       playingResponses
-        .map((r) => `${r.fixture_date}::${r.fixture_team}`)
-        .filter((key) => isPastDate(key.split('::')[0])),
+        .map((r) => ({ key: `${r.fixture_date}::${r.fixture_team}`, date: r.fixture_date }))
+        .filter(({ key, date }) => {
+          const fixture = fixtureMap[key]
+          return isPastDateTime(date, fixture?.time)
+        })
+        .map(({ key }) => key),
     )
     setPlayingCollapsedKeys(pastKeys)
   }, [playingResponses])
@@ -752,7 +804,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
   useEffect(() => {
     if (!umpAssignments.length || umpInitializedCollapse.current) return
     umpInitializedCollapse.current = true
-    const pastIds = new Set(umpAssignments.filter((a) => isPastDate(a.date)).map((a) => a.id))
+    const pastIds = new Set(umpAssignments.filter((a) => isPastDateTime(a.date, a.time)).map((a) => a.id))
     setUmpCollapsedIds(pastIds)
   }, [umpAssignments])
 
@@ -793,11 +845,17 @@ export default function AvailabilityTab({ onSelectFixture }) {
   [umpResponses])
 
   const playingEntries         = Object.entries(playingGrouped)
-  const playingPastEntries     = playingEntries.filter(([key]) => isPastDate(key.split('::')[0]))
-  const playingUpcomingEntries = playingEntries.filter(([key]) => !isPastDate(key.split('::')[0]))
+  const playingPastEntries     = playingEntries.filter(([key]) => {
+    const fixture = fixtureMap[key]
+    return isPastDateTime(key.split('::')[0], fixture?.time)
+  })
+  const playingUpcomingEntries = playingEntries.filter(([key]) => {
+    const fixture = fixtureMap[key]
+    return !isPastDateTime(key.split('::')[0], fixture?.time)
+  })
 
-  const umpPastAssignments     = umpAssignments.filter((a) =>  isPastDate(a.date))
-  const umpUpcomingAssignments = umpAssignments.filter((a) => !isPastDate(a.date))
+  const umpPastAssignments     = umpAssignments.filter((a) =>  isPastDateTime(a.date, a.time))
+  const umpUpcomingAssignments = umpAssignments.filter((a) => !isPastDateTime(a.date, a.time))
 
   // ── Render ─────────────────────────────────────────────────────────────
 

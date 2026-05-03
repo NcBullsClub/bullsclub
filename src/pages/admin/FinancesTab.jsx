@@ -889,15 +889,25 @@ function UmpFeesPanel({ rosterPlayers }) {
     const key = `${player.id}::${assignmentId}`
     setToggling(key)
     const existing = feeMap[key]
+    const now = new Date().toISOString()
 
     let error
     if (existing) {
+      const newPaid = !existing.paid
+      const newPaidAt = newPaid ? now : null
       ;({ error } = await supabase.from('umpiring_fees')
-        .update({ paid: !existing.paid, paid_at: !existing.paid ? new Date().toISOString() : null })
+        .update({ paid: newPaid, paid_at: newPaidAt })
         .eq('user_id', player.id)
         .eq('umpiring_assignment_id', assignmentId))
+      if (!error) {
+        setFeeRecords((prev) => prev.map((r) =>
+          r.user_id === player.id && r.umpiring_assignment_id === assignmentId
+            ? { ...r, paid: newPaid, paid_at: newPaidAt }
+            : r
+        ))
+      }
     } else {
-      ;({ error } = await supabase.from('umpiring_fees').insert({
+      const newRecord = {
         user_id: player.id,
         player_name: player.full_name,
         team: player.team,
@@ -905,32 +915,40 @@ function UmpFeesPanel({ rosterPlayers }) {
         season: SEASON,
         amount: UMP_FEE,
         paid: true,
-        paid_at: new Date().toISOString(),
-      }))
+        paid_at: now,
+      }
+      const { data: inserted, error: insertErr } = await supabase.from('umpiring_fees')
+        .insert(newRecord)
+        .select()
+        .single()
+      error = insertErr
+      if (!error) {
+        setFeeRecords((prev) => [...prev, inserted || { ...newRecord, id: Date.now() }])
+      }
     }
-    if (error) {
-      alert(`Failed to update payment: ${error.message}`)
-      setToggling(null)
-      return
-    }
-    await load()
+    if (error) alert(`Failed to update payment: ${error.message}`)
     setToggling(null)
   }
 
   async function handleAdminMarkUncomplete(player, assignmentId) {
     const key = `${player.id}::${assignmentId}`
     setSavingUncomplete(key)
-    // Delete umpiring_availability row — player moves back to Not Completed
-    await supabase.from('umpiring_availability')
-      .delete()
-      .eq('user_id', player.id)
-      .eq('umpiring_assignment_id', assignmentId)
-    // Also clear any fee record for this assignment
-    await supabase.from('umpiring_fees')
-      .delete()
-      .eq('user_id', player.id)
-      .eq('umpiring_assignment_id', assignmentId)
-    await load()
+    const [{ error: avErr }, { error: feeErr }] = await Promise.all([
+      supabase.from('umpiring_availability')
+        .delete().eq('user_id', player.id).eq('umpiring_assignment_id', assignmentId),
+      supabase.from('umpiring_fees')
+        .delete().eq('user_id', player.id).eq('umpiring_assignment_id', assignmentId),
+    ])
+    if (!avErr) {
+      setAvailability((prev) =>
+        prev.filter((r) => !(r.user_id === player.id && r.umpiring_assignment_id === assignmentId))
+      )
+    }
+    if (!feeErr) {
+      setFeeRecords((prev) =>
+        prev.filter((r) => !(r.user_id === player.id && r.umpiring_assignment_id === assignmentId))
+      )
+    }
     setSavingUncomplete(null)
     setConfirmUncomplete(null)
     setReassigning(null)
@@ -939,17 +957,25 @@ function UmpFeesPanel({ rosterPlayers }) {
   async function handleAdminMarkComplete(player, assignmentId) {
     const key = `${player.id}::${assignmentId}`
     setSavingComplete(key)
-    await supabase.from('umpiring_availability').upsert(
-      {
-        user_id: player.id,
-        umpiring_assignment_id: assignmentId,
-        ncb_team: player.team,
-        status: 'in',
-        notes: 'Admin marked',
-      },
-      { onConflict: 'user_id,umpiring_assignment_id' }
-    )
-    await load()
+    const newRow = {
+      user_id: player.id,
+      umpiring_assignment_id: assignmentId,
+      ncb_team: player.team,
+      status: 'in',
+      notes: 'Admin marked',
+    }
+    const { data: upserted, error } = await supabase.from('umpiring_availability')
+      .upsert(newRow, { onConflict: 'user_id,umpiring_assignment_id' })
+      .select()
+      .single()
+    if (!error) {
+      setAvailability((prev) => {
+        const filtered = prev.filter(
+          (r) => !(r.user_id === player.id && r.umpiring_assignment_id === assignmentId)
+        )
+        return [...filtered, upserted || { ...newRow, id: Date.now() }]
+      })
+    }
     setSavingComplete(null)
     setMarkingComplete(null)
   }
@@ -963,7 +989,6 @@ function UmpFeesPanel({ rosterPlayers }) {
     try {
       const oldFee = feeMap[`${player.id}::${oldAssignId}`]
 
-      // Add the corrected assignment first so we avoid dropping data on partial failures.
       const { error: newAvailErr } = await supabase.from('umpiring_availability').upsert(
         {
           user_id: player.id,
@@ -1001,7 +1026,31 @@ function UmpFeesPanel({ rosterPlayers }) {
         .delete().eq('user_id', player.id).eq('umpiring_assignment_id', oldAssignId)
       if (oldFeeErr) throw oldFeeErr
 
-      await load()
+      // Optimistic local state update — no full reload
+      setAvailability((prev) => {
+        const filtered = prev.filter(
+          (r) => !(r.user_id === player.id && r.umpiring_assignment_id === oldAssignId)
+        )
+        return [...filtered, {
+          user_id: player.id,
+          umpiring_assignment_id: newAssignId,
+          ncb_team: newAssgn.ncb_team || player.team,
+          status: 'in',
+          notes: 'Admin reassigned',
+          id: Date.now(),
+        }]
+      })
+      setFeeRecords((prev) => {
+        const filtered = prev.filter(
+          (r) => !(r.user_id === player.id && r.umpiring_assignment_id === oldAssignId)
+        )
+        if (!oldFee) return filtered
+        return [...filtered, {
+          ...oldFee,
+          umpiring_assignment_id: newAssignId,
+          id: Date.now() + 1,
+        }]
+      })
       setReassigning(null)
     } catch (e) {
       alert(`Error reassigning match: ${e.message || 'Unknown error'}`)
@@ -1437,11 +1486,13 @@ function UmpFeesPanel({ rosterPlayers }) {
                       {/* Expanded: past assignment picker */}
                       {isOpen && (
                         <div className="border-t border-amber-200 bg-white">
-                          {pastAssignments.length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-4">No past assignments found.</p>
-                          ) : (
-                            <div className="divide-y divide-gray-100">
-                              {pastAssignments.map((assgn) => {
+                          {(() => {
+                            const teamAssignments = pastAssignments.filter((a) => a.ncb_team === player.team)
+                            return teamAssignments.length === 0 ? (
+                              <p className="text-xs text-gray-400 text-center py-4">No past assignments found for {player.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}.</p>
+                            ) : (
+                              <div className="divide-y divide-gray-100">
+                                {teamAssignments.map((assgn) => {
                                 const key = `${player.id}::${assgn.id}`
                                 const isSaving = savingComplete === key
                                 return (
@@ -1478,7 +1529,8 @@ function UmpFeesPanel({ rosterPlayers }) {
                                 )
                               })}
                             </div>
-                          )}
+                          )
+                          })()} 
                         </div>
                       )}
                     </div>

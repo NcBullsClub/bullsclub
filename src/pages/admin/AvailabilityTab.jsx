@@ -861,7 +861,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
     <div>
       {/* ── Top bar: mode toggle + refresh ── */}
       <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-2xl p-1">
+        <div className="flex items-center gap-2">
           {[
             { id: 'playing',  label: '🏏 Playing'  },
             { id: 'umpiring', label: '🧢 Umpiring' },
@@ -870,7 +870,9 @@ export default function AvailabilityTab({ onSelectFixture }) {
               key={t.id}
               onClick={() => setActiveMode(t.id)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                activeMode === t.id ? 'bg-primary-dark text-accent' : 'text-gray-600 hover:bg-gray-100'
+                activeMode === t.id
+                  ? 'bg-primary-dark text-accent'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
               }`}
             >
               {t.label}

@@ -4,11 +4,11 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import groundsData from '../../data/grounds.json'
 
-// venue name → Google Maps URL
+// venue name → short Google Maps URL (venue name + state for readability in WhatsApp)
 const GROUNDS_MAP = Object.fromEntries(
   groundsData.map((g) => [
     g.name.toLowerCase(),
-    `https://maps.google.com/?q=${encodeURIComponent(g.address)}`,
+    `https://maps.google.com/?q=${encodeURIComponent(g.name + ', NC')}`,
   ]),
 )
 function groundMapsUrl(venueName) {
@@ -369,8 +369,6 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
       `⚔️ *Match:* ${assignment.match_visitor} vs ${assignment.match_home}`,
     ]
     if (assignment.division) lines.push(`🏆 *Division:* ${assignment.division}`)
-    const mapsUrl = groundMapsUrl(assignment.venue)
-    if (mapsUrl) lines.push(`📍 *Maps:* ${mapsUrl}`)
     lines.push(
       '',
       `🧑‍⚖️ *Representing ${teamLabel(assignment.ncb_team)} as Umpires:*`,
@@ -632,18 +630,18 @@ Please update your *umpiring availability* for the duty assignment below:
                     <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Message Preview</p>
                     <div className="text-xs bg-gray-900 text-green-400 rounded-xl p-3 leading-relaxed font-mono">
                       {message.split('\n').map((line, i) => {
-                        const mapsMatch = line.match(/^📍 \*Maps:\* (.+)$/)
+                        const mapsMatch = line.match(/^📍 Maps & Details: (.+)$/)
                         if (mapsMatch) {
                           return (
                             <div key={i} className="flex items-center gap-2 my-0.5">
-                              <span>📍 <span className="font-semibold">Maps:</span></span>
+                              <span>📍 Maps &amp; Details:</span>
                               <a
                                 href={mapsMatch[1]}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-md transition-colors no-underline"
                               >
-                                📍 Open Maps ↗
+                                Open ↗
                               </a>
                             </div>
                           )

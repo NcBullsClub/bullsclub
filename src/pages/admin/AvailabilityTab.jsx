@@ -2,6 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import groundsData from '../../data/grounds.json'
+
+// venue name → Google Maps URL
+const GROUNDS_MAP = Object.fromEntries(
+  groundsData.map((g) => [
+    g.name.toLowerCase(),
+    `https://maps.google.com/?q=${encodeURIComponent(g.address)}`,
+  ]),
+)
+function groundMapsUrl(venueName) {
+  if (!venueName) return null
+  return GROUNDS_MAP[venueName.toLowerCase()] || `https://maps.google.com/?q=${encodeURIComponent(venueName)}`
+}
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -45,11 +58,26 @@ function parseDate(dateStr) {
   return new Date(y, m - 1, d)
 }
 
-function isPastDate(dateStr) {
-  const dt = parseDate(dateStr)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return dt < today
+function isPastDateTime(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  let dt
+  if (timeStr) {
+    // parse "4:00 PM" / "10:30 AM" style strings
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+    if (match) {
+      let hours = parseInt(match[1], 10)
+      const minutes = parseInt(match[2], 10)
+      const meridiem = match[3].toUpperCase()
+      if (meridiem === 'PM' && hours !== 12) hours += 12
+      if (meridiem === 'AM' && hours === 12) hours = 0
+      dt = new Date(y, m - 1, d, hours, minutes, 0)
+    }
+  }
+  if (!dt) {
+    // no time — treat whole day as past only once the day is over (midnight)
+    dt = new Date(y, m - 1, d, 23, 59, 59)
+  }
+  return dt < new Date()
 }
 
 function formatLongDate(dateStr) {
@@ -157,7 +185,7 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
   const inList      = rows.filter((r) => r.status === 'in')
   const outList     = rows.filter((r) => r.status === 'out')
   const maybeList   = rows.filter((r) => r.status === 'maybe')
-  const isPastCard  = isPastDate(date)
+  const isPastCard  = isPastDateTime(date, fixture?.time)
   const isRaising   = team === 'raising-bulls'
   const isCollapsed = collapsedKeys.has(cardKey)
 
@@ -305,7 +333,7 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
   const inList    = rows.filter((r) => r.status === 'in')
   const outList   = rows.filter((r) => r.status === 'out')
   const maybeList = rows.filter((r) => r.status === 'maybe')
-  const isPast    = isPastDate(assignment.date)
+  const isPast    = isPastDateTime(assignment.date, assignment.time)
   const isRaising = assignment.ncb_team === 'raising-bulls'
   const isCollapsed = collapsedIds.has(assignment.id)
 
@@ -341,6 +369,8 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
       `⚔️ *Match:* ${assignment.match_visitor} vs ${assignment.match_home}`,
     ]
     if (assignment.division) lines.push(`🏆 *Division:* ${assignment.division}`)
+    const mapsUrl = groundMapsUrl(assignment.venue)
+    if (mapsUrl) lines.push(`📍 *Maps:* ${mapsUrl}`)
     lines.push(
       '',
       `🧑‍⚖️ *Representing ${teamLabel(assignment.ncb_team)} as Umpires:*`,
@@ -600,9 +630,27 @@ Please update your *umpiring availability* for the duty assignment below:
 
                   <div>
                     <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Message Preview</p>
-                    <pre className="text-xs bg-gray-900 text-green-400 rounded-xl p-3 whitespace-pre-wrap overflow-x-auto leading-relaxed">
-                      {message}
-                    </pre>
+                    <div className="text-xs bg-gray-900 text-green-400 rounded-xl p-3 leading-relaxed font-mono">
+                      {message.split('\n').map((line, i) => {
+                        const mapsMatch = line.match(/^📍 \*Maps:\* (.+)$/)
+                        if (mapsMatch) {
+                          return (
+                            <div key={i} className="flex items-center gap-2 my-0.5">
+                              <span>📍 <span className="font-semibold">Maps:</span></span>
+                              <a
+                                href={mapsMatch[1]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-md transition-colors no-underline"
+                              >
+                                📍 Open Maps ↗
+                              </a>
+                            </div>
+                          )
+                        }
+                        return <div key={i} className="whitespace-pre-wrap min-h-[1em]">{line || '\u00A0'}</div>
+                      })}
+                    </div>
                   </div>
 
                   <a
@@ -743,8 +791,12 @@ export default function AvailabilityTab({ onSelectFixture }) {
     playingInitializedCollapse.current = true
     const pastKeys = new Set(
       playingResponses
-        .map((r) => `${r.fixture_date}::${r.fixture_team}`)
-        .filter((key) => isPastDate(key.split('::')[0])),
+        .map((r) => ({ key: `${r.fixture_date}::${r.fixture_team}`, date: r.fixture_date }))
+        .filter(({ key, date }) => {
+          const fixture = fixtureMap[key]
+          return isPastDateTime(date, fixture?.time)
+        })
+        .map(({ key }) => key),
     )
     setPlayingCollapsedKeys(pastKeys)
   }, [playingResponses])
@@ -752,7 +804,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
   useEffect(() => {
     if (!umpAssignments.length || umpInitializedCollapse.current) return
     umpInitializedCollapse.current = true
-    const pastIds = new Set(umpAssignments.filter((a) => isPastDate(a.date)).map((a) => a.id))
+    const pastIds = new Set(umpAssignments.filter((a) => isPastDateTime(a.date, a.time)).map((a) => a.id))
     setUmpCollapsedIds(pastIds)
   }, [umpAssignments])
 
@@ -793,11 +845,17 @@ export default function AvailabilityTab({ onSelectFixture }) {
   [umpResponses])
 
   const playingEntries         = Object.entries(playingGrouped)
-  const playingPastEntries     = playingEntries.filter(([key]) => isPastDate(key.split('::')[0]))
-  const playingUpcomingEntries = playingEntries.filter(([key]) => !isPastDate(key.split('::')[0]))
+  const playingPastEntries     = playingEntries.filter(([key]) => {
+    const fixture = fixtureMap[key]
+    return isPastDateTime(key.split('::')[0], fixture?.time)
+  })
+  const playingUpcomingEntries = playingEntries.filter(([key]) => {
+    const fixture = fixtureMap[key]
+    return !isPastDateTime(key.split('::')[0], fixture?.time)
+  })
 
-  const umpPastAssignments     = umpAssignments.filter((a) =>  isPastDate(a.date))
-  const umpUpcomingAssignments = umpAssignments.filter((a) => !isPastDate(a.date))
+  const umpPastAssignments     = umpAssignments.filter((a) =>  isPastDateTime(a.date, a.time))
+  const umpUpcomingAssignments = umpAssignments.filter((a) => !isPastDateTime(a.date, a.time))
 
   // ── Render ─────────────────────────────────────────────────────────────
 

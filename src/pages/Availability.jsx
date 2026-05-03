@@ -57,7 +57,21 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
   const [fy, fm, fd] = fixture.date.split('-').map(Number)
   const fixtureDate = new Date(fy, fm - 1, fd)
   const fixtureWeekday = fixtureDate.toLocaleDateString('en-US', { weekday: 'short' })
-  const isPast = fixtureDate < new Date(new Date().setHours(0, 0, 0, 0))
+  const isPast = (() => {
+    if (fixture.time) {
+      const match = fixture.time.match(/(\d+):(\d+)\s*(AM|PM)/i)
+      if (match) {
+        let hours = parseInt(match[1], 10)
+        const minutes = parseInt(match[2], 10)
+        const meridiem = match[3].toUpperCase()
+        if (meridiem === 'PM' && hours !== 12) hours += 12
+        if (meridiem === 'AM' && hours === 12) hours = 0
+        return new Date(fy, fm - 1, fd, hours, minutes, 0) < new Date()
+      }
+    }
+    // no time — treat as past only after the full day ends
+    return new Date(fy, fm - 1, fd, 23, 59, 59) < new Date()
+  })()
 
   const key = `${fixture.date}::${fixture.team}`
   const counts = availabilityMap[key] || { in: 0, out: 0, maybe: 0, players: [] }

@@ -34,6 +34,23 @@ function formatDate(dateStr) {
   return `${month} ${ordinal(dt.getDate())}, ${y}`
 }
 
+function subtractMinutes(timeStr, mins) {
+  if (!timeStr) return null
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  if (!match) return null
+  let hours = parseInt(match[1], 10)
+  const minutes = parseInt(match[2], 10)
+  const meridiem = match[3].toUpperCase()
+  if (meridiem === 'PM' && hours !== 12) hours += 12
+  if (meridiem === 'AM' && hours === 12) hours = 0
+  const total = hours * 60 + minutes - mins
+  let h = Math.floor(total / 60)
+  const m2 = total % 60
+  const newMer = h >= 12 ? 'PM' : 'AM'
+  h = h % 12 || 12
+  return `${h}:${String(m2).padStart(2, '0')} ${newMer}`
+}
+
 // ─── Shared player row used in the picker ────────────────────────────────────
 function PlayerPickerRow({ name, isSel, onToggle, badge }) {
   const displayName = name.split(' ')[0]
@@ -284,6 +301,11 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     if (u1 || u2) {
       setUmpires(u1 === u2 ? u1 : [u1, u2].filter(Boolean).join(' & '))
     }
+    // Auto-set arriveBy to 30 mins before fixture time
+    if (selectedFixture.time) {
+      const arrive = subtractMinutes(selectedFixture.time, 30)
+      if (arrive) setArriveBy(arrive)
+    }
   }, [selectedFixture?.id])
 
   useEffect(() => {
@@ -358,10 +380,10 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
       `${season}🏆`,
       '',
       `Playing 11 for ${gameLabel}:`,
-      `${teamLabel(selectedFixture.team)} Vs ${selectedFixture.opponent}`,
-      `Date: ${formatDate(selectedFixture.date)}`,
-      `Time: ${selectedFixture.time || 'TBD'}`,
-      `Venue: ${selectedFixture.venue}`,
+      `⚔️ *${teamLabel(selectedFixture.team)} Vs ${selectedFixture.opponent}*`,
+      `📅 *Date: ${formatDate(selectedFixture.date)}*`,
+      `⏰ *Time: ${selectedFixture.time || 'TBD'}*`,
+      `🏟️ *Venue: ${selectedFixture.venue}*`,
     ]
     if (umpires) lines.push(`🧢 Umpires: ${umpires}`)
     if (selectedFixture.venue_address) lines.push(`*Ground Address: ${selectedFixture.venue_address}*`)

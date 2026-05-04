@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import logo from '../assets/images/cropped_no bg_nc_bulls_club_logo.png'
@@ -60,56 +60,6 @@ export default function Home() {
   const [ryWins, setRyWins] = useState(0)
   const totalWins = rbWins + ryWins
   const [latestNews, setLatestNews] = useState([])
-  const [showA2HS, setShowA2HS]         = useState(false)
-  const [a2hsPlatform, setA2hsPlatform] = useState('ios')
-  const [a2hsDismissed, setA2hsDismissed] = useState(false)
-  const deferredPromptRef = useRef(null)
-
-  useEffect(() => {
-    const dismissed   = localStorage.getItem('a2hs-dismissed')
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
-    const ua = navigator.userAgent
-    const ios     = /iphone|ipad|ipod/i.test(ua)
-    const android = /android/i.test(ua)
-    if (!isStandalone && (ios || android)) {
-      setA2hsPlatform(ios ? 'ios' : 'android')
-      if (dismissed) {
-        setA2hsDismissed(true)
-      } else {
-        setShowA2HS(true)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault()
-      deferredPromptRef.current = e
-    }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
-
-  async function handleNativeInstall() {
-    if (deferredPromptRef.current) {
-      deferredPromptRef.current.prompt()
-      const { outcome } = await deferredPromptRef.current.userChoice
-      deferredPromptRef.current = null
-      if (outcome === 'accepted') dismissA2HS()
-    }
-  }
-
-  function dismissA2HS() {
-    localStorage.setItem('a2hs-dismissed', '1')
-    setShowA2HS(false)
-    setA2hsDismissed(true)
-  }
-
-  function reopenA2HS() {
-    localStorage.removeItem('a2hs-dismissed')
-    setA2hsDismissed(false)
-    setShowA2HS(true)
-  }
 
   useEffect(() => {
     supabase.from('fixtures').select('*').order('date', { ascending: true })
@@ -148,108 +98,6 @@ export default function Home() {
 
   return (
     <div>
-      {/* Floating re-open button — shows after A2HS is dismissed, mobile only */}
-      {a2hsDismissed && !showA2HS && (
-        <button
-          onClick={reopenA2HS}
-          className="fixed top-1/2 right-0 -translate-y-1/2 z-50 sm:hidden flex items-center gap-1.5 bg-accent text-primary-dark border border-accent-dark/40 rounded-l-full px-3 py-2.5 text-xs font-semibold shadow-lg active:scale-95 transition-transform"
-          aria-label="Add to Home Screen"
-        >
-          <span>📲</span>
-          <span>Add to Home Screen</span>
-        </button>
-      )}
-
-      {/* Add to Home Screen — fixed bottom sheet, mobile only */}
-      {showA2HS && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden">
-          <div className="bg-white border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.15)] px-4 pt-4 pb-6">
-
-            {/* Header */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-primary-dark flex items-center justify-center flex-shrink-0 shadow-md">
-                  <span className="text-xl">📲</span>
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-gray-900 leading-tight">Add to Home Screen</p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">Get the full app experience — fast &amp; easy</p>
-                </div>
-              </div>
-              <button
-                onClick={dismissA2HS}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 text-black hover:bg-gray-300 transition-colors flex-shrink-0 -mr-1"
-                aria-label="Dismiss"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="h-px bg-gray-100 mb-3" />
-
-            {/* Platform label */}
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">
-              {a2hsPlatform === 'ios' ? '🍎 iPhone / iPad' : '🤖 Android — Chrome'}
-            </p>
-
-            {/* Steps */}
-            <div className="space-y-2 mb-4">
-              {a2hsPlatform === 'ios' ? (
-                <>
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
-                    <p className="text-xs text-gray-700">Tap the <span className="font-bold">Share</span> icon <span className="font-bold text-primary-dark">⬆</span> in your browser</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
-                    <p className="text-xs text-gray-700">Look for <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span> — if you don&apos;t see it, tap <span className="font-bold">&ldquo;More Options&rdquo;</span> first</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
-                    <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add&rdquo;</span> in the top-right corner — done!</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {deferredPromptRef.current ? (
-                    <button
-                      onClick={handleNativeInstall}
-                      className="w-full py-3 rounded-xl bg-primary-dark text-accent font-bold text-sm flex items-center justify-center gap-2"
-                    >
-                      <span>📲</span> Tap to Install App
-                    </button>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">1</span>
-                        <p className="text-xs text-gray-700">Tap the <span className="font-bold">⋮</span> menu in the <span className="font-semibold">top-right</span> of Chrome</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">2</span>
-                        <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add to Home Screen&rdquo;</span> or <span className="font-bold">&ldquo;Install App&rdquo;</span></p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="w-5 h-5 rounded-full bg-primary-dark text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">3</span>
-                        <p className="text-xs text-gray-700">Tap <span className="font-bold">&ldquo;Add&rdquo;</span> to confirm — done!</p>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Dismiss link */}
-            <button
-              onClick={dismissA2HS}
-              className="w-full text-center text-[11px] text-gray-400 hover:text-gray-600 transition-colors py-1"
-            >
-              Don't show this again
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Hero */}
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
         {/* Background logo watermark */}

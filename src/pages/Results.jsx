@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useSeason } from '../contexts/SeasonContext'
+import { SEASONS } from '../config/seasons'
+import SeasonSwitcher, { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
 
 function isComplete(r) {
   return !!(r.result && r.ncb_score && r.opp_score)
@@ -55,6 +58,7 @@ function formatDate(dateStr) {
 
 export default function Results() {
   const { user } = useAuth()
+  const { activeSeason } = useSeason()
   const [activeTab, setActiveTab] = useState('matches')
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [results, setResults]       = useState([])
@@ -67,9 +71,15 @@ export default function Results() {
 
   useEffect(() => {
     setLoading(true)
+    const isFirst = activeSeason.id === SEASONS[0].id
     Promise.all([
-      supabase.from('match_results').select('*').eq('team', teamFilter).order('fixture_date', { ascending: false }),
-      supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter),
+      // First season also matches un-tagged rows (season IS NULL) for backward compat
+      isFirst
+        ? supabase.from('match_results').select('*').eq('team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`).order('fixture_date', { ascending: false })
+        : supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
+      isFirst
+        ? supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
+        : supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
       supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter),
       supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter),
       supabase.from('profiles').select('id, full_name, team').eq('team', teamFilter),
@@ -86,7 +96,7 @@ export default function Results() {
       setPlayerMap(pmap)
       setLoading(false)
     })
-  }, [teamFilter])
+  }, [teamFilter, activeSeason])
 
   const wins   = results.filter(isWon).length
   const losses = results.filter((r) => !isWon(r)).length
@@ -111,13 +121,21 @@ export default function Results() {
   return (
     <div>
       {/* Hero — compact on mobile */}
-      <section className="bg-primary-dark text-white py-10 md:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="bg-primary-dark text-white py-8 md:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl md:text-6xl font-bold mb-1 md:mb-3">
-              <span className="text-accent">RESULTS</span>
-            </h1>
-            <p className="text-gray-400 text-sm md:text-lg">Match results and scorecards</p>
+            <div className="flex items-center justify-between gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <span className="hidden md:block" />
+              <div className="md:text-center">
+                <h1 className="font-display text-3xl md:text-6xl font-bold leading-tight">
+                  <span className="text-accent">RESULTS</span>
+                </h1>
+                <p className="text-gray-400 text-xs md:text-lg mt-0.5">Match results and scorecards</p>
+              </div>
+              <div className="flex md:justify-end">
+                <SeasonSwitcherInline />
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -125,7 +143,7 @@ export default function Results() {
       {/* Filter + record bar */}
       <section className="bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <div className="flex gap-2">
               {teamsFilter.map((t) => (
                 <button

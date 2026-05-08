@@ -3,6 +3,9 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useSeason } from '../contexts/SeasonContext'
+import { SEASONS } from '../config/seasons'
+import SeasonSwitcher, { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -176,7 +179,15 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
       className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm"
     >
       {/* Card header */}
-      <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+      <div className={`relative overflow-hidden px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-40 h-30 pointer-events-none z-0 opacity-70">
+          <img
+            src="/icons/cricket_batting.png"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-contain"
+          />
+        </div>
         <div className="bg-white/10 rounded-lg px-2.5 py-1.5 text-center flex-shrink-0 min-w-[48px]">
           <div className="text-accent font-display font-bold text-sm leading-none">
             {fixtureDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -192,7 +203,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
             {fixtureWeekday}
           </div>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="relative z-10 flex-1 min-w-0 pr-20">
           <div className="flex flex-wrap gap-1 mb-0.5">
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'}`}>
               {teamLabel}
@@ -208,7 +219,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
           </div>
         </div>
         {isPast && (
-          <span className="text-xs bg-white/10 text-white/50 px-2 py-1 rounded-lg flex-shrink-0">Completed</span>
+          <span className="relative z-10 text-xs bg-white/10 text-white/50 px-2 py-1 rounded-lg flex-shrink-0">Completed</span>
         )}
       </div>
 
@@ -383,22 +394,12 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
                   <div className="text-[10px] text-gray-400 italic">None yet</div>
                 ) : (
                   <div className="space-y-0.5">
-                    {availablePlayers.filter((p) => p.status === 'in').map((p, i) => {
-                      const paid = hasPaid(p.name)
-                      return (
-                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-50">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                          <span className="text-xs font-medium text-green-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
-                          {paid !== null && (
-                            <span className={`inline-flex text-[9px] font-bold px-1 py-0.5 rounded-full border ${
-                              paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
-                            }`}>
-                              {paid ? 'Paid' : 'Unpaid'}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
+                    {availablePlayers.filter((p) => p.status === 'in').map((p, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                        <span className="text-xs font-medium text-green-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -410,38 +411,18 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
                   <div className="text-[10px] text-gray-400 italic">None yet</div>
                 ) : (
                   <div className="space-y-0.5">
-                    {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => {
-                      const paid = hasPaid(p.name)
-                      return (
-                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                          <span className="text-xs font-medium text-amber-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
-                          {paid !== null && (
-                            <span className={`inline-flex text-[9px] font-bold px-1 py-0.5 rounded-full border ${
-                              paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-50 text-red-500 border-red-200'
-                            }`}>
-                              {paid ? 'Paid' : 'Unpaid'}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
-                    {outPlayers.map((p, i) => {
-                      const paid = hasPaid(p.name)
-                      return (
-                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                          <span className="text-xs font-medium text-red-700 flex-1 truncate">{p.name.split(' ')[0]}</span>
-                          {paid !== null && (
-                            <span className={`inline-flex text-[9px] font-bold px-1 py-0.5 rounded-full border ${
-                              paid ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-500 border-red-300'
-                            }`}>
-                              {paid ? 'Paid' : 'Unpaid'}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
+                    {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                        <span className="text-xs font-medium text-amber-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                    {outPlayers.map((p, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                        <span className="text-xs font-medium text-red-700 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -462,6 +443,7 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
 
   const [ay, am, ad]   = assignment.date.split('-').map(Number)
   const assignmentDate = new Date(ay, am - 1, ad)
+  const assignmentWeekday = assignmentDate.toLocaleDateString('en-US', { weekday: 'short' })
   const isPast         = assignmentDate < new Date(new Date().setHours(0, 0, 0, 0))
 
   const counts     = umpAvailMap[assignment.id]     || { in: 0, out: 0, maybe: 0, names: [] }
@@ -547,14 +529,31 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
       className="bg-white border border-blue-200 rounded-2xl overflow-hidden shadow-sm"
     >
       {/* Header */}
-      <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+      <div className={`relative overflow-hidden px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-20 h-20 pointer-events-none z-0 opacity-40">
+          <img
+            src="/icons/umpire.png"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-contain"
+          />
+        </div>
         <div className="bg-white/10 rounded-lg px-2.5 py-1.5 text-center flex-shrink-0 min-w-[48px]">
           <div className="text-accent font-display font-bold text-sm leading-none">
             {assignmentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </div>
           <div className="text-white/50 text-xs mt-0.5">{assignmentDate.getFullYear()}</div>
+          <div
+            className={`mt-1 inline-flex items-center justify-center text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${
+              isRaising
+                ? 'text-accent bg-accent/10 border-accent/40'
+                : 'text-white bg-white/10 border-white/30'
+            }`}
+          >
+            {assignmentWeekday}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="relative z-10 flex-1 min-w-0 pr-20">
           <div className="flex flex-wrap gap-1 mb-0.5">
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'}`}>
               {teamLabel}
@@ -567,8 +566,11 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
           <div className="text-white font-semibold text-sm truncate">
             {assignment.match_visitor} <span className="font-normal opacity-70">vs</span> {assignment.match_home}
           </div>
+          <div className="text-white/60 text-xs mt-0.5">
+            {assignment.time} · {assignment.venue}
+          </div>
         </div>
-        {isPast && <span className="text-xs text-white/40 flex-shrink-0">Past</span>}
+        {isPast && <span className="relative z-10 text-xs text-white/40 flex-shrink-0">Past</span>}
       </div>
 
       <div className="px-4 py-4 space-y-3">
@@ -711,6 +713,7 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
 export default function Availability() {
   const [searchParams]  = useSearchParams()
   const { user, profile } = useAuth()
+  const { activeSeason } = useSeason()
 
   const paramTeam    = searchParams.get('team')
   const paramFixture = searchParams.get('fixture')
@@ -748,9 +751,14 @@ export default function Availability() {
   // Load fixtures from Supabase
   useEffect(() => {
     setLoadingFix(true)
-    supabase.from('fixtures').select('*').order('date', { ascending: true })
+    // First season also matches un-tagged rows (season IS NULL) for backward compat
+    const isFirst = activeSeason.id === SEASONS[0].id
+    const seasonQ = isFirst
+      ? supabase.from('fixtures').select('*').or(`season.eq.${activeSeason.id},season.is.null`).order('date', { ascending: true })
+      : supabase.from('fixtures').select('*').eq('season', activeSeason.id).order('date', { ascending: true })
+    seasonQ
       .then(({ data }) => { setFixturesData(data || []); setLoadingFix(false) })
-  }, [])
+  }, [activeSeason])
 
   // Load umpiring assignments
   useEffect(() => {
@@ -835,17 +843,24 @@ export default function Availability() {
   useEffect(() => { loadData({ showSpinner: true }) }, [teamFilter, user])
 
   useEffect(() => {
+    if (!user || !profile?.team) {
+      setFinanceMap({})
+      setFinanceLoaded(true)
+      return
+    }
+
     supabase
       .from('player_finances')
       .select('player_name, team, paid')
-      .eq('season', '2026')
+      .in('season', (activeSeason?.id || '2026') === SEASONS[0].id ? [SEASONS[0].id, '2026'] : [activeSeason?.id || '2026'])
+      .eq('team', profile.team)
       .then(({ data }) => {
         const map = {}
         ;(data || []).forEach((r) => { map[`${r.player_name}::${r.team}`] = r.paid })
         setFinanceMap(map)
         setFinanceLoaded(true)
       })
-  }, [])
+  }, [user, profile?.team, activeSeason?.id])
 
   useEffect(() => {
     if (profile?.team) setTeamFilter(profile.team)
@@ -1013,15 +1028,23 @@ export default function Availability() {
         </div>
       )}
 
-      <section className="bg-primary-dark text-white py-10 md:py-16">
+      <section className="bg-primary-dark text-white py-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl md:text-6xl font-bold mb-1 md:mb-3 text-center">
-              PLAYER <span className="text-accent">AVAILABILITY</span>
-            </h1>
-            <p className="text-gray-400 text-sm md:text-lg max-w-2xl mx-auto text-center">
-              Let your captain know if you can make the next match.
-            </p>
+            <div className="flex items-start justify-between gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <span className="hidden md:block" />
+              <div className="md:text-center">
+                <h1 className="font-display text-3xl md:text-6xl font-bold leading-tight">
+                  PLAYER <span className="text-accent">AVAILABILITY</span>
+                </h1>
+                <p className="text-gray-400 text-xs md:text-lg mt-0.5">
+                  Let your captain know if you can make the next match.
+                </p>
+              </div>
+              <div className="flex md:justify-end">
+                <SeasonSwitcherInline />
+              </div>
+            </div>
             {user && profile && (
               <div className="flex flex-col items-center gap-3 mt-5">
                 <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm">
@@ -1080,7 +1103,7 @@ export default function Availability() {
             ))}
           </div>
           {/* Tab switcher */}
-          <div className="flex gap-1.5 ml-auto">
+          <div className="flex gap-1.5">
             <button
               onClick={() => setActiveTab('playing')}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${

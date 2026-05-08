@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSeason } from '../../contexts/SeasonContext'
+import { SEASONS } from '../../config/seasons'
 import groundsData from '../../data/grounds.json'
 
 // venue name → short Google Maps URL (venue name + state for readability in WhatsApp)
@@ -693,6 +695,7 @@ function SectionHeader({ title, count, dotColor = 'bg-accent' }) {
 
 export default function AvailabilityTab({ onSelectFixture }) {
   const { isSuperAdmin, adminTeam } = useAuth()
+  const { activeSeason } = useSeason()
 
   const [teamFilter, setTeamFilter] = useState(adminTeam ?? 'raising-bulls')
   const [activeMode, setActiveMode] = useState('playing')
@@ -726,7 +729,10 @@ export default function AvailabilityTab({ onSelectFixture }) {
     setLoading(true)
     setError('')
     try {
-      const fixtureQ  = supabase.from('fixtures').select('*').order('date', { ascending: true })
+      const isFirst   = activeSeason.id === SEASONS[0].id
+      const fixtureQ  = isFirst
+        ? supabase.from('fixtures').select('*').or(`season.eq.${activeSeason.id},season.is.null`).order('date', { ascending: true })
+        : supabase.from('fixtures').select('*').eq('season', activeSeason.id).order('date', { ascending: true })
       const playingQ  = supabase.from('availability').select('*, profiles(full_name, email, team, role)').order('fixture_date', { ascending: true })
       const umpAssnQ  = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
       const profilesQ = supabase.from('profiles').select('id, full_name, team')
@@ -781,7 +787,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
     }
   }
 
-  useEffect(() => { load() }, [teamFilter, isSuperAdmin, adminTeam])
+  useEffect(() => { load() }, [teamFilter, isSuperAdmin, adminTeam, activeSeason])
 
   // Auto-collapse past entries on first load
   useEffect(() => {
@@ -843,6 +849,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
   [umpResponses])
 
   const playingEntries         = Object.entries(playingGrouped)
+    .filter(([key]) => key in fixtureMap)  // only show entries whose fixture is in the active season
   const playingPastEntries     = playingEntries.filter(([key]) => {
     const fixture = fixtureMap[key]
     return isPastDateTime(key.split('::')[0], fixture?.time)
@@ -852,15 +859,15 @@ export default function AvailabilityTab({ onSelectFixture }) {
     return !isPastDateTime(key.split('::')[0], fixture?.time)
   })
 
-  const umpPastAssignments     = umpAssignments.filter((a) =>  isPastDateTime(a.date, a.time))
-  const umpUpcomingAssignments = umpAssignments.filter((a) => !isPastDateTime(a.date, a.time))
+  const umpPastAssignments     = umpAssignments.filter((a) => (`${a.date}::${a.ncb_team}` in fixtureMap) &&  isPastDateTime(a.date, a.time))
+  const umpUpcomingAssignments = umpAssignments.filter((a) => (`${a.date}::${a.ncb_team}` in fixtureMap) && !isPastDateTime(a.date, a.time))
 
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <div>
       {/* ── Top bar: mode toggle + refresh ── */}
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div className="flex items-center gap-2">
           {[
             { id: 'playing',  label: '🏏 Playing'  },
@@ -879,9 +886,11 @@ export default function AvailabilityTab({ onSelectFixture }) {
             </button>
           ))}
         </div>
-        <button onClick={load} className="text-xs font-medium text-gray-500 hover:text-primary transition-colors">
-          ↻ Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={load} className="text-xs font-medium text-gray-500 hover:text-primary transition-colors">
+            ↻ Refresh
+          </button>
+        </div>
       </div>
 
       {/* ── Team filter (superadmin only, no "All Teams") ── */}

@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSeason } from '../../contexts/SeasonContext'
+import { SEASONS, SEASON_THEME } from '../../config/seasons'
+
+/** Tiny season badge for fixture cards */
+function SeasonBadge({ seasonId }) {
+  if (!seasonId) return null
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (!season) return null
+  const t = SEASON_THEME[season.color]
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full ${t.pill}`}>
+      <span className="leading-none">{season.icon}</span>
+      {season.shortLabel} '{String(season.year).slice(-2)}
+    </span>
+  )
+}
 
 const TEAMS = [
   { id: 'all',           label: 'All Teams' },
@@ -26,6 +42,7 @@ const EMPTY_FORM = {
   division: '',
   umpire1_team: '',
   umpire2_team: '',
+  season: '',
 }
 
 function formatDate(dateStr) {
@@ -136,6 +153,16 @@ function FixtureForm({ initial, onSave, onCancel, saving }) {
           <label className={labelCls}>Division</label>
           <input type="text" value={form.division} onChange={(e) => set('division', e.target.value)} placeholder="D5" className={inputCls} />
         </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Season *</label>
+        <select value={form.season} onChange={(e) => set('season', e.target.value)} className={inputCls}>
+          <option value="">— Select Season —</option>
+          {SEASONS.map((s) => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Umpiring section */}
@@ -268,15 +295,16 @@ function FixtureCard({ f, onEdit, onDelete, deletingId }) {
       } transition-shadow`}
     >
       <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
-        <div>
+        <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
             isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'
           }`}>
             {TEAM_LABELS[f.team]}
           </span>
           {f.division && (
-            <span className="ml-2 text-xs text-white/60">{f.division}</span>
+            <span className="text-xs text-white/60">{f.division}</span>
           )}
+          <SeasonBadge seasonId={f.season} />
         </div>
       </div>
       <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -373,6 +401,7 @@ function UmpCard({ a, onEdit, onDelete, deletingId }) {
 
 export default function FixturesTab() {
   const { isSuperAdmin, adminTeam } = useAuth()
+  const { activeSeason, setActiveSeason, seasons } = useSeason()
 
   // ── Fixtures state ──
   const [teamFilter, setTeamFilter]   = useState(adminTeam ?? 'all')
@@ -404,6 +433,7 @@ export default function FixturesTab() {
       let q = supabase.from('fixtures').select('*').order('date', { ascending: true })
       const eff = isSuperAdmin ? teamFilter : adminTeam
       if (eff && eff !== 'all') q = q.eq('team', eff)
+      if (activeSeason?.id) q = q.eq('season', activeSeason.id)
       const { data, error } = await q
       if (error) throw error
       setFixtures(data || [])
@@ -427,7 +457,7 @@ export default function FixturesTab() {
     }
   }
 
-  useEffect(() => { loadFixtures(); loadAssignments() }, [teamFilter])
+  useEffect(() => { loadFixtures(); loadAssignments() }, [teamFilter, activeSeason])
 
   // ── Save fixture ──
   async function saveFixture(form) {
@@ -445,6 +475,7 @@ export default function FixturesTab() {
         division:      cleanText(form.division) || null,
         umpire1_team:  normalizeUmpire(form.umpire1_team) || null,
         umpire2_team:  normalizeUmpire(form.umpire2_team) || null,
+        season:        form.season || null,
       }
       if (editingFix === 'new') {
         const { error } = await supabase.from('fixtures').insert(payload)
@@ -548,7 +579,7 @@ export default function FixturesTab() {
   return (
     <div>
       {/* Header + team filter */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         {isSuperAdmin && TEAMS.map((t) => (
           <button
             key={t.id}
@@ -571,6 +602,8 @@ export default function FixturesTab() {
           ↻ Refresh
         </button>
       </div>
+
+      {/* Season switcher removed — now global in AdminDashboard */}
 
       {/* Section switcher */}
       <div className="flex gap-2 mb-6 border-b border-gray-200 pb-4">

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSeason } from '../../contexts/SeasonContext'
+import { SEASONS } from '../../config/seasons'
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -56,15 +58,19 @@ function parseToss(tossStr) {
 
 export default function ResultsTab() {
   const { isSuperAdmin, adminTeam } = useAuth()
+  const { activeSeason } = useSeason()
 
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
 
   // Fixtures from Supabase
   const [fixturesData, setFixturesData] = useState([])
   useEffect(() => {
-    supabase.from('fixtures').select('*').order('date', { ascending: true })
-      .then(({ data }) => setFixturesData(data || []))
-  }, [])
+    const isFirst = activeSeason.id === SEASONS[0].id
+    const q = isFirst
+      ? supabase.from('fixtures').select('*').or(`season.eq.${activeSeason.id},season.is.null`).order('date', { ascending: true })
+      : supabase.from('fixtures').select('*').eq('season', activeSeason.id).order('date', { ascending: true })
+    q.then(({ data }) => setFixturesData(data || []))
+  }, [activeSeason])
 
   const [dbResults, setDbResults] = useState([])
   const [loading, setLoading]     = useState(true)
@@ -89,12 +95,16 @@ export default function ResultsTab() {
 
   async function loadResults() {
     setLoading(true)
-    const { data } = await supabase.from('match_results').select('*')
+    const isFirst = activeSeason.id === SEASONS[0].id
+    const q = isFirst
+      ? supabase.from('match_results').select('*').or(`season.eq.${activeSeason.id},season.is.null`)
+      : supabase.from('match_results').select('*').eq('season', activeSeason.id)
+    const { data } = await q
     setDbResults(data || [])
     setLoading(false)
   }
 
-  useEffect(() => { loadResults() }, [])
+  useEffect(() => { loadResults() }, [activeSeason])
 
   function getResult(fixture) {
     return dbResults.find(
@@ -429,15 +439,9 @@ export default function ResultsTab() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-3 flex-wrap gap-2.5">
-
-        <div>
-          <h2 className="font-display font-bold text-primary text-xl sm:text-2xl mb-0.5">Match Results</h2>
-          <p className="text-xs sm:text-sm text-gray-500">
-            Update live and upcoming matches fast. Expand past matches for edits.
-          </p>
-        </div>
-      </div>
+      <p className="text-xs sm:text-sm text-gray-500 mb-3">
+        Update live and upcoming matches fast. Expand past matches for edits.
+      </p>
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-white border border-gray-200 rounded-xl px-2.5 py-2">

@@ -3,6 +3,23 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
+import { useSeason } from '../contexts/SeasonContext'
+import SeasonSwitcher, { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
+import { SEASONS, SEASON_THEME, getSeasonStatus } from '../config/seasons'
+
+/** Tiny themed badge showing the season, used on each fixture card. */
+function SeasonBadge({ seasonId }) {
+  if (!seasonId) return null
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (!season) return null
+  const t = SEASON_THEME[season.color]
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full ${t.pill}`}>
+      <span className="text-[11px] leading-none">{season.icon}</span>
+      {season.shortLabel} '{String(season.year).slice(-2)}
+    </span>
+  )
+}
 
 const sectionVariants = {
   open:   { height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } },
@@ -179,6 +196,7 @@ function ScorePanel({ teamLabel, opponent, dbResult, team }) {
 }
 
 export default function Fixtures() {
+  const { activeSeason } = useSeason()
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [fixtures, setFixtures]     = useState([])
   const [loadingFix, setLoadingFix] = useState(true)
@@ -194,18 +212,25 @@ export default function Fixtures() {
     })
   }
 
-  // Fetch fixtures from Supabase
+  // Fetch fixtures from Supabase – re-run when the active season changes
   useEffect(() => {
     setLoadingFix(true)
-    supabase
+    let query = supabase
       .from('fixtures')
       .select('*')
       .order('date', { ascending: true })
-      .then(({ data }) => {
-        setFixtures(data || [])
-        setLoadingFix(false)
-      })
-  }, [])
+    if (activeSeason?.id) {
+      // First season also matches un-tagged rows (season IS NULL) for backward compat
+      const isFirst = activeSeason.id === SEASONS[0].id
+      query = isFirst
+        ? query.or(`season.eq.${activeSeason.id},season.is.null`)
+        : query.eq('season', activeSeason.id)
+    }
+    query.then(({ data }) => {
+      setFixtures(data || [])
+      setLoadingFix(false)
+    })
+  }, [activeSeason])
 
   useEffect(() => {
     if (!isSheetConfigured()) return
@@ -274,11 +299,12 @@ export default function Fixtures() {
                 <span className="text-[9px] text-gray-400">{year}</span>
               </div>
             </div>
-            {/* Team + format */}
+            {/* Team + format + season */}
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
                 {teamLabel}
             </span>
             <span className="text-[10px] text-gray-400 font-medium">{f.format}</span>
+            <SeasonBadge seasonId={f.season} />
             <div className="flex-1" />
             {/* Status */}
             {past ? (
@@ -438,6 +464,7 @@ export default function Fixtures() {
                 <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.format}</span>
                 <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
                 <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
+                <SeasonBadge seasonId={f.season} />
               </div>
               <h3 className="font-display font-bold text-primary text-xl mb-1">
                 {teamLabel} vs {f.opponent}
@@ -554,31 +581,43 @@ export default function Fixtures() {
   return (
     <div>
       {/* Hero — compact on mobile */}
-      <section className="bg-primary-dark text-white py-10 md:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="bg-primary-dark text-white py-8 md:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl md:text-6xl font-bold mb-1 md:mb-3">
-              <span className="text-accent">FIXTURES</span>
-            </h1>
-            <p className="text-gray-400 text-sm md:text-lg">Upcoming matches — mark your calendars!</p>
+            <div className="flex items-center justify-between gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <span className="hidden md:block" />
+              <div className="md:text-center">
+                <h1 className="font-display text-3xl md:text-6xl font-bold leading-tight">
+                  <span className="text-accent">FIXTURES</span>
+                </h1>
+                <p className="text-gray-400 text-xs md:text-lg mt-0.5">Upcoming matches — mark your calendars!</p>
+              </div>
+              <div className="flex md:justify-end">
+                <SeasonSwitcherInline />
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Filters */}
+      {/* Filters + Season */}
       <section className="bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex gap-2">
-          {teamsFilter.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTeamFilter(t.id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2">
+              {teamsFilter.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTeamFilter(t.id)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

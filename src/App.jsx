@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
+import { SeasonProvider } from './contexts/SeasonContext'
 import { ProtectedRoute, AdminRoute } from './components/ui/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import Home from './pages/Home'
@@ -17,6 +18,7 @@ import Contact from './pages/Contact'
 import Sponsors from './pages/Sponsors'
 import Events from './pages/Events'
 import Availability from './pages/Availability'
+import PlayerFinances from './pages/PlayerFinances'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
@@ -52,6 +54,7 @@ function NotFound() {
 export default function App() {
   return (
     <AuthProvider>
+      <SeasonProvider>
       <ScrollToTop />
       <Layout>
         <Routes>
@@ -69,6 +72,7 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/sponsors" element={<Sponsors />} />
           <Route path="/availability" element={<Availability />} />
+          <Route path="/finances" element={<ProtectedRoute><PlayerFinances /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -78,6 +82,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
+      </SeasonProvider>
     </AuthProvider>
   )
 }

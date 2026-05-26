@@ -15,12 +15,30 @@ export default function ForgotPassword() {
     setLoading(true)
     try {
       const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        // Standard URL (no hash) — must match your Supabase allowed redirect URLs list.
+        // GitHub Pages 404.html will forward the ?code= query param to /#/reset-password.
         redirectTo: `${window.location.origin}/reset-password`,
       })
-      if (err) throw err
+      if (err) {
+        // Log full error details to browser console for debugging
+        console.error('[ForgotPassword] Supabase error:', {
+          message: err.message,
+          status:  err.status,
+          code:    err.code,
+          name:    err.name,
+        })
+        throw err
+      }
       setSubmitted(true)
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.')
+      const msg = err.message || ''
+      if (msg.toLowerCase().includes('sending') || msg.toLowerCase().includes('smtp')) {
+        setError('Email delivery failed. The SMTP/email provider is not configured correctly in Supabase. Check Settings → Auth → SMTP in your Supabase dashboard.')
+      } else if (err.status === 429 || msg.toLowerCase().includes('rate')) {
+        setError('Too many requests. Please wait a few minutes before trying again.')
+      } else {
+        setError(msg || 'Something went wrong. Please try again.')
+      }
     } finally {
       setLoading(false)
     }

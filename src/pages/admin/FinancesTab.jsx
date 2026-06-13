@@ -984,8 +984,12 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
 
   const load = useCallback(async () => {
     setLoading(true)
+    const seasonDef = SEASONS.find((s) => s.id === seasonId)
+    let assignmentsQ = supabase.from('umpiring_assignments').select('*').order('date')
+    if (seasonDef?.startDate) assignmentsQ = assignmentsQ.gte('date', seasonDef.startDate)
+    if (seasonDef?.endDate)   assignmentsQ = assignmentsQ.lte('date', seasonDef.endDate)
     const [{ data: assgn }, { data: avail }, { data: fees }] = await Promise.all([
-      supabase.from('umpiring_assignments').select('*').order('date'),
+      assignmentsQ,
       supabase.from('umpiring_availability').select('*').eq('status', 'in'),
       supabase.from('umpiring_fees').select('*').eq('season', seasonId),
     ])
@@ -2391,15 +2395,6 @@ export default function FinancesTab() {
           <span>🧢</span>
           <span>Ump Fees</span>
         </button>
-        <button
-          onClick={() => setActiveTab('carry')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-            activeTab === 'carry' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 active:bg-white/50'
-          }`}
-        >
-          <span>🔁</span>
-          <span>Carry Fwd</span>
-        </button>
       </div>
 
       {/* Active panel */}
@@ -2420,9 +2415,7 @@ export default function FinancesTab() {
         />
       ) : activeTab === 'umpiring' ? (
         <UmpFeesPanel rosterPlayers={rosterPlayers} seasonId={seasonId} currentUserName={currentUserName} />
-      ) : (
-        <CarryForwardRequestsPanel seasonId={seasonId} currentUserName={currentUserName} />
-      )}
+      ) : null}
     </div>
   )
 }

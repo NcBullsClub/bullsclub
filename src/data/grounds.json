@@ -13,8 +13,8 @@
   { "id": 12, "name": "Shiloh Baseball Field", "address": "917 Church Street, Morrisville, NC 27560" },
   { "id": 13, "name": "Shiloh Cricket Ground", "address": "917 Church Street, Morrisville, NC 27560" },
   { "id": 14, "name": "RTP 1", "address": "223 E Institute Dr, Durham, NC 22709" },
-  { "id": 15, "name": "RTP 3", "address": "2500 S Tricenter Blvd, Durham, NC 27714" },
-  { "id": 16, "name": "RTP 4", "address": "2500 S Tricenter Blvd, Durham, NC 27714" },
+  { "id": 15, "name": "RTP 3", "address": "2532 E Cornwallis Rd, Durham, NC 27713" },
+  { "id": 16, "name": "RTP 4", "address": "2532 E Cornwallis Rd, Durham, NC 27713" },
   { "id": 17, "name": "River Forest Park", "address": "1000 Windermere Dr, Durham, NC 27712" },
   { "id": 18, "name": "C R Woods Park", "address": "417 Commonwealth St, Durham, NC 27703" }
 ]

@@ -40,9 +40,7 @@ export default function PlayerFinances() {
   const [umpiringFees, setUmpiringFees] = useState([])
   const [assignments, setAssignments] = useState([])
   const [entries, setEntries] = useState([])
-  const [carryRequests, setCarryRequests] = useState([])
-  const [carryToByFee, setCarryToByFee] = useState({})
-  const [requestingCarry, setRequestingCarry] = useState(null)
+
   const [markingEntryId, setMarkingEntryId] = useState(null)
   const [teammates, setTeammates] = useState([])
   const [createdEntries, setCreatedEntries] = useState([])
@@ -71,7 +69,7 @@ export default function PlayerFinances() {
       }
       setLoading(true)
 
-      const [feeRes, umpRes, assgnRes, entriesRes, carryRes, teammateRes, createdRes] = await Promise.all([
+      const [feeRes, umpRes, assgnRes, entriesRes, teammateRes, createdRes] = await Promise.all([
         supabase
           .from('player_finances')
           .select('*')
@@ -96,12 +94,6 @@ export default function PlayerFinances() {
           .eq('season', seasonId)
           .order('created_at', { ascending: false }),
         supabase
-          .from('umpiring_carry_forward_requests')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('from_season', seasonId)
-          .order('requested_at', { ascending: false }),
-        supabase
           .from('profiles')
           .select('id, full_name, team')
           .in('team', ['raising-bulls', 'royal-bulls'])
@@ -124,7 +116,6 @@ export default function PlayerFinances() {
       setUmpiringFees(umpRes?.data || [])
       setAssignments(assgnRes?.data || [])
       setEntries(entriesRes?.error ? [] : (entriesRes?.data || []))
-      setCarryRequests(carryRes?.error ? [] : (carryRes?.data || []))
       setTeammates(teammateRes?.error ? [] : (teammateRes?.data || []))
       setCreatedEntries(createdRes?.error ? [] : (createdRes?.data || []))
       setLoading(false)
@@ -314,35 +305,7 @@ export default function PlayerFinances() {
     setCreatedEntryActionId(null)
   }
 
-  async function requestCarryForward(feeRow) {
-    const targetSeason = carryToByFee[feeRow.id]
-    if (!targetSeason) return
-    setRequestingCarry(feeRow.id)
-    const now = new Date().toISOString()
-    const payload = {
-      user_id: user.id,
-      umpiring_fee_id: feeRow.id,
-      from_season: seasonId,
-      to_season: targetSeason,
-      status: 'pending',
-      requested_at: now,
-    }
-    const { data, error } = await supabase
-      .from('umpiring_carry_forward_requests')
-      .upsert(payload, { onConflict: 'user_id,umpiring_fee_id,to_season' })
-      .select('*')
-      .single()
 
-    if (!error && data) {
-      setCarryRequests((prev) => {
-        const filtered = prev.filter((r) => !(r.user_id === data.user_id && r.umpiring_fee_id === data.umpiring_fee_id && r.to_season === data.to_season))
-        return [data, ...filtered]
-      })
-    }
-    setRequestingCarry(null)
-  }
-
-  const nextSeasons = SEASONS.filter((s) => s.id !== seasonId)
 
   const splitTargetsCount = splitTargets.length
   const splitTotalAmount = Number(splitForm.amount || 0)
@@ -523,7 +486,6 @@ export default function PlayerFinances() {
                   <div className="space-y-2">
                     {umpiringFees.map((r) => {
                       const assignment = assignmentMap[r.umpiring_assignment_id]
-                      const carryReq = carryRequests.find((cr) => cr.umpiring_fee_id === r.id)
                       return (
                         <div key={r.id} className="border border-gray-200 rounded-xl px-3 py-2">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -540,31 +502,6 @@ export default function PlayerFinances() {
                           ) : r.updated_by && r.updated_at ? (
                             <p className="text-xs text-gray-500 mt-1">{r.updated_by} marked as {r.paid ? 'paid' : 'unpaid'} on {new Date(r.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                           ) : null}
-
-                          {!r.paid && (
-                            <div className="mt-2 flex items-center gap-2 flex-wrap">
-                              <select
-                                value={carryToByFee[r.id] || ''}
-                                onChange={(e) => setCarryToByFee((prev) => ({ ...prev, [r.id]: e.target.value }))}
-                                className="px-2.5 py-1.5 rounded-lg text-xs border border-gray-200 bg-white"
-                              >
-                                <option value="">Carry forward to season…</option>
-                                {nextSeasons.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                              </select>
-                              <button
-                                onClick={() => requestCarryForward(r)}
-                                disabled={requestingCarry === r.id || !carryToByFee[r.id]}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white disabled:opacity-50"
-                              >
-                                {requestingCarry === r.id ? 'Requesting…' : 'Request Carry Forward'}
-                              </button>
-                              {carryReq && (
-                                <span className="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded-md">
-                                  Requested to {carryReq.to_season} ({carryReq.status})
-                                </span>
-                              )}
-                            </div>
-                          )}
                         </div>
                       )
                     })}

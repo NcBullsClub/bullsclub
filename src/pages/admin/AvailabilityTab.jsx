@@ -10,7 +10,7 @@ import groundsData from '../../data/grounds.json'
 const GROUNDS_MAP = Object.fromEntries(
   groundsData.map((g) => [
     g.name.toLowerCase(),
-    `https://maps.google.com/?q=${encodeURIComponent(g.name + ', NC')}`,
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.name + ', ' + g.address)}`,
   ]),
 )
 function groundMapsUrl(venueName) {

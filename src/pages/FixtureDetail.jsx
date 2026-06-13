@@ -76,7 +76,7 @@ export default function FixtureDetail() {
   }
 
   const isRaising   = fixture.team === 'raising-bulls'
-  const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue_address || fixture.venue)}`
+  const mapsUrl     = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue + (fixture.venue_address ? `, ${fixture.venue_address}` : ''))}`
   const today       = new Date()
   const [fy, fm, fd] = fixture.date.split('-').map(Number)
   const fixtureDate = new Date(fy, fm - 1, fd)

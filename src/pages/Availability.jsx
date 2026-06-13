@@ -87,9 +87,6 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
   const [saved, setSaved]   = useState(false)
   const [error, setError]   = useState('')
 
-  // Track if user changed anything from their existing response
-  const hasChange = status !== (myResponse?.status || '') || notes !== (myResponse?.notes || '')
-
   useEffect(() => {
     setStatus(myResponse?.status || '')
     setNotes(myResponse?.notes  || '')
@@ -97,9 +94,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
 
   const canRespond = user && !isPast && profile?.team === fixture.team
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!status) { setError('Please select your availability.'); return }
+  async function saveResponse(newStatus, newNotes) {
     setError('')
     setSaving(true)
     try {
@@ -109,8 +104,8 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
           fixture_date:     fixture.date,
           fixture_opponent: fixture.opponent,
           fixture_team:     fixture.team,
-          status,
-          notes: notes.trim(),
+          status:           newStatus,
+          notes:            (newNotes ?? notes).trim(),
           user_name:        profile?.full_name || 'Unknown',
         },
         { onConflict: 'user_id,fixture_date,fixture_team' },
@@ -118,7 +113,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
       if (sbErr) throw sbErr
       setSaved(true)
       onResponseSaved()
-      setTimeout(() => setSaved(false), 3000)
+      setTimeout(() => setSaved(false), 2000)
     } catch (err) {
       const msg = err.message || ''
       if (msg.includes('row-level security') || msg.includes('RLS') || msg.includes('policy')) {
@@ -131,8 +126,8 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
     }
   }
 
-  async function handleClear() {
-    if (!myResponse) return
+  async function clearResponse() {
+    if (!myResponse) { setStatus(''); return }
     setError('')
     setSaving(true)
     try {
@@ -150,6 +145,23 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
     } finally {
       setSaving(false)
     }
+  }
+
+  // Single click: select & save. Double-click on active: clear.
+  function handleStatusClick(value) {
+    if (saving) return
+    if (status === value) {
+      // double-tap / second click on selected = clear
+      clearResponse()
+    } else {
+      setStatus(value)
+      saveResponse(value)
+    }
+  }
+
+  async function handleNotesSave() {
+    if (!status) return
+    await saveResponse(status, notes)
   }
 
   const availablePlayers = counts.players
@@ -238,7 +250,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
           )}
           {(fixture.venue_address || fixture.venue) && (
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue_address || fixture.venue)}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue + (fixture.venue_address ? `, ${fixture.venue_address}` : ''))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors"
@@ -277,42 +289,37 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
             Only {teamLabel} players can respond
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            {/* Status buttons + Save in one row */}
+          <div>
+            {/* Status buttons — single click saves, click again clears */}
             <div className="flex items-center gap-2 flex-wrap">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => { setStatus(opt.value); setError('') }}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full border-2 text-xs font-semibold transition-all ${
-                    status === opt.value ? opt.selected : opt.idle
-                  }`}
-                >
-                  {opt.emoji} {opt.label}
-                </button>
-              ))}
-              <div className="ml-auto flex items-center gap-1.5">
-                {myResponse && (
+              {STATUS_OPTIONS.map((opt) => {
+                const isSelected = status === opt.value
+                return (
                   <button
+                    key={opt.value}
                     type="button"
-                    onClick={handleClear}
+                    onClick={() => handleStatusClick(opt.value)}
                     disabled={saving}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-red-300 text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    title={isSelected ? 'Tap again to clear' : `Mark as ${opt.label}`}
+                    className={`relative flex items-center gap-1 px-3 py-1.5 rounded-full border-2 text-xs font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                      isSelected ? opt.selected : opt.idle
+                    }`}
                   >
-                    Clear
+                    {saving && isSelected ? (
+                      <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      opt.emoji
+                    )}
+                    {opt.label}
+                    {saved && isSelected && (
+                      <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-green-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">✓</span>
+                    )}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={saving || !status || (!hasChange && !!myResponse)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-primary-dark text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  {saving ? (
-                    <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                  ) : saved ? '✓ Saved' : 'Save'}
-                </button>
-              </div>
+                )
+              })}
+              {status && !saving && (
+                <span className="text-[10px] text-gray-400 ml-1">tap again to clear</span>
+              )}
             </div>
 
             {/* Notes toggle */}
@@ -325,19 +332,31 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
                 {showNotes ? '▲ Hide notes' : '+ Add a note (optional)'}
               </button>
               {showNotes && (
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. might be 15 min late…"
-                  maxLength={300}
-                  className="mt-1.5 w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                />
+                <div className="mt-1.5 flex gap-2 items-start">
+                  <textarea
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g. might be 15 min late…"
+                    maxLength={300}
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                  />
+                  {status && (
+                    <button
+                      type="button"
+                      onClick={handleNotesSave}
+                      disabled={saving}
+                      className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold bg-primary-dark text-accent disabled:opacity-40 transition-all"
+                    >
+                      {saving ? <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin inline-block" /> : 'Save note'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-          </form>
+          </div>
         )}
 
         {/* ── PAYMENT BANNER: only shown when fee is unpaid */}
@@ -763,9 +782,11 @@ export default function Availability() {
   // Load umpiring assignments
   useEffect(() => {
     setLoadingUmp(true)
-    supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).order('date', { ascending: true })
-      .then(({ data }) => { setUmpAssignments(data || []); setLoadingUmp(false) })
-  }, [teamFilter])
+    let q = supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).order('date', { ascending: true })
+    if (activeSeason?.startDate) q = q.gte('date', activeSeason.startDate)
+    if (activeSeason?.endDate)   q = q.lte('date', activeSeason.endDate)
+    q.then(({ data }) => { setUmpAssignments(data || []); setLoadingUmp(false) })
+  }, [teamFilter, activeSeason])
 
   // Load umpiring availability
   async function loadUmpAvailability() {

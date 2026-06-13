@@ -327,9 +327,9 @@ export default function Results() {
                         </div>
                       )}
 
-                      {/* Row 5: result + scorecard in one row */}
-                      {(r.result || r.scorecard_url || !complete) && (
-                        <div className="px-3 pb-2 flex items-center justify-between gap-2 min-w-0">
+                      {/* Row 5: result + scorecard + highlights */}
+                      {(r.result || r.scorecard_url || r.video_url || !complete) && (
+                        <div className="px-3 pb-2 flex items-center justify-between gap-2 min-w-0 flex-wrap">
                           <div className="min-w-0">
                             {!complete ? (
                               <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
@@ -346,15 +346,24 @@ export default function Results() {
                               )
                             )}
                           </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
                           {r.scorecard_url && (
                             <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-blue-100 transition-colors flex-shrink-0">
+                              className="inline-flex items-center gap-1.5 text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-blue-100 transition-colors">
                               <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
-                              View Scorecard ↗
+                              Scorecard ↗
                             </a>
                           )}
+                          {r.video_url && (
+                            <a href={r.video_url} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[9px] font-semibold text-white bg-red-600 px-2.5 py-1 rounded-full whitespace-nowrap hover:bg-red-700 transition-colors">
+                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                              Highlights ↗
+                            </a>
+                          )}
+                          </div>
                         </div>
                       )}
 
@@ -437,6 +446,13 @@ export default function Results() {
                                 <a href={r.scorecard_url} target="_blank" rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors mt-1">
                                   📋 Scorecard ↗
+                                </a>
+                              )}
+                              {r.video_url && (
+                                <a href={r.video_url} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-red-600 px-2.5 py-1 rounded-full hover:bg-red-700 transition-colors mt-1">
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                                  Watch Highlights ↗
                                 </a>
                               )}
                             </div>

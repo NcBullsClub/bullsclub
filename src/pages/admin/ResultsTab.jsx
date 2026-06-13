@@ -46,7 +46,7 @@ function getMatchStatus(fixture) {
 }
 
 const EMPTY_FORM = {
-  result: '', toss_winner: '', toss_choice: '', ncb_score: '', opp_score: '', mom: '', mom_stat: '', scorecard_url: '',
+  result: '', toss_winner: '', toss_choice: '', ncb_score: '', opp_score: '', mom: '', mom_stat: '', scorecard_url: '', video_url: '',
 }
 
 function parseToss(tossStr) {
@@ -125,6 +125,7 @@ export default function ResultsTab() {
             mom:           existing.mom            || '',
             mom_stat:      existing.mom_stat       || '',
             scorecard_url: existing.scorecard_url  || '',
+            video_url:     existing.video_url       || '',
           }
         : { ...EMPTY_FORM },
     )
@@ -151,6 +152,7 @@ export default function ResultsTab() {
       mom:           form.mom.trim()           || null,
       mom_stat:      form.mom_stat.trim()      || null,
       scorecard_url: form.scorecard_url.trim() || null,
+      video_url:     form.video_url.trim()     || null,
     }
 
     const { error } = await supabase
@@ -247,6 +249,23 @@ export default function ResultsTab() {
                 )}
                 {result.mom && (
                   <span className="text-gray-500">MoM: <strong>{result.mom}</strong>{result.mom_stat ? ` (${result.mom_stat})` : ''}</span>
+                )}
+                {(result.scorecard_url || result.video_url) && (
+                  <div className="w-full flex flex-wrap gap-2 mt-0.5">
+                    {result.scorecard_url && (
+                      <a href={result.scorecard_url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors">
+                        📋 Scorecard
+                      </a>
+                    )}
+                    {result.video_url && (
+                      <a href={result.video_url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-white bg-red-600 px-2 py-0.5 rounded-full hover:bg-red-700 transition-colors">
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        Highlights
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -399,6 +418,17 @@ export default function ResultsTab() {
                 onChange={(e) => setForm((f) => ({ ...f, scorecard_url: e.target.value }))}
                 className="sm:col-span-2 border border-gray-300 rounded-xl px-3.5 sm:px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
+              <div className="sm:col-span-2 flex items-center gap-2 border border-red-200 bg-red-50 rounded-xl px-3.5 sm:px-4 py-2.5">
+                <svg className="w-5 h-5 text-red-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <input
+                  placeholder="YouTube highlights URL (optional)"
+                  value={form.video_url}
+                  onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))}
+                  className="flex-1 bg-transparent text-sm focus:outline-none placeholder-red-300 text-red-800"
+                />
+              </div>
             </div>
 
             <div className="mb-3">

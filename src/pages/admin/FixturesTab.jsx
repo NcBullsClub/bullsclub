@@ -450,6 +450,8 @@ export default function FixturesTab() {
       let q = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
       const eff = isSuperAdmin ? teamFilter : adminTeam
       if (eff && eff !== 'all') q = q.eq('ncb_team', eff)
+      if (activeSeason?.startDate) q = q.gte('date', activeSeason.startDate)
+      if (activeSeason?.endDate)   q = q.lte('date', activeSeason.endDate)
       const { data } = await q
       setAssignments(data || [])
     } finally {

@@ -210,6 +210,7 @@ export default function Home() {
               <div className="sm:hidden space-y-2.5">
                 {upcomingRB.map((f, i) => {
                   const d = new Date(f.date.replace(/-/g, '/'))
+                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
                     <motion.div key={f.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                       className="bg-white border border-gray-100 border-l-4 border-l-accent rounded-xl px-3.5 py-3 shadow-sm"
@@ -229,13 +230,23 @@ export default function Home() {
                           {d.toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
                       </div>
-                      {/* Row 3: CTA */}
+                      {/* Row 3: CTAs */}
+                      <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         to={`/availability?fixture=${f.id}&team=raising-bulls`}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent/15 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-lg hover:bg-accent hover:border-accent transition-colors"
                       >
                         🏏 Mark Availability
                       </Link>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        📍 Open in Maps
+                      </a>
+                      </div>
                     </motion.div>
                   )
                 })}
@@ -243,7 +254,9 @@ export default function Home() {
 
               {/* Desktop: grid cards */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {upcomingRB.map((f, i) => (
+                {upcomingRB.map((f, i) => {
+                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
+                  return (
                   <Link key={f.id} to="/fixtures">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
@@ -261,6 +274,7 @@ export default function Home() {
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
                       </div>
+                      <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         to={`/availability?fixture=${f.id}&team=raising-bulls`}
                         onClick={(e) => e.stopPropagation()}
@@ -268,9 +282,20 @@ export default function Home() {
                       >
                         🏏 Mark Availability
                       </Link>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                      >
+                        📍 Open in Maps
+                      </a>
+                      </div>
                     </motion.div>
                   </Link>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -287,6 +312,7 @@ export default function Home() {
               <div className="sm:hidden space-y-2.5">
                 {upcomingRY.map((f, i) => {
                   const d = new Date(f.date.replace(/-/g, '/'))
+                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
                     <motion.div key={f.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                       className="bg-white border border-gray-100 border-l-4 border-l-primary rounded-xl px-3.5 py-3 shadow-sm"
@@ -306,13 +332,23 @@ export default function Home() {
                           {d.toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
                       </div>
-                      {/* Row 3: CTA */}
+                      {/* Row 3: CTAs */}
+                      <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         to={`/availability?fixture=${f.id}&team=royal-bulls`}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-colors"
                       >
                         🏏 Mark Availability
                       </Link>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        📍 Open in Maps
+                      </a>
+                      </div>
                     </motion.div>
                   )
                 })}
@@ -320,7 +356,9 @@ export default function Home() {
 
               {/* Desktop: grid cards */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {upcomingRY.map((f, i) => (
+                {upcomingRY.map((f, i) => {
+                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
+                  return (
                   <Link key={f.id} to="/fixtures">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
@@ -338,6 +376,7 @@ export default function Home() {
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
                       </div>
+                      <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         to={`/availability?fixture=${f.id}&team=royal-bulls`}
                         onClick={(e) => e.stopPropagation()}
@@ -345,9 +384,20 @@ export default function Home() {
                       >
                         🏏 Mark Availability
                       </Link>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                      >
+                        📍 Open in Maps
+                      </a>
+                      </div>
                     </motion.div>
                   </Link>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

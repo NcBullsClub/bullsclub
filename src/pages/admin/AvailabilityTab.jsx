@@ -209,10 +209,11 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
             <button
               onClick={() => {
                 const msg =
-`🏏 *${teamLabel(team)} -- NC Bulls Cricket Club*
+`🏏 *${teamLabel(team)} - PLAYING*
+*- NC Bulls Cricket Club*
 
 Hi Team 👋,
-Please update your *availability* for our upcoming match:
+Please update your *PLAYING availability* for our upcoming match:
 
 📅 *Date:* ${formatLongDate(date)}
 ⏰ *Time:* ${fixture.time || 'TBD'}
@@ -403,10 +404,11 @@ function UmpiringMatchCard({ assignment, rows, collapsedIds, toggleCollapse, pla
             <button
               onClick={() => {
                 const msg =
-`🧢 *NC Bulls Cricket Club — ${teamLabel(assignment.ncb_team)}*
+`🧢 *${teamLabel(assignment.ncb_team)} - UMPIRING*
+*- NC Bulls Cricket Club*
 
 Hi Team 👋,
-Please update your *umpiring availability* for the duty assignment below:
+Please update your *UMPIRING availability* for the duty assignment below:
 
 📅 *Date:* ${formatLongDate(assignment.date)}
 ⏰ *Time:* ${assignment.time || 'TBD'}

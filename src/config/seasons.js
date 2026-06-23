@@ -50,6 +50,9 @@ export const SEASONS = [
   },
 ]
 
+// App default season used on first visit (when no season is stored yet).
+export const DEFAULT_SEASON_ID = 'mega-bash-26'
+
 /**
  * Tailwind classes per season color.
  * Kept explicit so Tailwind's JIT scanner can detect them.
@@ -114,6 +117,9 @@ export function getSeasonStatus(season) {
  * or the most recent past one as a fallback.
  */
 export function resolveDefaultSeason() {
+  const configuredDefault = SEASONS.find((s) => s.id === DEFAULT_SEASON_ID)
+  if (configuredDefault) return configuredDefault
+
   const active   = SEASONS.find((s) => getSeasonStatus(s) === 'active')
   if (active) return active
   const upcoming = SEASONS.filter((s) => getSeasonStatus(s) === 'upcoming')

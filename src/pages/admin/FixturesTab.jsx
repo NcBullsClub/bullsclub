@@ -2,9 +2,24 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSeason } from '../../contexts/SeasonContext'
+import { SEASONS, SEASON_THEME } from '../../config/seasons'
+
+/** Tiny season badge for fixture cards */
+function SeasonBadge({ seasonId }) {
+  if (!seasonId) return null
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (!season) return null
+  const t = SEASON_THEME[season.color]
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full ${t.pill}`}>
+      <span className="leading-none">{season.icon}</span>
+      {season.shortLabel} '{String(season.year).slice(-2)}
+    </span>
+  )
+}
 
 const TEAMS = [
-  { id: 'all',           label: 'All Teams' },
   { id: 'raising-bulls', label: 'Raising Bulls' },
   { id: 'royal-bulls',   label: 'Royal Bulls' },
 ]
@@ -14,6 +29,8 @@ const TEAM_LABELS = {
   'royal-bulls':   'Royal Bulls',
 }
 
+const FIXTURE_TYPE_OPTIONS = ['League', 'Playoffs', 'Championship']
+
 const EMPTY_FORM = {
   date: '',
   time: '',
@@ -22,10 +39,11 @@ const EMPTY_FORM = {
   venue: '',
   venue_address: '',
   format: 'HT',
-  type: 'Mega Bash',
+  type: 'League',
   division: '',
   umpire1_team: '',
   umpire2_team: '',
+  season: '',
 }
 
 function formatDate(dateStr) {
@@ -59,6 +77,16 @@ function cleanText(value) {
     .trim()
 }
 
+function normalizeFixtureType(value) {
+  const raw = cleanText(value)
+  if (!raw) return 'League'
+  const key = raw.toLowerCase()
+  if (key === 'league' || key === 'mega bash' || key === 'mega smash') return 'League'
+  if (key === 'playoffs' || key === 'playoff') return 'Playoffs'
+  if (key === 'championship' || key === 'final') return 'Championship'
+  return FIXTURE_TYPE_OPTIONS.includes(raw) ? raw : 'League'
+}
+
 function normalizeUmpire(value) {
   if (!value) return ''
   return cleanText(value)
@@ -74,6 +102,10 @@ function normalizeUmpire(value) {
 // ── Fixture Form (add / edit) ──────────────────────────────────────────────
 function FixtureForm({ initial, onSave, onCancel, saving }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
+
+  useEffect(() => {
+    setForm(initial || EMPTY_FORM)
+  }, [initial])
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }))
@@ -130,12 +162,26 @@ function FixtureForm({ initial, onSave, onCancel, saving }) {
         </div>
         <div>
           <label className={labelCls}>Type</label>
-          <input type="text" value={form.type} onChange={(e) => set('type', e.target.value)} placeholder="Mega Bash" className={inputCls} />
+          <select value={form.type} onChange={(e) => set('type', e.target.value)} className={inputCls}>
+            {FIXTURE_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={labelCls}>Division</label>
           <input type="text" value={form.division} onChange={(e) => set('division', e.target.value)} placeholder="D5" className={inputCls} />
         </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Season *</label>
+        <select value={form.season} onChange={(e) => set('season', e.target.value)} className={inputCls}>
+          <option value="">— Select Season —</option>
+          {SEASONS.map((s) => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Umpiring section */}
@@ -253,7 +299,7 @@ function FixtureCard({ f, onEdit, onDelete, deletingId }) {
   const ump1 = normalizeUmpire(f.umpire1_team)
   const ump2 = normalizeUmpire(f.umpire2_team)
   const fmt = cleanText(f.format)
-  const typ = cleanText(f.type)
+  const typ = normalizeFixtureType(f.type)
   const venue = cleanText(f.venue)
   const venueAddress = cleanText(f.venue_address)
   const hasUmpires = ump1 || ump2
@@ -268,15 +314,16 @@ function FixtureCard({ f, onEdit, onDelete, deletingId }) {
       } transition-shadow`}
     >
       <div className={`px-4 py-3 flex items-center gap-3 ${isRaising ? 'bg-primary-dark' : 'bg-primary'}`}>
-        <div>
+        <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
             isRaising ? 'bg-accent text-primary-dark' : 'bg-white/20 text-white'
           }`}>
             {TEAM_LABELS[f.team]}
           </span>
           {f.division && (
-            <span className="ml-2 text-xs text-white/60">{f.division}</span>
+            <span className="text-xs text-white/60">{f.division}</span>
           )}
+          <SeasonBadge seasonId={f.season} />
         </div>
       </div>
       <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -373,9 +420,10 @@ function UmpCard({ a, onEdit, onDelete, deletingId }) {
 
 export default function FixturesTab() {
   const { isSuperAdmin, adminTeam } = useAuth()
+  const { activeSeason, setActiveSeason, seasons } = useSeason()
 
   // ── Fixtures state ──
-  const [teamFilter, setTeamFilter]   = useState(adminTeam ?? 'all')
+  const [teamFilter, setTeamFilter]   = useState(adminTeam ?? 'raising-bulls')
   const [fixtures, setFixtures]       = useState([])
   const [loadingFix, setLoadingFix]   = useState(true)
   const [errorFix, setErrorFix]       = useState('')
@@ -404,6 +452,13 @@ export default function FixturesTab() {
       let q = supabase.from('fixtures').select('*').order('date', { ascending: true })
       const eff = isSuperAdmin ? teamFilter : adminTeam
       if (eff && eff !== 'all') q = q.eq('team', eff)
+      if (activeSeason?.id) {
+        // Backward compatibility: first season should include legacy rows with NULL season.
+        const isFirst = activeSeason.id === SEASONS[0].id
+        q = isFirst
+          ? q.or(`season.eq.${activeSeason.id},season.is.null`)
+          : q.eq('season', activeSeason.id)
+      }
       const { data, error } = await q
       if (error) throw error
       setFixtures(data || [])
@@ -420,6 +475,8 @@ export default function FixturesTab() {
       let q = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
       const eff = isSuperAdmin ? teamFilter : adminTeam
       if (eff && eff !== 'all') q = q.eq('ncb_team', eff)
+      if (activeSeason?.startDate) q = q.gte('date', activeSeason.startDate)
+      if (activeSeason?.endDate)   q = q.lte('date', activeSeason.endDate)
       const { data } = await q
       setAssignments(data || [])
     } finally {
@@ -427,7 +484,7 @@ export default function FixturesTab() {
     }
   }
 
-  useEffect(() => { loadFixtures(); loadAssignments() }, [teamFilter])
+  useEffect(() => { loadFixtures(); loadAssignments() }, [teamFilter, activeSeason])
 
   // ── Save fixture ──
   async function saveFixture(form) {
@@ -441,10 +498,11 @@ export default function FixturesTab() {
         venue:         cleanText(form.venue),
         venue_address: cleanText(form.venue_address) || null,
         format:        cleanText(form.format) || 'HT',
-        type:          cleanText(form.type) || 'Mega Bash',
+        type:          normalizeFixtureType(form.type),
         division:      cleanText(form.division) || null,
         umpire1_team:  normalizeUmpire(form.umpire1_team) || null,
         umpire2_team:  normalizeUmpire(form.umpire2_team) || null,
+        season:        form.season || null,
       }
       if (editingFix === 'new') {
         const { error } = await supabase.from('fixtures').insert(payload)
@@ -526,10 +584,11 @@ export default function FixturesTab() {
         venue:         cleanText(editingFix.venue),
         venue_address: cleanText(editingFix.venue_address) || '',
         format:        cleanText(editingFix.format) || 'HT',
-        type:          cleanText(editingFix.type) || 'Mega Bash',
+        type:          normalizeFixtureType(editingFix.type),
         division:      cleanText(editingFix.division) || '',
         umpire1_team:  normalizeUmpire(editingFix.umpire1_team) || '',
         umpire2_team:  normalizeUmpire(editingFix.umpire2_team) || '',
+        season:        editingFix.season || '',
       }
     : null
 
@@ -548,7 +607,7 @@ export default function FixturesTab() {
   return (
     <div>
       {/* Header + team filter */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         {isSuperAdmin && TEAMS.map((t) => (
           <button
             key={t.id}
@@ -571,6 +630,8 @@ export default function FixturesTab() {
           ↻ Refresh
         </button>
       </div>
+
+      {/* Season switcher removed — now global in AdminDashboard */}
 
       {/* Section switcher */}
       <div className="flex gap-2 mb-6 border-b border-gray-200 pb-4">

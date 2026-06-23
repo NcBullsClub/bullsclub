@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSeason } from '../../contexts/SeasonContext'
+import { SEASONS } from '../../config/seasons'
 
-const SEASON = '2026'
 const SEASON_FEE = 120
 
 const TEAMS = [
@@ -186,7 +187,7 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                   <p className="text-[11px] text-gray-400">{player.email}</p>
                   {record?.updated_by && record?.updated_at && (
                     <p className="text-[10px] text-gray-500 mt-0.5">
-                      Updated by {record.updated_by} on {new Date(record.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {record.updated_by} marked as {record.paid ? 'paid' : 'unpaid'} on {new Date(record.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   )}
                 </div>
@@ -265,9 +266,12 @@ const EMPTY_FORM = {
   description:  '',
   expense_date: new Date().toISOString().split('T')[0],
   team:         'raising-bulls',
+  split_enabled: false,
+  split_mode:    'equal',
+  split_type:    'team_due',
 }
 
-function ExpensesPanel({ rosterPlayers, currentUserName }) {
+function ExpensesPanel({ rosterPlayers, currentUserName, seasonId }) {
   const [expenses, setExpenses]         = useState([])
   const [loading, setLoading]           = useState(true)
   const [teamFilter, setTeamFilter]     = useState('all')
@@ -286,20 +290,27 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
   const [editingDescId, setEditingDescId] = useState(null)
   const [editDesc, setEditDesc]         = useState('')
   const [updatingDescId, setUpdatingDescId] = useState(null)
+  const [splitTargets, setSplitTargets] = useState([])
 
   const load = useCallback(() => {
     setLoading(true)
     supabase
       .from('team_expenses')
       .select('*')
-      .eq('season', SEASON)
+      .eq('season', seasonId)
       .is('deleted_at', null)
       .order('expense_date', { ascending: false })
       .then(({ data }) => {
         setExpenses(data || [])
         setLoading(false)
       })
-  }, [])
+  }, [seasonId])
+
+  const splitCandidatePlayers = rosterPlayers.filter((p) => {
+    if (!['raising-bulls', 'royal-bulls'].includes(p.team)) return false
+    if (form.team === 'both') return true
+    return p.team === form.team
+  })
 
   useEffect(() => { load() }, [load])
 
@@ -320,22 +331,59 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
   async function handleAdd(ev) {
     ev.preventDefault()
     if (!form.paid_by || !form.amount || isNaN(parseFloat(form.amount))) return
+    if (form.split_enabled && splitTargets.length === 0) return
     setSaving(true)
-    await supabase.from('team_expenses').insert({
-      season:       SEASON,
+    const totalAmount = parseFloat(parseFloat(form.amount).toFixed(2))
+    const nowIso = new Date().toISOString()
+    const { data: expenseRow } = await supabase.from('team_expenses').insert({
+      season:       seasonId,
       team:         form.team,
       paid_by:      form.paid_by,
-      amount:       parseFloat(parseFloat(form.amount).toFixed(2)),
+      amount:       totalAmount,
       category:     form.category,
       description:  form.description.trim() || null,
       expense_date: form.expense_date,
       created_by:   currentUserName || 'Admin',
-      created_at:   new Date().toISOString(),
-    })
+      created_at:   nowIso,
+    }).select('*').single()
+
+    if (form.split_enabled && splitTargets.length > 0) {
+      const eachAmount = form.split_mode === 'equal'
+        ? Number((totalAmount / splitTargets.length).toFixed(2))
+        : totalAmount
+
+      const rows = splitTargets
+        .map((id) => rosterPlayers.find((p) => p.id === id))
+        .filter(Boolean)
+        .map((p) => ({
+          player_id: p.id,
+          season: seasonId,
+          team: p.team,
+          entry_type: 'personal_due',
+          amount: eachAmount,
+          description: form.description?.trim()
+            ? `${form.description.trim()} · split from ${form.category} expense`
+            : `Split ${form.category} expense (${form.paid_by})`,
+          is_team_amount: form.split_type === 'team_due',
+          can_self_mark_paid: form.split_type !== 'team_due',
+          paid: false,
+          added_by_user_id: null,
+          added_by_name: currentUserName || 'Admin',
+          source_expense_id: expenseRow?.id || null,
+          created_at: nowIso,
+          updated_at: nowIso,
+        }))
+
+      if (rows.length > 0) {
+        await supabase.from('player_finance_entries').insert(rows)
+      }
+    }
+
     load()
     setSaving(false)
     setShowForm(false)
     setForm(EMPTY_FORM)
+    setSplitTargets([])
   }
 
   async function handleDelete(id) {
@@ -560,6 +608,80 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
                 className="w-full px-3 py-2 rounded-xl text-xs border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
+          </div>
+
+          <div className="border border-orange-200 bg-white rounded-xl p-3 space-y-2">
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+              <input
+                type="checkbox"
+                checked={!!form.split_enabled}
+                onChange={(e) => {
+                  const enabled = e.target.checked
+                  setForm((f) => ({ ...f, split_enabled: enabled }))
+                  if (!enabled) setSplitTargets([])
+                }}
+                className="rounded border-gray-300"
+              />
+              Split this expense to selected players
+            </label>
+
+            {form.split_enabled && (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Split Amount</label>
+                    <select
+                      value={form.split_mode}
+                      onChange={(e) => setForm((f) => ({ ...f, split_mode: e.target.value }))}
+                      className="w-full px-2.5 py-2 rounded-lg text-xs border border-gray-200 bg-white"
+                    >
+                      <option value="equal">Equal for all selected</option>
+                      <option value="full">Full amount per selected</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Amount Type</label>
+                    <select
+                      value={form.split_type}
+                      onChange={(e) => setForm((f) => ({ ...f, split_type: e.target.value }))}
+                      className="w-full px-2.5 py-2 rounded-lg text-xs border border-gray-200 bg-white"
+                    >
+                      <option value="team_due">Owe to team (admin clears)</option>
+                      <option value="personal_due">Personal due (player can self-mark)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Players ({splitTargets.length} selected)</p>
+                  <div className="max-h-36 overflow-auto border border-gray-200 rounded-lg p-2 bg-gray-50 space-y-1">
+                    {splitCandidatePlayers.length === 0 ? (
+                      <p className="text-[11px] text-gray-400">No players for selected team.</p>
+                    ) : splitCandidatePlayers.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 text-xs text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={splitTargets.includes(p.id)}
+                          onChange={(e) => {
+                            setSplitTargets((prev) => e.target.checked
+                              ? [...prev, p.id]
+                              : prev.filter((id) => id !== p.id))
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="font-medium">{p.full_name}</span>
+                        <span className="text-[10px] text-gray-400">{p.team === 'raising-bulls' ? 'Raising' : 'Royal'}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {form.split_mode === 'equal' && splitTargets.length > 0 && (
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Each player gets {`$${(Number(form.amount || 0) / splitTargets.length).toFixed(2)}`} due.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <button
@@ -820,7 +942,28 @@ function ExpensesPanel({ rosterPlayers, currentUserName }) {
 ══════════════════════════════════════════════════════ */
 const UMP_FEE = 60
 
-function UmpFeesPanel({ rosterPlayers }) {
+function parseMatchDateTime(dateStr, timeStr) {
+  if (!dateStr) return null
+  const [year, month, day] = dateStr.split('-').map(Number)
+  if (!year || !month || !day) return null
+
+  const dt = new Date(year, month - 1, day, 23, 59, 59, 999)
+  if (!timeStr) return dt
+
+  const cleaned = String(timeStr).trim().toUpperCase()
+  const m = cleaned.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/)
+  if (!m) return dt
+
+  let hour = Number(m[1])
+  const min = Number(m[2] || '0')
+  const ampm = m[3]
+  if (ampm === 'AM' && hour === 12) hour = 0
+  if (ampm === 'PM' && hour !== 12) hour += 12
+  dt.setHours(hour, min, 0, 0)
+  return dt
+}
+
+function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
   const [teamFilter, setTeamFilter] = useState('all')
   const [assignments, setAssignments] = useState([])
   const [availability, setAvailability] = useState([])
@@ -830,33 +973,91 @@ function UmpFeesPanel({ rosterPlayers }) {
   const [confirmPay, setConfirmPay] = useState(null)         // `${userId}::${assignmentId}`
   const [confirmUncomplete, setConfirmUncomplete] = useState(null) // `${userId}::${assignmentId}`
   const [savingUncomplete, setSavingUncomplete]   = useState(null) // `${userId}::${assignmentId}`
+  const [confirmCarryForward, setConfirmCarryForward] = useState(null) // `${userId}::${assignmentId}`
+  const [carryForwardSeason, setCarryForwardSeason]   = useState('')   // target season id
+  const [savingCarryForward, setSavingCarryForward]   = useState(null) // `${userId}::${assignmentId}`
   const [expanded, setExpanded] = useState({})               // playerId -> open/close
   const [markingComplete, setMarkingComplete] = useState(null) // playerId whose picker is open
   const [savingComplete, setSavingComplete]   = useState(null) // `${playerId}::${assignmentId}`
   const [reassigning, setReassigning]         = useState(null) // `${userId}::${assignmentId}`
   const [savingReassign, setSavingReassign]   = useState(null) // `${userId}::${oldId}::${newId}`
 
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-
   const load = useCallback(async () => {
     setLoading(true)
+    const seasonDef = SEASONS.find((s) => s.id === seasonId)
+    let assignmentsQ = supabase.from('umpiring_assignments').select('*').order('date')
+    if (seasonDef?.startDate) assignmentsQ = assignmentsQ.gte('date', seasonDef.startDate)
+    if (seasonDef?.endDate)   assignmentsQ = assignmentsQ.lte('date', seasonDef.endDate)
     const [{ data: assgn }, { data: avail }, { data: fees }] = await Promise.all([
-      supabase.from('umpiring_assignments').select('*').order('date'),
+      assignmentsQ,
       supabase.from('umpiring_availability').select('*').eq('status', 'in'),
-      supabase.from('umpiring_fees').select('*').eq('season', SEASON),
+      supabase.from('umpiring_fees').select('*').eq('season', seasonId),
     ])
-    setAssignments(assgn || [])
-    setAvailability(avail || [])
-    setFeeRecords(fees || [])
+    const assignmentsData = assgn || []
+    const availabilityData = avail || []
+    let feeData = fees || []
+
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const elapsedSet = new Set(
+      assignmentsData
+        .filter((a) => {
+          const dt = parseMatchDateTime(a.date, a.time)
+          return dt && dt <= now
+        })
+        .map((a) => a.id)
+    )
+    const feeKeySet = new Set(feeData.map((r) => `${r.user_id}::${r.umpiring_assignment_id}`))
+
+    const missingRows = availabilityData
+      .filter((av) => elapsedSet.has(av.umpiring_assignment_id))
+      .map((av) => {
+        const player = rosterPlayers.find((p) => p.id === av.user_id)
+        if (!player) return null
+        const key = `${av.user_id}::${av.umpiring_assignment_id}`
+        if (feeKeySet.has(key)) return null
+        const assignment = assignmentsData.find((a) => a.id === av.umpiring_assignment_id)
+        const completedAt = parseMatchDateTime(assignment?.date, assignment?.time)?.toISOString() || nowIso
+        return {
+          user_id: av.user_id,
+          player_name: player.full_name,
+          team: player.team,
+          umpiring_assignment_id: av.umpiring_assignment_id,
+          season: seasonId,
+          amount: UMP_FEE,
+          paid: false,
+          completion_source: 'automatic',
+          completed_at: completedAt,
+          updated_by: 'System',
+          updated_at: nowIso,
+        }
+      })
+      .filter(Boolean)
+
+    if (missingRows.length > 0) {
+      const { data: inserted } = await supabase
+        .from('umpiring_fees')
+        .upsert(missingRows, { onConflict: 'user_id,umpiring_assignment_id' })
+        .select('*')
+      if (inserted?.length) {
+        const existingKeys = new Set(feeData.map((r) => `${r.user_id}::${r.umpiring_assignment_id}`))
+        const addOnly = inserted.filter((r) => !existingKeys.has(`${r.user_id}::${r.umpiring_assignment_id}`))
+        feeData = [...feeData, ...addOnly]
+      }
+    }
+
+    setAssignments(assignmentsData)
+    setAvailability(availabilityData)
+    setFeeRecords(feeData)
     setLoading(false)
-  }, [])
+  }, [seasonId, rosterPlayers])
 
   useEffect(() => { load() }, [load])
 
-  // Past assignments only (date already passed)
+  // Completed assignments are those where match time has already passed.
   const pastAssignments = assignments.filter((a) => {
-    const [y, m, d] = a.date.split('-').map(Number)
-    return new Date(y, m - 1, d) < today
+    const dt = parseMatchDateTime(a.date, a.time)
+    return dt && dt <= new Date()
   })
   const pastIds = new Set(pastAssignments.map((a) => a.id))
 
@@ -896,13 +1097,24 @@ function UmpFeesPanel({ rosterPlayers }) {
       const newPaid = !existing.paid
       const newPaidAt = newPaid ? now : null
       ;({ error } = await supabase.from('umpiring_fees')
-        .update({ paid: newPaid, paid_at: newPaidAt })
+        .update({
+          paid: newPaid,
+          paid_at: newPaidAt,
+          updated_by: currentUserName || 'Admin',
+          updated_at: now,
+        })
         .eq('user_id', player.id)
         .eq('umpiring_assignment_id', assignmentId))
       if (!error) {
         setFeeRecords((prev) => prev.map((r) =>
           r.user_id === player.id && r.umpiring_assignment_id === assignmentId
-            ? { ...r, paid: newPaid, paid_at: newPaidAt }
+            ? {
+              ...r,
+              paid: newPaid,
+              paid_at: newPaidAt,
+              updated_by: currentUserName || 'Admin',
+              updated_at: now,
+            }
             : r
         ))
       }
@@ -912,10 +1124,12 @@ function UmpFeesPanel({ rosterPlayers }) {
         player_name: player.full_name,
         team: player.team,
         umpiring_assignment_id: assignmentId,
-        season: SEASON,
+        season: seasonId,
         amount: UMP_FEE,
         paid: true,
         paid_at: now,
+        updated_by: currentUserName || 'Admin',
+        updated_at: now,
       }
       const { data: inserted, error: insertErr } = await supabase.from('umpiring_fees')
         .insert(newRecord)
@@ -957,6 +1171,7 @@ function UmpFeesPanel({ rosterPlayers }) {
   async function handleAdminMarkComplete(player, assignmentId) {
     const key = `${player.id}::${assignmentId}`
     setSavingComplete(key)
+    const nowIso = new Date().toISOString()
     const newRow = {
       user_id: player.id,
       umpiring_assignment_id: assignmentId,
@@ -964,16 +1179,43 @@ function UmpFeesPanel({ rosterPlayers }) {
       status: 'in',
       notes: 'Admin marked',
     }
-    const { data: upserted, error } = await supabase.from('umpiring_availability')
-      .upsert(newRow, { onConflict: 'user_id,umpiring_assignment_id' })
-      .select()
-      .single()
+    const feeRow = {
+      user_id: player.id,
+      player_name: player.full_name,
+      team: player.team,
+      umpiring_assignment_id: assignmentId,
+      season: seasonId,
+      amount: UMP_FEE,
+      paid: false,
+      completion_source: 'admin_marked',
+      completed_at: nowIso,
+      updated_by: currentUserName || 'Admin',
+      updated_at: nowIso,
+    }
+    const [{ data: upserted, error }, { data: feeUpserted, error: feeErr }] = await Promise.all([
+      supabase.from('umpiring_availability')
+        .upsert(newRow, { onConflict: 'user_id,umpiring_assignment_id' })
+        .select()
+        .single(),
+      supabase.from('umpiring_fees')
+        .upsert(feeRow, { onConflict: 'user_id,umpiring_assignment_id' })
+        .select()
+        .single(),
+    ])
     if (!error) {
       setAvailability((prev) => {
         const filtered = prev.filter(
           (r) => !(r.user_id === player.id && r.umpiring_assignment_id === assignmentId)
         )
         return [...filtered, upserted || { ...newRow, id: Date.now() }]
+      })
+    }
+    if (!feeErr) {
+      setFeeRecords((prev) => {
+        const filtered = prev.filter(
+          (r) => !(r.user_id === player.id && r.umpiring_assignment_id === assignmentId)
+        )
+        return [...filtered, feeUpserted || { ...feeRow, id: Date.now() + 1 }]
       })
     }
     setSavingComplete(null)
@@ -1008,10 +1250,12 @@ function UmpFeesPanel({ rosterPlayers }) {
             player_name: player.full_name,
             team: player.team,
             umpiring_assignment_id: newAssignId,
-            season: SEASON,
+            season: seasonId,
             amount: UMP_FEE,
             paid: !!oldFee.paid,
             paid_at: oldFee.paid ? (oldFee.paid_at || new Date().toISOString()) : null,
+            updated_by: currentUserName || 'Admin',
+            updated_at: new Date().toISOString(),
           },
           { onConflict: 'user_id,umpiring_assignment_id' }
         )
@@ -1056,6 +1300,137 @@ function UmpFeesPanel({ rosterPlayers }) {
       alert(`Error reassigning match: ${e.message || 'Unknown error'}`)
     } finally {
       setSavingReassign(null)
+    }
+  }
+
+  async function handleAdminCarryForward(player, assignmentId, toSeason) {
+    const feeKey = `${player.id}::${assignmentId}`
+    setSavingCarryForward(feeKey)
+    try {
+      const fee = feeMap[feeKey]
+      if (!fee) throw new Error('Fee record not found')
+      const nowIso = new Date().toISOString()
+      const carryAmount = Number(fee.amount || UMP_FEE)
+      const carryDescription = `Umpiring due (carry forward used from ${seasonId})`
+
+      // 1. Mark the umpiring fee as paid
+      const { error: feeUpdateErr } = await supabase
+        .from('umpiring_fees')
+        .update({ paid: true, paid_at: nowIso, updated_by: currentUserName || 'Admin', updated_at: nowIso })
+        .eq('id', fee.id)
+      if (feeUpdateErr) throw feeUpdateErr
+
+        // 2. Create player_finance_entries record in the target season (critical)
+      let supportsSourceFeeColumn = true
+      let existingCredit = null
+      const { data: creditBySource, error: existingErr } = await supabase
+        .from('player_finance_entries')
+        .select('id')
+        .eq('player_id', player.id)
+        .eq('season', toSeason)
+        .eq('source_umpiring_fee_id', fee.id)
+        .maybeSingle()
+      if (existingErr) {
+        if ((existingErr.message || '').includes('source_umpiring_fee_id')) {
+          supportsSourceFeeColumn = false
+        } else {
+          throw existingErr
+        }
+      } else {
+        existingCredit = creditBySource
+      }
+
+      if (!supportsSourceFeeColumn) {
+        const { data: fallbackCredits, error: fallbackErr } = await supabase
+          .from('player_finance_entries')
+          .select('id')
+          .eq('player_id', player.id)
+          .eq('season', toSeason)
+          .eq('description', carryDescription)
+          .order('created_at', { ascending: false })
+          .limit(1)
+        if (fallbackErr) throw fallbackErr
+        existingCredit = fallbackCredits?.[0] || null
+      }
+
+      if (existingCredit?.id) {
+        const { error: creditUpdateErr } = await supabase
+          .from('player_finance_entries')
+          .update({
+            team: fee.team,
+            entry_type: 'personal_due',
+            amount: carryAmount,
+            description: carryDescription,
+            is_team_amount: true,
+            can_self_mark_paid: false,
+            paid: false,
+            paid_at: null,
+            paid_marked_by: null,
+            added_by_name: currentUserName || 'Admin',
+            updated_at: nowIso,
+          })
+          .eq('id', existingCredit.id)
+        if (creditUpdateErr) throw creditUpdateErr
+      } else {
+        const insertPayload = {
+          player_id: player.id,
+          season: toSeason,
+          team: fee.team,
+          entry_type: 'personal_due',
+          amount: carryAmount,
+          description: carryDescription,
+          is_team_amount: true,
+          can_self_mark_paid: false,
+          paid: false,
+          added_by_user_id: null,
+          added_by_name: currentUserName || 'Admin',
+          created_at: nowIso,
+          updated_at: nowIso,
+        }
+        if (supportsSourceFeeColumn) insertPayload.source_umpiring_fee_id = fee.id
+        const { error: creditInsertErr } = await supabase
+          .from('player_finance_entries')
+          .insert(insertPayload)
+        if (creditInsertErr) throw creditInsertErr
+      }
+
+        // 3. Create carry-forward request for audit trail (non-blocking —
+        //    requires fix_carry_forward_admin_insert.sql to be run in Supabase)
+        const cfPayload = {
+          user_id: player.id,
+          umpiring_fee_id: fee.id,
+          from_season: seasonId,
+          to_season: toSeason,
+          status: 'approved',
+          requested_at: nowIso,
+        }
+        const cfFullPayload = { ...cfPayload, reviewed_at: nowIso, reviewed_by_name: currentUserName || 'Admin' }
+        const { error: cfFullErr } = await supabase
+          .from('umpiring_carry_forward_requests')
+          .upsert(cfFullPayload, { onConflict: 'user_id,umpiring_fee_id,to_season' })
+        if (cfFullErr) {
+          if ((cfFullErr.message || '').includes('reviewed_at') || (cfFullErr.message || '').includes('reviewed_by_name')) {
+            // Retry without extended columns
+            await supabase
+              .from('umpiring_carry_forward_requests')
+              .upsert(cfPayload, { onConflict: 'user_id,umpiring_fee_id,to_season' })
+          }
+          // Non-fatal: fee + entries already saved; admin needs to run the SQL migration for audit records
+          console.warn('carry-forward audit record skipped (run fix_carry_forward_admin_insert.sql):', cfFullErr.message)
+        }
+
+        // 4. Update local fee state to reflect paid
+      setFeeRecords((prev) => prev.map((r) =>
+        r.user_id === player.id && r.umpiring_assignment_id === assignmentId
+          ? { ...r, paid: true, paid_at: nowIso, updated_by: currentUserName || 'Admin', updated_at: nowIso }
+          : r
+      ))
+      setConfirmCarryForward(null)
+      setCarryForwardSeason('')
+    } catch (e) {
+      alert(`Failed to carry forward: ${e.message || 'Unknown error'}`)
+    } finally {
+      setSavingCarryForward(null)
     }
   }
 
@@ -1238,6 +1613,9 @@ function UmpFeesPanel({ rosterPlayers }) {
                               (a) => a.id !== aid && a.ncb_team === player.team && !assignIds.includes(a.id)
                             )
                             const isReassignBusy = !!savingReassign && savingReassign.startsWith(`${player.id}::${aid}::`)
+                            const isConfirmingCarryFwd = confirmCarryForward === feeKey
+                            const isSavingCarryFwd = savingCarryForward === feeKey
+                            const nextSeasons = SEASONS.filter((s) => s.id !== seasonId)
 
                             return (
                               <div key={aid} className="flex items-center gap-3 px-4 py-2.5">
@@ -1260,6 +1638,13 @@ function UmpFeesPanel({ rosterPlayers }) {
                                       Paid {new Date(record.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     </p>
                                   )}
+                                  {record?.completion_source === 'automatic' && (!record?.updated_by || record.updated_by === 'System') ? (
+                                    <p className="text-[10px] text-gray-500 mt-0.5">automatically completed</p>
+                                  ) : record?.updated_by && record?.updated_at ? (
+                                    <p className="text-[10px] text-gray-500 mt-0.5">
+                                      {record.updated_by} marked as {record.paid ? 'paid' : 'unpaid'} on {new Date(record.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                  ) : null}
                                 </div>
 
                                 {/* Amount */}
@@ -1401,6 +1786,57 @@ function UmpFeesPanel({ rosterPlayers }) {
                                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15M4.5 12h7.5M12 19.5V12" /></svg>
                                       Reassign Match
                                     </button>
+                                  )}
+
+                                  {/* Carry Forward to next season (only for unpaid fees) */}
+                                  {!isPaid && (
+                                    isConfirmingCarryFwd ? (
+                                      <div className="flex flex-col items-end gap-1.5 max-w-[220px]">
+                                        <p className="text-[10px] text-gray-500 whitespace-nowrap">Carry forward to:</p>
+                                        <select
+                                          value={carryForwardSeason}
+                                          onChange={(e) => setCarryForwardSeason(e.target.value)}
+                                          className="w-full px-2 py-1 rounded-lg text-[10px] border border-indigo-200 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                        >
+                                          <option value="">Select season…</option>
+                                          {nextSeasons.map((s) => (
+                                            <option key={s.id} value={s.id}>{s.label}</option>
+                                          ))}
+                                        </select>
+                                        <div className="flex items-center gap-1.5">
+                                          <button
+                                            onClick={() => {
+                                              if (!carryForwardSeason) return
+                                              handleAdminCarryForward(player, aid, carryForwardSeason)
+                                            }}
+                                            disabled={isSavingCarryFwd || !carryForwardSeason}
+                                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                          >
+                                            {isSavingCarryFwd
+                                              ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                              : <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            }
+                                            Confirm
+                                          </button>
+                                          <button
+                                            onClick={() => { setConfirmCarryForward(null); setCarryForwardSeason('') }}
+                                            disabled={isSavingCarryFwd}
+                                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => { setConfirmPay(null); setConfirmUncomplete(null); setReassigning(null); setCarryForwardSeason(''); setConfirmCarryForward(feeKey) }}
+                                        disabled={isSavingCarryFwd}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-semibold border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all disabled:opacity-50"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                        Carry Forward
+                                      </button>
+                                    )
                                   )}
 
                                 </div>
@@ -1546,29 +1982,305 @@ function UmpFeesPanel({ rosterPlayers }) {
   )
 }
 
+function CarryForwardRequestsPanel({ seasonId, currentUserName }) {
+  const [loading, setLoading] = useState(true)
+  const [requests, setRequests] = useState([])
+  const [feesMap, setFeesMap] = useState({})
+  const [resolvingId, setResolvingId] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [{ data: reqs, error: reqsErr }, { data: profiles, error: profilesErr }] = await Promise.all([
+        supabase
+          .from('umpiring_carry_forward_requests')
+          .select('*')
+          .eq('from_season', seasonId)
+          .order('requested_at', { ascending: false }),
+        supabase
+          .from('profiles')
+          .select('id, full_name, team'),
+      ])
+      if (reqsErr) throw reqsErr
+      if (profilesErr) throw profilesErr
+
+      const feeIds = [...new Set((reqs || []).map((r) => r.umpiring_fee_id).filter(Boolean))]
+      let fees = []
+      if (feeIds.length > 0) {
+        const { data: feeRows, error: feesErr } = await supabase
+          .from('umpiring_fees')
+          .select('*')
+          .in('id', feeIds)
+        if (feesErr) throw feesErr
+        fees = feeRows || []
+      }
+
+      const profileMap = {}
+      ;(profiles || []).forEach((p) => { profileMap[p.id] = p })
+      const fMap = {}
+      ;(fees || []).forEach((f) => { fMap[f.id] = f })
+      const rows = (reqs || []).map((r) => ({
+        ...r,
+        player: profileMap[r.user_id] || null,
+      }))
+      setRequests(rows)
+      setFeesMap(fMap)
+    } catch (e) {
+      console.error('Failed to load carry-forward requests', e)
+      setRequests([])
+      setFeesMap({})
+    } finally {
+      setLoading(false)
+    }
+  }, [seasonId])
+
+  useEffect(() => { load() }, [load])
+
+  async function resolveRequest(req, status) {
+    setResolvingId(req.id)
+    try {
+      const nowIso = new Date().toISOString()
+      const fee = feesMap[req.umpiring_fee_id]
+
+      if (status === 'approved') {
+        if (!fee) throw new Error('Linked umpiring fee record not found for this request')
+        const carryDescription = `Umpiring due (carry forward used from ${req.from_season})`
+        const carryAmount = Number(fee.amount || UMP_FEE)
+
+        const { error: feeUpdateErr } = await supabase
+          .from('umpiring_fees')
+          .update({ paid: true, paid_at: nowIso, updated_by: currentUserName, updated_at: nowIso })
+          .eq('id', fee.id)
+        if (feeUpdateErr) throw feeUpdateErr
+
+        let supportsSourceFeeColumn = true
+        let existingCredit = null
+        const { data: creditBySource, error: existingErr } = await supabase
+          .from('player_finance_entries')
+          .select('id')
+          .eq('player_id', req.user_id)
+          .eq('season', req.to_season)
+          .eq('source_umpiring_fee_id', fee.id)
+          .maybeSingle()
+        if (existingErr) {
+          if ((existingErr.message || '').includes('source_umpiring_fee_id')) {
+            supportsSourceFeeColumn = false
+          } else {
+            throw existingErr
+          }
+        } else {
+          existingCredit = creditBySource
+        }
+
+        if (!supportsSourceFeeColumn) {
+          const { data: fallbackCredits, error: fallbackErr } = await supabase
+            .from('player_finance_entries')
+            .select('id')
+            .eq('player_id', req.user_id)
+            .eq('season', req.to_season)
+            .eq('description', carryDescription)
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (fallbackErr) throw fallbackErr
+          existingCredit = fallbackCredits?.[0] || null
+        }
+
+        if (existingCredit?.id) {
+          const { error: creditUpdateErr } = await supabase
+            .from('player_finance_entries')
+            .update({
+              team: fee.team,
+              entry_type: 'personal_due',
+              amount: carryAmount,
+              description: carryDescription,
+              is_team_amount: true,
+              can_self_mark_paid: false,
+              paid: false,
+              paid_at: null,
+              paid_marked_by: null,
+              added_by_name: currentUserName,
+              updated_at: nowIso,
+            })
+            .eq('id', existingCredit.id)
+          if (creditUpdateErr) throw creditUpdateErr
+        } else {
+          const insertPayload = {
+            player_id: req.user_id,
+            season: req.to_season,
+            team: fee.team,
+            entry_type: 'personal_due',
+            amount: carryAmount,
+            description: carryDescription,
+            is_team_amount: true,
+            can_self_mark_paid: false,
+            paid: false,
+            added_by_user_id: null,
+            added_by_name: currentUserName,
+            created_at: nowIso,
+            updated_at: nowIso,
+          }
+          if (supportsSourceFeeColumn) {
+            insertPayload.source_umpiring_fee_id = fee.id
+          }
+
+          const { error: creditInsertErr } = await supabase
+            .from('player_finance_entries')
+            .insert(insertPayload)
+          if (creditInsertErr) throw creditInsertErr
+        }
+      }
+
+      let requestData = null
+      let requestUpdateErr = null
+
+      const fullUpdatePayload = {
+        status,
+        updated_at: nowIso,
+        reviewed_by_name: currentUserName,
+        reviewed_at: nowIso,
+      }
+      const fallbackUpdatePayload = {
+        status,
+        updated_at: nowIso,
+      }
+
+      const { data: fullData, error: fullErr } = await supabase
+        .from('umpiring_carry_forward_requests')
+        .update(fullUpdatePayload)
+        .eq('id', req.id)
+        .select('*')
+        .single()
+
+      if (fullErr) {
+        const msg = fullErr.message || ''
+        if (msg.includes('reviewed_at') || msg.includes('reviewed_by_name')) {
+          const { data: fallbackData, error: fallbackErr } = await supabase
+            .from('umpiring_carry_forward_requests')
+            .update(fallbackUpdatePayload)
+            .eq('id', req.id)
+            .select('*')
+            .single()
+          requestData = fallbackData
+          requestUpdateErr = fallbackErr
+        } else {
+          requestUpdateErr = fullErr
+        }
+      } else {
+        requestData = fullData
+      }
+
+      if (requestUpdateErr) throw requestUpdateErr
+
+      if (requestData) {
+        setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, ...requestData } : r))
+      }
+      await load()
+    } catch (e) {
+      alert(`Failed to ${status} carry-forward request: ${e.message || 'Unknown error'}`)
+    } finally {
+      setResolvingId(null)
+    }
+  }
+
+  return (
+    <div>
+      {loading ? (
+        <div className="flex justify-center py-14"><div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" /></div>
+      ) : requests.length === 0 ? (
+        <div className="text-center py-10 text-sm text-gray-400">No carry-forward requests for this season.</div>
+      ) : (
+        <div className="space-y-2">
+          {requests.map((r) => {
+            const fee = feesMap[r.umpiring_fee_id]
+            const busy = resolvingId === r.id
+            const statusCls = r.status === 'approved'
+              ? 'bg-green-100 text-green-700'
+              : r.status === 'rejected'
+                ? 'bg-red-100 text-red-600'
+                : 'bg-amber-100 text-amber-700'
+            return (
+              <div key={r.id} className="bg-white border border-gray-200 rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{r.player?.full_name || 'Player'} · {fee ? `$${Number(fee.amount || UMP_FEE).toFixed(2)}` : '$60.00'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.from_season} → {r.to_season}</p>
+                    <p className="text-[11px] text-gray-500 mt-1">Requested on {new Date(r.requested_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    {r.reviewed_by_name && r.reviewed_at && (
+                      <p className="text-[11px] text-gray-500 mt-1">{r.reviewed_by_name} {r.status} on {new Date(r.reviewed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    )}
+                  </div>
+                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${statusCls}`}>{r.status}</span>
+                </div>
+
+                {r.status === 'pending' && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => resolveRequest(r, 'approved')}
+                      disabled={busy}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-green-600 text-white disabled:opacity-50"
+                    >
+                      {busy ? 'Saving…' : 'Approve'}
+                    </button>
+                    <button
+                      onClick={() => resolveRequest(r, 'rejected')}
+                      disabled={busy}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500 text-white disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ══════════════════════════════════════════════════════
    Main FinancesTab
 ══════════════════════════════════════════════════════ */
 export default function FinancesTab() {
   const { user } = useAuth()
+  const { activeSeason } = useSeason()
+  const seasonId = activeSeason?.id || '2026'
+  const seasonLabel = activeSeason?.label || 'Season 2026'
+  const isFirstSeason = seasonId === SEASONS[0].id
+  const legacySeasonIds = useMemo(
+    () => (isFirstSeason ? [seasonId, '2026'] : [seasonId]),
+    [isFirstSeason, seasonId]
+  )
   const [activeTab, setActiveTab]         = useState('fees')
   const [rosterPlayers, setRosterPlayers] = useState([])
   const [financeMap, setFinanceMap]       = useState({})
   const [loading, setLoading]             = useState(true)
   const [toggling, setToggling]           = useState(null)
+  const currentUserName = rosterPlayers.find((p) => p.email === user?.email)?.full_name || 'Admin'
 
   const loadAll = useCallback(async () => {
     setLoading(true)
     const [{ data: profileData }, { data: finData }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, team, role').order('full_name'),
-      supabase.from('player_finances').select('id, player_name, team, season, amount_due, paid, paid_at, created_at, updated_at, updated_by').eq('season', SEASON),
+      supabase.from('player_finances').select('id, player_name, team, season, amount_due, paid, paid_at, created_at, updated_at, updated_by').in('season', legacySeasonIds),
     ])
     setRosterPlayers(profileData || [])
     const map = {}
-    ;(finData || []).forEach((r) => { map[`${r.player_name}::${r.team}`] = r })
+    ;(finData || []).forEach((r) => {
+      const key = `${r.player_name}::${r.team}`
+      const existing = map[key]
+      if (!existing) {
+        map[key] = r
+        return
+      }
+      if (existing.season !== seasonId && r.season === seasonId) {
+        map[key] = r
+      }
+    })
     setFinanceMap(map)
     setLoading(false)
-  }, [])
+  }, [legacySeasonIds, seasonId])
 
   useEffect(() => { loadAll() }, [loadAll])
 
@@ -1607,9 +2319,7 @@ export default function FinancesTab() {
           updated_by: currentUserName,
           updated_at: new Date().toISOString(),
         })
-        .eq('player_name', player.full_name)
-        .eq('team',        player.team)
-        .eq('season',      SEASON)
+        .eq('id', existing.id)
       error = res.error
     } else {
       // No record yet → INSERT a fresh row
@@ -1618,7 +2328,7 @@ export default function FinancesTab() {
         .insert({
           player_name: player.full_name,
           team:        player.team,
-          season:      SEASON,
+          season:      seasonId,
           amount_due:  SEASON_FEE,
           paid:        nowPaid,
           paid_at:     nowPaid ? new Date().toISOString() : null,
@@ -1651,7 +2361,7 @@ export default function FinancesTab() {
         <div>
           <h2 className="font-display font-bold text-primary text-2xl mb-1">Finances</h2>
           <p className="text-sm text-gray-500">
-            Season 2026 · Fee per player: <strong className="text-gray-700">${SEASON_FEE}</strong>
+            {seasonLabel} · Fee per player: <strong className="text-gray-700">${SEASON_FEE}</strong>
           </p>
         </div>
       </div>
@@ -1700,11 +2410,12 @@ export default function FinancesTab() {
       ) : activeTab === 'expenses' ? (
         <ExpensesPanel
           rosterPlayers={rosterPlayers}
-          currentUserName={rosterPlayers.find((p) => p.email === user?.email)?.full_name}
+          currentUserName={currentUserName}
+          seasonId={seasonId}
         />
-      ) : (
-        <UmpFeesPanel rosterPlayers={rosterPlayers} />
-      )}
+      ) : activeTab === 'umpiring' ? (
+        <UmpFeesPanel rosterPlayers={rosterPlayers} seasonId={seasonId} currentUserName={currentUserName} />
+      ) : null}
     </div>
   )
 }

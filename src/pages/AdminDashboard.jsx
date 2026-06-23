@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
+import { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
 import AvailabilityTab    from './admin/AvailabilityTab'
 import WhatsAppSummaryTab from './admin/WhatsAppSummaryTab'
 import ResultsTab         from './admin/ResultsTab'
@@ -14,7 +15,7 @@ import ClubhouseGalleryTab from './admin/ClubhouseGalleryTab'
 import FixturesTab         from './admin/FixturesTab'
 import UsersTab            from './admin/UsersTab'
 
-// Row 1 — match day tools
+const SEASON_TABS = new Set(['availability', 'fixtures', 'results', 'finances'])
 const ROW1 = [
   { id: 'availability', label: 'Availability', icon: '📋', short: 'Avail.'   },
   { id: 'fixtures',     label: 'Fixtures',     icon: '🏏', short: 'Fixtures'  },
@@ -66,16 +67,19 @@ export default function AdminDashboard() {
             <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] sm:text-xs font-semibold mb-2 sm:mb-3 md:mb-4 ${roleColor}`}>
               🔐 {roleLabel}
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-1 sm:mb-2 leading-tight">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-1 sm:mb-2 leading-tight md:text-center">
               ADMIN <span className="text-accent">PANEL</span>
             </h1>
-            <p className="text-gray-400 text-[11px] sm:text-xs md:text-sm">
-              <span className="text-white font-medium">{profile?.full_name}</span>
-              {!isSuperAdmin && profile?.team && (
-                <> · <span className="text-accent">{profile.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}</span></>
-              )}
-              {isSuperAdmin && <> · <span className="text-purple-400">All Teams</span></>}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-gray-400 text-[11px] sm:text-xs md:text-sm">
+                <span className="text-white font-medium">{profile?.full_name}</span>
+                {!isSuperAdmin && profile?.team && (
+                  <> · <span className="text-accent">{profile.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'}</span></>
+                )}
+                {isSuperAdmin && <> · <span className="text-purple-400">All Teams</span></>}
+              </p>
+              {SEASON_TABS.has(activeTab) && <SeasonSwitcherInline />}
+            </div>
           </motion.div>
         </div>
       </section>
@@ -144,10 +148,10 @@ export default function AdminDashboard() {
       {/* Tab content — Compact for mobile */}
       <section className="py-4 md:py-8 lg:py-10 bg-surface min-h-[calc(100vh-300px)]">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-          {/* Active tab title on mobile (hidden for clubhouse; handled inline with sub-nav) */}
-          <div className={`md:hidden flex items-center gap-2 mb-3 ${activeTab === 'clubhouse' ? 'hidden' : ''}`}>
+          {/* Active tab title */}
+          <div className={`flex items-center gap-2 mb-4 ${activeTab === 'clubhouse' ? 'hidden md:flex' : ''}`}>
             <span className="text-lg">{activeTabObj?.icon}</span>
-            <h2 className="font-display font-bold text-primary text-base">{activeTabObj?.label}</h2>
+            <h2 className="font-display font-bold text-primary text-base md:text-xl">{activeTabObj?.label}</h2>
             {activeTabObj?.id === 'requests' && pendingRequests > 0 && (
               <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
                 {pendingRequests}

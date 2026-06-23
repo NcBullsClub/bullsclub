@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS fixtures (
 ALTER TABLE fixtures ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read fixtures"   ON fixtures FOR SELECT USING (true);
 CREATE POLICY "Admins can manage fixtures" ON fixtures FOR ALL
-  USING  (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','super_admin')))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','super_admin')));
+  USING  (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','superadmin')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','superadmin')));
 
 -- ============================================================
 -- Umpiring assignments — when OUR teams are assigned to umpire
@@ -42,8 +42,8 @@ CREATE TABLE IF NOT EXISTS umpiring_assignments (
 ALTER TABLE umpiring_assignments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read umpiring_assignments"   ON umpiring_assignments FOR SELECT USING (true);
 CREATE POLICY "Admins can manage umpiring_assignments" ON umpiring_assignments FOR ALL
-  USING  (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','super_admin')))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','super_admin')));
+  USING  (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','superadmin')))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','superadmin')));
 
 -- ============================================================
 -- Umpiring availability — players mark if they can go umpire

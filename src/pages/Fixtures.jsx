@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
+import { useSeason } from '../contexts/SeasonContext'
+import { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
+import { SEASONS } from '../config/seasons'
 
 const sectionVariants = {
   open:   { height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } },
@@ -16,6 +19,29 @@ const teamsFilter = [
 
 function firstName(name) {
   return (name || '').split(' ')[0]
+}
+
+function normalizeFixtureType(value) {
+  const v = String(value || '').trim().toLowerCase()
+  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
+  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  return 'League'
+}
+
+function normalizeDivisionLabel(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const m = raw.match(/^d(?:iv)?[-\s]?(\d+)$/i)
+  if (m) return `Div-${m[1]}`
+  return raw
+}
+
+function getSeasonTagText(seasonId) {
+  if (!seasonId) return 'Season TBD'
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
+  return String(seasonId).replace(/-/g, ' ')
 }
 
 function renderResult(result) {
@@ -56,7 +82,7 @@ function getMatchStatus(f) {
 function VenueActions({ venue, venueAddress }) {
   const [copied, setCopied] = useState(false)
 
-  const fullAddress = venueAddress || venue
+  const fullAddress = venue + (venueAddress ? `, ${venueAddress}` : '')
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
 
   const handleCopy = () => {
@@ -174,11 +200,27 @@ function ScorePanel({ teamLabel, opponent, dbResult, team }) {
           </a>
         </div>
       )}
+
+      {/* YouTube highlights */}
+      {dbResult.video_url && (
+        <div className="flex justify-center">
+          <a
+            href={dbResult.video_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-red-600 px-2.5 py-1 rounded-full hover:bg-red-700 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            Watch Highlights ↗
+          </a>
+        </div>
+      )}
     </div>
   )
 }
 
 export default function Fixtures() {
+  const { activeSeason } = useSeason()
   const [teamFilter, setTeamFilter] = useState('raising-bulls')
   const [fixtures, setFixtures]     = useState([])
   const [loadingFix, setLoadingFix] = useState(true)
@@ -194,18 +236,25 @@ export default function Fixtures() {
     })
   }
 
-  // Fetch fixtures from Supabase
+  // Fetch fixtures from Supabase – re-run when the active season changes
   useEffect(() => {
     setLoadingFix(true)
-    supabase
+    let query = supabase
       .from('fixtures')
       .select('*')
       .order('date', { ascending: true })
-      .then(({ data }) => {
-        setFixtures(data || [])
-        setLoadingFix(false)
-      })
-  }, [])
+    if (activeSeason?.id) {
+      // First season also matches un-tagged rows (season IS NULL) for backward compat
+      const isFirst = activeSeason.id === SEASONS[0].id
+      query = isFirst
+        ? query.or(`season.eq.${activeSeason.id},season.is.null`)
+        : query.eq('season', activeSeason.id)
+    }
+    query.then(({ data }) => {
+      setFixtures(data || [])
+      setLoadingFix(false)
+    })
+  }, [activeSeason])
 
   useEffect(() => {
     if (!isSheetConfigured()) return
@@ -215,7 +264,7 @@ export default function Fixtures() {
   useEffect(() => {
     supabase
       .from('match_results')
-      .select('fixture_date, team, result, toss, ncb_score, opp_score, scorecard_url')
+      .select('fixture_date, team, result, toss, ncb_score, opp_score, scorecard_url, video_url')
       .then(({ data }) => {
         const map = {}
         ;(data || []).forEach((r) => { map[`${r.fixture_date}::${r.team}`] = r })
@@ -246,7 +295,10 @@ export default function Fixtures() {
     const dayNum   = String(day).padStart(2, '0')
     const monthShort = d.toLocaleDateString('en-US', { month: 'short' })
     const weekday  = d.toLocaleDateString('en-US', { weekday: 'short' })
-    const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue_address || f.venue)}`
+    const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
+    const seasonTag = f.season ? getSeasonTagText(f.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
+    const fixtureType = normalizeFixtureType(f.type)
+    const divisionTag = normalizeDivisionLabel(f.division)
 
     let avail = { inCount: 0, maybeCount: 0, outCount: 0, inNames: [], maybeNames: [], outNames: [] }
     if (isSheetConfigured()) {
@@ -279,6 +331,7 @@ export default function Fixtures() {
                 {teamLabel}
             </span>
             <span className="text-[10px] text-gray-400 font-medium">{f.format}</span>
+            <span className="text-[10px] font-medium bg-accent/20 text-primary px-2 py-0.5 rounded-full">{seasonTag}</span>
             <div className="flex-1" />
             {/* Status */}
             {past ? (
@@ -300,12 +353,13 @@ export default function Fixtures() {
               {teamLabel} <span className="font-normal text-gray-400">vs</span> {f.opponent}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
-              <span>⏰ {f.time}</span>
-              <span>·</span>
               <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-1.5 py-0.5 rounded-full">
                 {weekday}
               </span>
-              <span>·</span><span>{f.type}</span>
+              {divisionTag && <span>·</span>}
+              {divisionTag && <span>{divisionTag}</span>}
+              <span>·</span>
+              <span>{fixtureType}</span>
             </div>
           </div>
 
@@ -314,7 +368,7 @@ export default function Fixtures() {
             <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
               <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
             </svg>
-              <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}{f.division ? ` · ${f.division.replace(/^D(\d+)$/, 'Div$1')}` : ''}</span>
+              <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}</span>
             <a
               href={mapsUrl}
               target="_blank"
@@ -339,7 +393,7 @@ export default function Fixtures() {
             </div>
           )}
           {/* Results — collapsible for past matches */}
-          {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
+          {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url || dbResult.video_url) && (
             <div className="border-t border-gray-100">
               <button
                 onClick={() => toggleResult(f.id)}
@@ -417,14 +471,16 @@ export default function Fixtures() {
         <div className="hidden sm:block bg-white border border-gray-200 rounded-2xl p-5 md:p-6 hover:border-accent hover:shadow-md transition-all">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             {/* Date block */}
-            <div className="flex-shrink-0 w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
-              <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
-                {weekday}
-              </div>
-              <div className="bg-primary-dark text-white text-center py-3">
-                <div className="font-display font-black text-4xl leading-none text-accent">{dayNum}</div>
-                <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
-                  {monthShort} {year}
+            <div className="flex-shrink-0 flex flex-col items-center gap-2">
+              <div className="w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
+                <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
+                  {weekday}
+                </div>
+                <div className="bg-primary-dark text-white text-center py-3">
+                  <div className="font-display font-black text-4xl leading-none text-accent">{dayNum}</div>
+                  <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
+                    {monthShort} {year}
+                  </div>
                 </div>
               </div>
             </div>
@@ -436,8 +492,7 @@ export default function Fixtures() {
                   {teamLabel}
                 </span>
                 <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.format}</span>
-                <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
-                <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
+                <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{seasonTag}</span>
               </div>
               <h3 className="font-display font-bold text-primary text-xl mb-1">
                 {teamLabel} vs {f.opponent}
@@ -447,6 +502,8 @@ export default function Fixtures() {
                 <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
                   {weekday}
                 </span>
+                {divisionTag && <span className="text-xs text-gray-400">· {divisionTag}</span>}
+                <span className="text-xs text-gray-400">· {fixtureType}</span>
               </div>
               <VenueActions venue={f.venue} venueAddress={f.venue_address} />
             </div>
@@ -511,8 +568,8 @@ export default function Fixtures() {
                   </Link>
                 </>
               )}
-              {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url) && (
-                <div className="flex flex-col items-end gap-1">
+              {dbResult && (dbResult.toss || dbResult.ncb_score || dbResult.opp_score || dbResult.result || dbResult.scorecard_url || dbResult.video_url) && (
+<div className="flex flex-col items-end gap-1">
                   <button
                     onClick={() => toggleResult(f.id)}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
@@ -554,31 +611,43 @@ export default function Fixtures() {
   return (
     <div>
       {/* Hero — compact on mobile */}
-      <section className="bg-primary-dark text-white py-10 md:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="bg-primary-dark text-white py-8 md:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl md:text-6xl font-bold mb-1 md:mb-3">
-              <span className="text-accent">FIXTURES</span>
-            </h1>
-            <p className="text-gray-400 text-sm md:text-lg">Upcoming matches — mark your calendars!</p>
+            <div className="flex items-center justify-between gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <span className="hidden md:block" />
+              <div className="md:text-center">
+                <h1 className="font-display text-3xl md:text-6xl font-bold leading-tight">
+                  <span className="text-accent">FIXTURES</span>
+                </h1>
+                <p className="text-gray-400 text-xs md:text-lg mt-0.5">Upcoming matches — mark your calendars!</p>
+              </div>
+              <div className="flex md:justify-end">
+                <SeasonSwitcherInline />
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Filters */}
+      {/* Filters + Season */}
       <section className="bg-white sticky top-16 z-30 border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex gap-2">
-          {teamsFilter.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTeamFilter(t.id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2">
+              {teamsFilter.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTeamFilter(t.id)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import logo from '../../assets/images/cropped_no bg_nc_bulls_club_logo.png'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSeason } from '../../contexts/SeasonContext'
+import { SEASON_THEME } from '../../config/seasons'
 
 /* ── Inline SVG icon component (Heroicons v2 outline) ─────── */
 function NavIcon({ name, className = 'w-5 h-5' }) {
@@ -16,6 +18,7 @@ function NavIcon({ name, className = 'w-5 h-5' }) {
     Events: 'M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z',
     News: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6V7.5z',
     Sponsors: 'M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z',
+    Finances: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
     Availability: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
     'Join Us': 'M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z',
     Clubhouse: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
@@ -41,6 +44,7 @@ const NAV_ICONS = {
   'Events':       { emoji: '⭐', bg: 'bg-orange-500', imgSrc: '/icons/events-icon.svg' },
   'News':         { emoji: '📰', bg: 'bg-red-500', imgSrc: '/icons/news-icon.svg' },
   'Sponsors':     { emoji: '🤝', bg: 'bg-teal-600' ,imgSrc: '/icons/sponsors-icon.svg' },
+  'Finances':     { emoji: '💰', bg: 'bg-emerald-600' },
   'Availability': { emoji: '✅', bg: 'bg-green-600',imgSrc: '/icons/availability-icon.svg' },
   'Join Us':      { emoji: '🏏', bg: 'bg-accent' },
   'Clubhouse':    { emoji: '🏡', bg: 'bg-amber-500' },
@@ -72,6 +76,7 @@ const mobileNavItems = [
   { path: '/events', label: 'Events' },
   { path: '/news', label: 'News' },
   { path: '/sponsors', label: 'Sponsors' },
+  { path: '/finances', label: 'Finances', requiresAuth: true },
   { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
@@ -93,6 +98,7 @@ const desktopNavItems = [
     ],
   },
   { path: '/sponsors', label: 'Sponsors' },
+  { path: '/finances', label: 'Finances', requiresAuth: true },
   { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
@@ -103,6 +109,7 @@ export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, profile, isAdmin, signOut } = useAuth()
+  const { activeSeason } = useSeason()
   const [clubhouseOpen, setClubhouseOpen] = useState(false)
   const clubhouseRef = useRef(null)
 
@@ -327,6 +334,19 @@ export default function Navbar() {
           >
             {/* Scrollable nav grid area */}
             <div className="flex-1 overflow-y-auto px-4 pt-5 pb-4">
+              {/* Season indicator — mobile menu top row */}
+              {activeSeason && (() => {
+                const t = SEASON_THEME[activeSeason.color]
+                return (
+                  <div className="flex items-center gap-2 mb-4 px-1 flex-wrap">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Season:</span>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${t.pillActive}`}>
+                      <span>{activeSeason.icon}</span>
+                      <span>{activeSeason.label}</span>
+                    </span>
+                  </div>
+                )
+              })()}
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3 px-1">
                 Navigation
               </p>
@@ -336,7 +356,10 @@ export default function Navbar() {
                 10 regular items + Join Us (col-span-2) = 12 slots → 3 perfect rows.
               */}
               <div className="grid grid-cols-4 gap-2.5">
-                {mobileNavItems.filter(item => !item.requiresAuth || user).map((item) => {
+                {mobileNavItems
+                  .filter(item => !item.requiresAuth || user)
+                  .filter(item => !(user && item.label === 'Join Us'))
+                  .map((item) => {
                   const active = location.pathname === item.path
                   const isJoin = item.label === 'Join Us'
 

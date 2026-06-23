@@ -22,6 +22,11 @@ const EXPENSE_CATS = [
   { id: 'other',        label: 'Other',         icon: '📦' },
 ]
 
+function getFinanceSeasonIds(seasonId) {
+  if (seasonId === 'mega-bash-26') return ['mega-bash-26', 'mega-smash-26', '2026']
+  return [seasonId]
+}
+
 /* ══════════════════════════════════════════════════════
    Season Fees Panel
 ══════════════════════════════════════════════════════ */
@@ -292,18 +297,30 @@ function ExpensesPanel({ rosterPlayers, currentUserName, seasonId }) {
   const [updatingDescId, setUpdatingDescId] = useState(null)
   const [splitTargets, setSplitTargets] = useState([])
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true)
-    supabase
-      .from('team_expenses')
-      .select('*')
-      .eq('season', seasonId)
-      .is('deleted_at', null)
-      .order('expense_date', { ascending: false })
-      .then(({ data }) => {
-        setExpenses(data || [])
-        setLoading(false)
-      })
+    const seasonIds = getFinanceSeasonIds(seasonId)
+
+    try {
+      if (seasonId === 'mega-bash-26') {
+        await supabase
+          .from('team_expenses')
+          .update({ season: seasonId })
+          .eq('season', 'mega-smash-26')
+          .is('deleted_at', null)
+      }
+
+      const { data } = await supabase
+        .from('team_expenses')
+        .select('*')
+        .in('season', seasonIds)
+        .is('deleted_at', null)
+        .order('expense_date', { ascending: false })
+
+      setExpenses(data || [])
+    } finally {
+      setLoading(false)
+    }
   }, [seasonId])
 
   const splitCandidatePlayers = rosterPlayers.filter((p) => {
@@ -984,6 +1001,15 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
 
   const load = useCallback(async () => {
     setLoading(true)
+    const seasonIds = getFinanceSeasonIds(seasonId)
+
+    if (seasonId === 'mega-bash-26') {
+      await supabase
+        .from('umpiring_fees')
+        .update({ season: seasonId })
+        .eq('season', 'mega-smash-26')
+    }
+
     const seasonDef = SEASONS.find((s) => s.id === seasonId)
     let assignmentsQ = supabase.from('umpiring_assignments').select('*').order('date')
     if (seasonDef?.startDate) assignmentsQ = assignmentsQ.gte('date', seasonDef.startDate)
@@ -991,7 +1017,7 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
     const [{ data: assgn }, { data: avail }, { data: fees }] = await Promise.all([
       assignmentsQ,
       supabase.from('umpiring_availability').select('*').eq('status', 'in'),
-      supabase.from('umpiring_fees').select('*').eq('season', seasonId),
+      supabase.from('umpiring_fees').select('*').in('season', seasonIds),
     ])
     const assignmentsData = assgn || []
     const availabilityData = avail || []
@@ -2247,10 +2273,9 @@ export default function FinancesTab() {
   const { activeSeason } = useSeason()
   const seasonId = activeSeason?.id || '2026'
   const seasonLabel = activeSeason?.label || 'Season 2026'
-  const isFirstSeason = seasonId === SEASONS[0].id
   const legacySeasonIds = useMemo(
-    () => (isFirstSeason ? [seasonId, '2026'] : [seasonId]),
-    [isFirstSeason, seasonId]
+    () => getFinanceSeasonIds(seasonId),
+    [seasonId]
   )
   const [activeTab, setActiveTab]         = useState('fees')
   const [rosterPlayers, setRosterPlayers] = useState([])

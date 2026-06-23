@@ -758,9 +758,12 @@ export default function AvailabilityTab({ onSelectFixture }) {
         ? supabase.from('fixtures').select('*').or(`season.eq.${activeSeason.id},season.is.null`).order('date', { ascending: true })
         : supabase.from('fixtures').select('*').eq('season', activeSeason.id).order('date', { ascending: true })
       const playingQ  = supabase.from('availability').select('*, profiles(full_name, email, team, role)').order('fixture_date', { ascending: true })
-      const umpAssnQ  = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
+      let umpAssnQ  = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
       const profilesQ = supabase.from('profiles').select('id, full_name, team')
         .in('team', ['raising-bulls', 'royal-bulls']).order('full_name', { ascending: true })
+
+      if (activeSeason?.startDate) umpAssnQ = umpAssnQ.gte('date', activeSeason.startDate)
+      if (activeSeason?.endDate)   umpAssnQ = umpAssnQ.lte('date', activeSeason.endDate)
 
       if (effectiveFilter) {
         playingQ.eq('fixture_team', effectiveFilter)
@@ -891,8 +894,8 @@ export default function AvailabilityTab({ onSelectFixture }) {
     return !isPastDateTime(entry.cardKey.split('::')[0], fixture?.time)
   })
 
-  const umpPastAssignments     = umpAssignments.filter((a) => (`${a.date}::${a.ncb_team}` in fixtureMap) &&  isPastDateTime(a.date, a.time))
-  const umpUpcomingAssignments = umpAssignments.filter((a) => (`${a.date}::${a.ncb_team}` in fixtureMap) && !isPastDateTime(a.date, a.time))
+  const umpPastAssignments     = umpAssignments.filter((a) => isPastDateTime(a.date, a.time))
+  const umpUpcomingAssignments = umpAssignments.filter((a) => !isPastDateTime(a.date, a.time))
 
   // ── Render ─────────────────────────────────────────────────────────────
 

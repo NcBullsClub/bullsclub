@@ -111,6 +111,24 @@ function formatFixtureUmpires(fixture) {
   return u1 || u2 || 'TBD'
 }
 
+function getSeasonTagText(seasonId) {
+  if (!seasonId) return 'Season TBD'
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
+  return String(seasonId).replace(/-/g, ' ')
+}
+
+function getFixtureTypeLabel(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return 'League'
+  const v = raw.toLowerCase()
+  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  if (v === 'mega smash' || v === 'mega bash') return 'Mega Smash'
+  if (v === 'league') return 'League'
+  return raw
+}
+
 // ── StatusTable ────────────────────────────────────────────────────────────
 
 function StatusTable({ rows }) {
@@ -181,9 +199,11 @@ function StatusTable({ rows }) {
 
 // ── Playing match card ─────────────────────────────────────────────────────
 
-function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleCollapse, onSelectFixture }) {
+function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleCollapse, onSelectFixture, activeSeason }) {
   const [date, team] = cardKey.split('::')
   const fixture     = fixtureMap[cardKey]
+  const seasonTag   = fixture?.season ? getSeasonTagText(fixture.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
+  const fixtureTypeTag = getFixtureTypeLabel(fixture?.type)
   const inList      = rows.filter((r) => r.status === 'in')
   const outList     = rows.filter((r) => r.status === 'out')
   const maybeList   = rows.filter((r) => r.status === 'maybe')
@@ -204,6 +224,8 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
               {teamLabel(team)}
             </span>
             {fixture && <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full">{fixture.format}</span>}
+            {fixture && <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full">{fixtureTypeTag}</span>}
+            {fixture && <span className="text-xs bg-white/10 text-gray-300 px-2.5 py-0.5 rounded-full">{seasonTag}</span>}
             {isPastCard && <span className="text-xs bg-white/10 text-gray-400 px-2.5 py-0.5 rounded-full">Past</span>}
           </div>
 
@@ -791,19 +813,17 @@ export default function AvailabilityTab({ onSelectFixture }) {
 
   // Auto-collapse past entries on first load
   useEffect(() => {
-    if (!playingResponses.length || playingInitializedCollapse.current) return
+    if (!fixturesData.length || playingInitializedCollapse.current) return
     playingInitializedCollapse.current = true
     const pastKeys = new Set(
-      playingResponses
-        .map((r) => ({ key: `${r.fixture_date}::${r.fixture_team}`, date: r.fixture_date }))
-        .filter(({ key, date }) => {
-          const fixture = fixtureMap[key]
-          return isPastDateTime(date, fixture?.time)
-        })
+      fixturesData
+        .filter((f) => !effectiveFilter || f.team === effectiveFilter)
+        .map((f) => ({ key: `${f.date}::${f.team}`, date: f.date, time: f.time }))
+        .filter(({ date, time }) => isPastDateTime(date, time))
         .map(({ key }) => key),
     )
     setPlayingCollapsedKeys(pastKeys)
-  }, [playingResponses])
+  }, [fixturesData, effectiveFilter])
 
   useEffect(() => {
     if (!umpAssignments.length || umpInitializedCollapse.current) return
@@ -848,15 +868,25 @@ export default function AvailabilityTab({ onSelectFixture }) {
     }, {}),
   [umpResponses])
 
-  const playingEntries         = Object.entries(playingGrouped)
-    .filter(([key]) => key in fixtureMap)  // only show entries whose fixture is in the active season
-  const playingPastEntries     = playingEntries.filter(([key]) => {
-    const fixture = fixtureMap[key]
-    return isPastDateTime(key.split('::')[0], fixture?.time)
+  const playingEntries = (fixturesData || [])
+    .filter((f) => !effectiveFilter || f.team === effectiveFilter)
+    .map((f) => {
+      const cardKey = `${f.date}::${f.team}`
+      return {
+        id: f.id,
+        cardKey,
+        rows: playingGrouped[cardKey] || [],
+      }
+    })
+
+  const playingPastEntries = playingEntries.filter((entry) => {
+    const fixture = fixtureMap[entry.cardKey]
+    return isPastDateTime(entry.cardKey.split('::')[0], fixture?.time)
   })
-  const playingUpcomingEntries = playingEntries.filter(([key]) => {
-    const fixture = fixtureMap[key]
-    return !isPastDateTime(key.split('::')[0], fixture?.time)
+
+  const playingUpcomingEntries = playingEntries.filter((entry) => {
+    const fixture = fixtureMap[entry.cardKey]
+    return !isPastDateTime(entry.cardKey.split('::')[0], fixture?.time)
   })
 
   const umpPastAssignments     = umpAssignments.filter((a) => (`${a.date}::${a.ncb_team}` in fixtureMap) &&  isPastDateTime(a.date, a.time))
@@ -953,9 +983,9 @@ export default function AvailabilityTab({ onSelectFixture }) {
                 {playingPastOpen && (
                   <motion.div key="playing-past" initial="closed" animate="open" exit="closed" variants={sectionVariants} style={{ overflow: 'hidden' }}>
                     <div className="space-y-4 pt-3">
-                      {playingPastEntries.map(([k, rows]) => (
-                        <PlayingMatchCard key={k} cardKey={k} rows={rows} fixtureMap={fixtureMap}
-                          collapsedKeys={playingCollapsedKeys} toggleCollapse={togglePlayingCollapse} onSelectFixture={onSelectFixture} />
+                      {playingPastEntries.map((entry) => (
+                        <PlayingMatchCard key={entry.id} cardKey={entry.cardKey} rows={entry.rows} fixtureMap={fixtureMap}
+                          collapsedKeys={playingCollapsedKeys} toggleCollapse={togglePlayingCollapse} onSelectFixture={onSelectFixture} activeSeason={activeSeason} />
                       ))}
                     </div>
                   </motion.div>
@@ -970,9 +1000,9 @@ export default function AvailabilityTab({ onSelectFixture }) {
               <p className="text-center text-gray-400 py-8">No upcoming matches.</p>
             ) : (
               <div className="space-y-4">
-                {playingUpcomingEntries.map(([k, rows]) => (
-                  <PlayingMatchCard key={k} cardKey={k} rows={rows} fixtureMap={fixtureMap}
-                    collapsedKeys={playingCollapsedKeys} toggleCollapse={togglePlayingCollapse} onSelectFixture={onSelectFixture} />
+                {playingUpcomingEntries.map((entry) => (
+                  <PlayingMatchCard key={entry.id} cardKey={entry.cardKey} rows={entry.rows} fixtureMap={fixtureMap}
+                    collapsedKeys={playingCollapsedKeys} toggleCollapse={togglePlayingCollapse} onSelectFixture={onSelectFixture} activeSeason={activeSeason} />
                 ))}
               </div>
             )}
@@ -981,7 +1011,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
           {playingEntries.length === 0 && (
             <div className="text-center py-20 text-gray-400">
               <div className="text-4xl mb-3">📋</div>
-              <p className="text-lg font-medium text-gray-500">No availability responses yet.</p>
+              <p className="text-lg font-medium text-gray-500">No fixtures found for this selection.</p>
             </div>
           )}
         </div>

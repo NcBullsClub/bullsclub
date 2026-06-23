@@ -12,6 +12,29 @@ const TEAMS = [
   { id: 'royal-bulls',   label: 'Royal Bulls' },
 ]
 
+function getSeasonTagText(seasonId) {
+  if (!seasonId) return 'Season TBD'
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
+  return String(seasonId).replace(/-/g, ' ')
+}
+
+function normalizeFixtureType(value) {
+  const v = String(value || '').trim().toLowerCase()
+  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
+  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  return 'League'
+}
+
+function normalizeDivisionLabel(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const m = raw.match(/^d(?:iv)?[-\s]?(\d+)$/i)
+  if (m) return `Div-${m[1]}`
+  return raw
+}
+
 const STATUS_OPTIONS = [
   {
     value: 'in',
@@ -53,9 +76,13 @@ function StatusPill({ value, count }) {
 
 function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, myPaymentPaid, financeLoaded, onResponseSaved }) {
   const { user, profile } = useAuth()
+  const { activeSeason } = useSeason()
   const navigate = useNavigate()
   const isRaising = fixture.team === 'raising-bulls'
   const teamLabel = isRaising ? 'Raising Bulls' : 'Royal Bulls'
+  const seasonTag = fixture.season ? getSeasonTagText(fixture.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
+  const fixtureTypeTag = normalizeFixtureType(fixture.type)
+  const divisionTag = normalizeDivisionLabel(fixture.division || (isRaising ? 'D5' : 'D9'))
 
   const [fy, fm, fd] = fixture.date.split('-').map(Number)
   const fixtureDate = new Date(fy, fm - 1, fd)
@@ -86,6 +113,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
   const [error, setError]   = useState('')
+  const lastTapRef = useRef({ value: '', ts: 0 })
 
   useEffect(() => {
     setStatus(myResponse?.status || '')
@@ -147,15 +175,25 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
     }
   }
 
-  // Single click: select & save. Double-click on active: clear.
+  // Single tap: select & save. Double-tap selected option: clear.
   function handleStatusClick(value) {
     if (saving) return
-    if (status === value) {
-      // double-tap / second click on selected = clear
-      clearResponse()
-    } else {
+    if (status !== value) {
+      lastTapRef.current = { value: '', ts: 0 }
       setStatus(value)
       saveResponse(value)
+      return
+    }
+
+    const now = Date.now()
+    const last = lastTapRef.current
+    const isDoubleTap = last.value === value && now - last.ts <= 350
+
+    if (isDoubleTap) {
+      lastTapRef.current = { value: '', ts: 0 }
+      clearResponse()
+    } else {
+      lastTapRef.current = { value, ts: now }
     }
   }
 
@@ -221,13 +259,18 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
               {teamLabel}
             </span>
             <span className="text-xs bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{fixture.format}</span>
-            <span className="text-xs bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{isRaising ? 'Div5' : 'Div9'}</span>
           </div>
           <div className="font-display font-bold text-white text-base leading-tight truncate">
             vs {fixture.opponent}
           </div>
           <div className="text-white/60 text-xs mt-0.5">
-            {fixture.time} · {fixture.venue}
+            {fixture.time}
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {divisionTag && (
+              <span className="text-[10px] bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{divisionTag}</span>
+            )}
+            <span className="text-[10px] bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{seasonTag}</span>
           </div>
         </div>
         {isPast && (
@@ -248,6 +291,9 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
               <span>⏰ {fixture.time}</span>
             </>
           )}
+          <span className="inline-flex items-center text-[10px] font-medium bg-primary/10 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
+            {fixtureTypeTag}
+          </span>
           {(fixture.venue_address || fixture.venue) && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fixture.venue + (fixture.venue_address ? `, ${fixture.venue_address}` : ''))}`}
@@ -300,7 +346,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
                     type="button"
                     onClick={() => handleStatusClick(opt.value)}
                     disabled={saving}
-                    title={isSelected ? 'Tap again to clear' : `Mark as ${opt.label}`}
+                    title={isSelected ? 'Double tap to clear' : `Mark as ${opt.label}`}
                     className={`relative flex items-center gap-1 px-3 py-1.5 rounded-full border-2 text-xs font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                       isSelected ? opt.selected : opt.idle
                     }`}
@@ -318,7 +364,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
                 )
               })}
               {status && !saving && (
-                <span className="text-[10px] text-gray-400 ml-1">tap again to clear</span>
+                <span className="text-[10px] text-gray-400 ml-1">double tap selected option to clear</span>
               )}
             </div>
 

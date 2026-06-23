@@ -20,7 +20,6 @@ function SeasonBadge({ seasonId }) {
 }
 
 const TEAMS = [
-  { id: 'all',           label: 'All Teams' },
   { id: 'raising-bulls', label: 'Raising Bulls' },
   { id: 'royal-bulls',   label: 'Royal Bulls' },
 ]
@@ -30,6 +29,8 @@ const TEAM_LABELS = {
   'royal-bulls':   'Royal Bulls',
 }
 
+const FIXTURE_TYPE_OPTIONS = ['League', 'Playoffs', 'Championship']
+
 const EMPTY_FORM = {
   date: '',
   time: '',
@@ -38,7 +39,7 @@ const EMPTY_FORM = {
   venue: '',
   venue_address: '',
   format: 'HT',
-  type: 'Mega Bash',
+  type: 'League',
   division: '',
   umpire1_team: '',
   umpire2_team: '',
@@ -76,6 +77,16 @@ function cleanText(value) {
     .trim()
 }
 
+function normalizeFixtureType(value) {
+  const raw = cleanText(value)
+  if (!raw) return 'League'
+  const key = raw.toLowerCase()
+  if (key === 'league' || key === 'mega bash' || key === 'mega smash') return 'League'
+  if (key === 'playoffs' || key === 'playoff') return 'Playoffs'
+  if (key === 'championship' || key === 'final') return 'Championship'
+  return FIXTURE_TYPE_OPTIONS.includes(raw) ? raw : 'League'
+}
+
 function normalizeUmpire(value) {
   if (!value) return ''
   return cleanText(value)
@@ -91,6 +102,10 @@ function normalizeUmpire(value) {
 // ── Fixture Form (add / edit) ──────────────────────────────────────────────
 function FixtureForm({ initial, onSave, onCancel, saving }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
+
+  useEffect(() => {
+    setForm(initial || EMPTY_FORM)
+  }, [initial])
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }))
@@ -147,7 +162,11 @@ function FixtureForm({ initial, onSave, onCancel, saving }) {
         </div>
         <div>
           <label className={labelCls}>Type</label>
-          <input type="text" value={form.type} onChange={(e) => set('type', e.target.value)} placeholder="Mega Bash" className={inputCls} />
+          <select value={form.type} onChange={(e) => set('type', e.target.value)} className={inputCls}>
+            {FIXTURE_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={labelCls}>Division</label>
@@ -280,7 +299,7 @@ function FixtureCard({ f, onEdit, onDelete, deletingId }) {
   const ump1 = normalizeUmpire(f.umpire1_team)
   const ump2 = normalizeUmpire(f.umpire2_team)
   const fmt = cleanText(f.format)
-  const typ = cleanText(f.type)
+  const typ = normalizeFixtureType(f.type)
   const venue = cleanText(f.venue)
   const venueAddress = cleanText(f.venue_address)
   const hasUmpires = ump1 || ump2
@@ -404,7 +423,7 @@ export default function FixturesTab() {
   const { activeSeason, setActiveSeason, seasons } = useSeason()
 
   // ── Fixtures state ──
-  const [teamFilter, setTeamFilter]   = useState(adminTeam ?? 'all')
+  const [teamFilter, setTeamFilter]   = useState(adminTeam ?? 'raising-bulls')
   const [fixtures, setFixtures]       = useState([])
   const [loadingFix, setLoadingFix]   = useState(true)
   const [errorFix, setErrorFix]       = useState('')
@@ -433,7 +452,13 @@ export default function FixturesTab() {
       let q = supabase.from('fixtures').select('*').order('date', { ascending: true })
       const eff = isSuperAdmin ? teamFilter : adminTeam
       if (eff && eff !== 'all') q = q.eq('team', eff)
-      if (activeSeason?.id) q = q.eq('season', activeSeason.id)
+      if (activeSeason?.id) {
+        // Backward compatibility: first season should include legacy rows with NULL season.
+        const isFirst = activeSeason.id === SEASONS[0].id
+        q = isFirst
+          ? q.or(`season.eq.${activeSeason.id},season.is.null`)
+          : q.eq('season', activeSeason.id)
+      }
       const { data, error } = await q
       if (error) throw error
       setFixtures(data || [])
@@ -473,7 +498,7 @@ export default function FixturesTab() {
         venue:         cleanText(form.venue),
         venue_address: cleanText(form.venue_address) || null,
         format:        cleanText(form.format) || 'HT',
-        type:          cleanText(form.type) || 'Mega Bash',
+        type:          normalizeFixtureType(form.type),
         division:      cleanText(form.division) || null,
         umpire1_team:  normalizeUmpire(form.umpire1_team) || null,
         umpire2_team:  normalizeUmpire(form.umpire2_team) || null,
@@ -559,10 +584,11 @@ export default function FixturesTab() {
         venue:         cleanText(editingFix.venue),
         venue_address: cleanText(editingFix.venue_address) || '',
         format:        cleanText(editingFix.format) || 'HT',
-        type:          cleanText(editingFix.type) || 'Mega Bash',
+        type:          normalizeFixtureType(editingFix.type),
         division:      cleanText(editingFix.division) || '',
         umpire1_team:  normalizeUmpire(editingFix.umpire1_team) || '',
         umpire2_team:  normalizeUmpire(editingFix.umpire2_team) || '',
+        season:        editingFix.season || '',
       }
     : null
 

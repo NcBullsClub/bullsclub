@@ -4,22 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfigured } from '../utils/availability'
 import { useSeason } from '../contexts/SeasonContext'
-import SeasonSwitcher, { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
-import { SEASONS, SEASON_THEME, getSeasonStatus } from '../config/seasons'
-
-/** Tiny themed badge showing the season, used on each fixture card. */
-function SeasonBadge({ seasonId }) {
-  if (!seasonId) return null
-  const season = SEASONS.find((s) => s.id === seasonId)
-  if (!season) return null
-  const t = SEASON_THEME[season.color]
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full ${t.pill}`}>
-      <span className="text-[11px] leading-none">{season.icon}</span>
-      {season.shortLabel} '{String(season.year).slice(-2)}
-    </span>
-  )
-}
+import { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
+import { SEASONS } from '../config/seasons'
 
 const sectionVariants = {
   open:   { height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } },
@@ -33,6 +19,29 @@ const teamsFilter = [
 
 function firstName(name) {
   return (name || '').split(' ')[0]
+}
+
+function normalizeFixtureType(value) {
+  const v = String(value || '').trim().toLowerCase()
+  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
+  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  return 'League'
+}
+
+function normalizeDivisionLabel(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const m = raw.match(/^d(?:iv)?[-\s]?(\d+)$/i)
+  if (m) return `Div-${m[1]}`
+  return raw
+}
+
+function getSeasonTagText(seasonId) {
+  if (!seasonId) return 'Season TBD'
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
+  return String(seasonId).replace(/-/g, ' ')
 }
 
 function renderResult(result) {
@@ -287,6 +296,9 @@ export default function Fixtures() {
     const monthShort = d.toLocaleDateString('en-US', { month: 'short' })
     const weekday  = d.toLocaleDateString('en-US', { weekday: 'short' })
     const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
+    const seasonTag = f.season ? getSeasonTagText(f.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
+    const fixtureType = normalizeFixtureType(f.type)
+    const divisionTag = normalizeDivisionLabel(f.division)
 
     let avail = { inCount: 0, maybeCount: 0, outCount: 0, inNames: [], maybeNames: [], outNames: [] }
     if (isSheetConfigured()) {
@@ -314,12 +326,12 @@ export default function Fixtures() {
                 <span className="text-[9px] text-gray-400">{year}</span>
               </div>
             </div>
-            {/* Team + format + season */}
+            {/* Team + format */}
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${f.team === 'raising-bulls' ? 'bg-primary-dark/10 text-primary-dark' : 'bg-primary/10 text-primary'}`}>
                 {teamLabel}
             </span>
             <span className="text-[10px] text-gray-400 font-medium">{f.format}</span>
-            <SeasonBadge seasonId={f.season} />
+            <span className="text-[10px] font-medium bg-accent/20 text-primary px-2 py-0.5 rounded-full">{seasonTag}</span>
             <div className="flex-1" />
             {/* Status */}
             {past ? (
@@ -341,12 +353,13 @@ export default function Fixtures() {
               {teamLabel} <span className="font-normal text-gray-400">vs</span> {f.opponent}
             </h3>
             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
-              <span>⏰ {f.time}</span>
-              <span>·</span>
               <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-1.5 py-0.5 rounded-full">
                 {weekday}
               </span>
-              <span>·</span><span>{f.type}</span>
+              {divisionTag && <span>·</span>}
+              {divisionTag && <span>{divisionTag}</span>}
+              <span>·</span>
+              <span>{fixtureType}</span>
             </div>
           </div>
 
@@ -355,7 +368,7 @@ export default function Fixtures() {
             <svg className="w-3 h-3 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
               <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.013 3.5-4.628 3.5-7.327A8 8 0 004 12c0 2.699 1.556 5.315 3.5 7.327a19.58 19.58 0 002.683 2.282 16.974 16.974 0 001.144.742zM12 13.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clipRule="evenodd" />
             </svg>
-              <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}{f.division ? ` · ${f.division.replace(/^D(\d+)$/, 'Div$1')}` : ''}</span>
+              <span className="text-[11px] text-gray-500 flex-1 truncate">{f.venue}</span>
             <a
               href={mapsUrl}
               target="_blank"
@@ -458,14 +471,16 @@ export default function Fixtures() {
         <div className="hidden sm:block bg-white border border-gray-200 rounded-2xl p-5 md:p-6 hover:border-accent hover:shadow-md transition-all">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             {/* Date block */}
-            <div className="flex-shrink-0 w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
-              <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
-                {weekday}
-              </div>
-              <div className="bg-primary-dark text-white text-center py-3">
-                <div className="font-display font-black text-4xl leading-none text-accent">{dayNum}</div>
-                <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
-                  {monthShort} {year}
+            <div className="flex-shrink-0 flex flex-col items-center gap-2">
+              <div className="w-20 rounded-2xl overflow-hidden border border-primary-dark/20 shadow-sm">
+                <div className="bg-accent text-primary-dark text-center py-1.5 text-xs font-bold uppercase tracking-widest">
+                  {weekday}
+                </div>
+                <div className="bg-primary-dark text-white text-center py-3">
+                  <div className="font-display font-black text-4xl leading-none text-accent">{dayNum}</div>
+                  <div className="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-1">
+                    {monthShort} {year}
+                  </div>
                 </div>
               </div>
             </div>
@@ -477,9 +492,7 @@ export default function Fixtures() {
                   {teamLabel}
                 </span>
                 <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.format}</span>
-                <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{f.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
-                <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{f.type}</span>
-                <SeasonBadge seasonId={f.season} />
+                <span className="text-xs bg-accent/20 text-primary font-medium px-2.5 py-1 rounded-full">{seasonTag}</span>
               </div>
               <h3 className="font-display font-bold text-primary text-xl mb-1">
                 {teamLabel} vs {f.opponent}
@@ -489,6 +502,8 @@ export default function Fixtures() {
                 <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
                   {weekday}
                 </span>
+                {divisionTag && <span className="text-xs text-gray-400">· {divisionTag}</span>}
+                <span className="text-xs text-gray-400">· {fixtureType}</span>
               </div>
               <VenueActions venue={f.venue} venueAddress={f.venue_address} />
             </div>

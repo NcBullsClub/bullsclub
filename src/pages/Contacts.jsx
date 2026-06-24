@@ -207,10 +207,9 @@ function PlayerCard({ player, canManage, onSave }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-gray-900 text-sm">{player.full_name}</h3>
-          <p className="text-[11px] text-gray-500 mt-0.5">{teamLabel(player.team)}</p>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${player.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
-          {player.team === 'raising-bulls' ? 'RB' : player.team === 'royal-bulls' ? 'RY' : '--'}
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${player.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
+          {teamLabel(player.team)}
         </span>
       </div>
 

@@ -6,9 +6,12 @@ import { SEASONS } from '../../config/seasons'
 
 const SEASON_FEE = 120
 
-function formatMoney(value) {
+function formatMoney(value, { whole = false } = {}) {
   const num = Number(value)
-  if (!Number.isFinite(num)) return '$0.00'
+  if (!Number.isFinite(num)) return whole ? '$0' : '$0.00'
+  if (whole) {
+    return `$${num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  }
   return `$${num.toFixed(2)}`
 }
 
@@ -88,8 +91,8 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
             <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-red-400 mt-1">Unpaid</p>
           </div>
           <div className="bg-accent/10 border border-accent/30 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
-            <p className="text-xl sm:text-2xl font-black text-primary leading-none truncate">{formatMoney(totalCollected)}</p>
-            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-amber-600 mt-1 truncate">of {formatMoney(totalDue)}</p>
+            <p className="text-xl sm:text-2xl font-black text-primary leading-none truncate">{formatMoney(totalCollected, { whole: true })}</p>
+            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-amber-600 mt-1 truncate">of {formatMoney(totalDue, { whole: true })}</p>
           </div>
         </div>
       )}

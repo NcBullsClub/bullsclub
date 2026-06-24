@@ -136,6 +136,44 @@ function ContactMethodButton({ href, label, icon, tone = 'slate' }) {
   )
 }
 
+function CopyPhoneButton({ value }) {
+  const [copied, setCopied] = useState(false)
+  const text = String(value || '').trim()
+
+  if (!text) return null
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard unavailable
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : 'Copy phone number'}
+      className={`inline-flex items-center p-0.5 rounded transition-colors ${
+        copied ? 'text-green-600' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+      }`}
+    >
+      {copied ? (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 function PlayerCard({ player, canManage, onSave }) {
   const phone = player.phone || ''
   const email = player.email || ''
@@ -169,10 +207,9 @@ function PlayerCard({ player, canManage, onSave }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-gray-900 text-sm">{player.full_name}</h3>
-          <p className="text-[11px] text-gray-500 mt-0.5">{teamLabel(player.team)}</p>
         </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${player.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
-          {player.team === 'raising-bulls' ? 'RB' : player.team === 'royal-bulls' ? 'RY' : '--'}
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${player.team === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'}`}>
+          {teamLabel(player.team)}
         </span>
       </div>
 
@@ -273,7 +310,18 @@ function PlayerCard({ player, canManage, onSave }) {
   )
 }
 
-function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, onEdit, canDelete, canEdit }) {
+function ServiceContactCard({
+  contact,
+  notes,
+  user,
+  onAddNote,
+  onEditNote,
+  onDelete,
+  onEdit,
+  canDelete,
+  canEdit,
+  canManageNotes,
+}) {
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -281,6 +329,9 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, onEdit,
   const [editing, setEditing] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
   const [editForm, setEditForm] = useState(() => buildServiceEditForm(contact))
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editingNoteDraft, setEditingNoteDraft] = useState('')
+  const [savingNoteEdit, setSavingNoteEdit] = useState(false)
 
   useEffect(() => {
     setEditForm(buildServiceEditForm(contact))
@@ -316,6 +367,16 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, onEdit,
     setEditing(false)
   }
 
+  async function submitNoteEdit(e) {
+    e.preventDefault()
+    if (!editingNoteId || !editingNoteDraft.trim()) return
+    setSavingNoteEdit(true)
+    await onEditNote(editingNoteId, editingNoteDraft.trim())
+    setSavingNoteEdit(false)
+    setEditingNoteId(null)
+    setEditingNoteDraft('')
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
@@ -329,8 +390,10 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, onEdit,
           {(contact.phone || contact.whatsapp_number) && (
             <div className="mt-2 space-y-0.5">
               {contact.phone && (
-                <p className="text-[11px] text-gray-600">
-                  <span className="font-semibold text-gray-700">Phone:</span> {contact.phone}
+                <p className="text-[11px] text-gray-600 flex items-center gap-0.5">
+                  <span className="font-semibold text-gray-700">Phone:</span>
+                  <span>{contact.phone}</span>
+                  <CopyPhoneButton value={contact.phone} />
                 </p>
               )}
               {contact.whatsapp_number && (
@@ -494,8 +557,56 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, onEdit,
           <div className="space-y-1.5 mb-3">
             {notes.slice(0, 4).map((n) => (
               <div key={n.id} className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
-                <span className="font-semibold text-gray-700">{n.authorName || 'Player'}:</span>{' '}
-                <span className="text-gray-600">{n.note}</span>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-gray-700">{n.authorName || 'Player'}:</span>{' '}
+                    {editingNoteId === n.id ? (
+                      <form onSubmit={submitNoteEdit} className="mt-1 flex items-center gap-1.5">
+                        <input
+                          value={editingNoteDraft}
+                          onChange={(e) => setEditingNoteDraft(e.target.value)}
+                          maxLength={220}
+                          className="flex-1 min-w-0 px-2 py-1 rounded-lg border border-gray-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+                        />
+                        <button
+                          type="submit"
+                          disabled={savingNoteEdit || !editingNoteDraft.trim()}
+                          className="px-2 py-1 rounded text-[10px] font-bold bg-primary-dark text-accent disabled:opacity-50"
+                        >
+                          {savingNoteEdit ? '...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingNoteId(null)
+                            setEditingNoteDraft('')
+                          }}
+                          className="px-2 py-1 rounded text-[10px] font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-gray-600">{n.note}</span>
+                    )}
+                  </div>
+
+                  {(canManageNotes || user?.id === n.user_id) && editingNoteId !== n.id && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingNoteId(n.id)
+                        setEditingNoteDraft(n.note || '')
+                      }}
+                      className="shrink-0 p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      title="Edit note"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -687,7 +798,6 @@ export default function Contacts() {
         .from('profiles')
         .select('id, full_name, team, phone, email')
         .in('team', ['raising-bulls', 'royal-bulls'])
-        .order('team')
         .order('full_name')
       if (!active) return
       setPlayers(data || [])
@@ -746,6 +856,7 @@ export default function Contacts() {
           || String(p.phone || '').toLowerCase().includes(q)
         )
       })
+      .sort((a, b) => String(a.full_name || '').localeCompare(String(b.full_name || '')))
   }, [players, playerTeamFilter, playerSearch])
 
   const contactsBySection = useMemo(() => {
@@ -1112,6 +1223,29 @@ export default function Contacts() {
     setServiceNotes((prev) => [{ ...data, authorName: profile?.full_name || 'Player' }, ...prev])
   }
 
+  async function handleEditNote(noteId, note) {
+    const { data, error } = await supabase
+      .from('service_contact_notes')
+      .update({ note })
+      .eq('id', noteId)
+      .select('id, service_contact_id, user_id, note, created_at')
+      .single()
+
+    if (error) {
+      alert(error.message || 'Unable to update note')
+      return
+    }
+
+    setServiceNotes((prev) => prev.map((n) => {
+      if (n.id !== noteId) return n
+      return {
+        ...n,
+        ...data,
+        authorName: n.authorName || profile?.full_name || 'Player',
+      }
+    }))
+  }
+
   return (
     <div>
       <section className="bg-primary-dark text-white py-8 md:py-16">
@@ -1405,10 +1539,12 @@ export default function Contacts() {
                                         notes={notesByContact[c.id] || []}
                                         user={user}
                                         onAddNote={handleAddNote}
+                                        onEditNote={handleEditNote}
                                         onDelete={handleDeleteContact}
                                         onEdit={handleEditServiceContact}
                                         canDelete={isAdmin}
                                         canEdit={canEditServices}
+                                        canManageNotes={isAdmin}
                                       />
                                     ))}
                                   </div>

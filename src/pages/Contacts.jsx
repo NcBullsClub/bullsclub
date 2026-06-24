@@ -1095,6 +1095,28 @@ export default function Contacts() {
   }
 
   async function handleDeleteSection(sectionId) {
+    const hasLocalContacts = serviceContacts.some((c) => c.section_id === sectionId)
+    if (hasLocalContacts) {
+      alert('Delete contacts in this section first, then delete the section.')
+      return
+    }
+
+    const { count, error: countError } = await supabase
+      .from('service_contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('section_id', sectionId)
+      .eq('is_active', true)
+
+    if (countError) {
+      alert(countError.message || 'Unable to validate section contacts right now.')
+      return
+    }
+
+    if ((count || 0) > 0) {
+      alert('Delete contacts in this section first, then delete the section.')
+      return
+    }
+
     // soft-delete the section and all its contacts
     const { error } = await supabase
       .from('service_contact_sections')
@@ -1361,6 +1383,9 @@ export default function Contacts() {
                   )}
                   {filteredSections.map((section) => {
                     const contacts = filteredContactsBySection[section.id] || []
+                    const allContactsInSection = contactsBySection[section.id] || []
+                    const hasAnyContactsInSection = allContactsInSection.length > 0
+                    const canDeleteSection = !hasAnyContactsInSection
                     const isOpen = serviceSearch.trim() ? true : !!sectionOpen[section.id]
                     const isAddOpen = !!sectionAddOpen[section.id]
                     const form = getSectionForm(section.id)
@@ -1396,7 +1421,13 @@ export default function Contacts() {
                                 sectionName={section.name}
                                 onRename={handleRenameSection}
                               />
-                              <DeleteSectionButton sectionId={section.id} sectionName={section.name} onDelete={handleDeleteSection} />
+                              {canDeleteSection ? (
+                                <DeleteSectionButton sectionId={section.id} sectionName={section.name} onDelete={handleDeleteSection} />
+                              ) : (
+                                <span className="text-[10px] font-semibold text-gray-400 px-1" title="Delete all contacts in this section to enable section delete">
+                                  Delete contacts first
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>

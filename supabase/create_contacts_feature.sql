@@ -87,19 +87,29 @@ CREATE POLICY "contacts_sections_update_admin_or_creator"
     )
   )
   WITH CHECK (
-    created_by = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM profiles p
-      WHERE p.id = auth.uid() AND p.role IN ('admin', 'superadmin')
+    (
+      is_active = true
+    )
+    OR (
+      NOT EXISTS (
+        SELECT 1
+        FROM service_contacts c
+        WHERE c.section_id = service_contact_sections.id
+          AND c.is_active = true
+      )
     )
   );
 
 CREATE POLICY "contacts_sections_delete_admin"
   ON service_contact_sections FOR DELETE
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles p
-      WHERE p.id = auth.uid() AND p.role IN ('admin', 'superadmin')
+    (
+      NOT EXISTS (
+        SELECT 1
+        FROM service_contacts c
+        WHERE c.section_id = service_contact_sections.id
+          AND c.is_active = true
+      )
     )
   );
 

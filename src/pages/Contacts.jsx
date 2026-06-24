@@ -561,30 +561,33 @@ function ServiceContactCard({
                   <div className="min-w-0 flex-1">
                     <span className="font-semibold text-gray-700">{n.authorName || 'Player'}:</span>{' '}
                     {editingNoteId === n.id ? (
-                      <form onSubmit={submitNoteEdit} className="mt-1 flex items-center gap-1.5">
-                        <input
+                      <form onSubmit={submitNoteEdit} className="mt-1 space-y-1.5">
+                        <textarea
+                          rows={3}
                           value={editingNoteDraft}
                           onChange={(e) => setEditingNoteDraft(e.target.value)}
                           maxLength={220}
-                          className="flex-1 min-w-0 px-2 py-1 rounded-lg border border-gray-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+                          className="w-full min-w-0 px-2 py-1.5 rounded-lg border border-gray-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-accent resize-y"
                         />
-                        <button
-                          type="submit"
-                          disabled={savingNoteEdit || !editingNoteDraft.trim()}
-                          className="px-2 py-1 rounded text-[10px] font-bold bg-primary-dark text-accent disabled:opacity-50"
-                        >
-                          {savingNoteEdit ? '...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingNoteId(null)
-                            setEditingNoteDraft('')
-                          }}
-                          className="px-2 py-1 rounded text-[10px] font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
-                        >
-                          Cancel
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="submit"
+                            disabled={savingNoteEdit || !editingNoteDraft.trim()}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-primary-dark text-accent disabled:opacity-50"
+                          >
+                            {savingNoteEdit ? '...' : 'Save'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingNoteId(null)
+                              setEditingNoteDraft('')
+                            }}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </form>
                     ) : (
                       <span className="text-gray-600">{n.note}</span>
@@ -612,21 +615,24 @@ function ServiceContactCard({
           </div>
         )}
 
-        <form onSubmit={submitNote} className="flex items-center gap-2">
-          <input
+        <form onSubmit={submitNote} className="space-y-2">
+          <textarea
+            rows={3}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Add a useful note for other players"
-            className="flex-1 px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            className="w-full px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-xs focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-y"
             maxLength={220}
           />
-          <button
-            type="submit"
-            disabled={saving || !draft.trim()}
-            className="px-3 py-2 rounded-xl text-xs font-bold bg-primary-dark text-accent disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Add'}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving || !draft.trim()}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-primary-dark text-accent disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Add'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -1423,11 +1429,7 @@ export default function Contacts() {
                               />
                               {canDeleteSection ? (
                                 <DeleteSectionButton sectionId={section.id} sectionName={section.name} onDelete={handleDeleteSection} />
-                              ) : (
-                                <span className="text-[10px] font-semibold text-gray-400 px-1" title="Delete all contacts in this section to enable section delete">
-                                  Delete contacts first
-                                </span>
-                              )}
+                              ) : null}
                             </div>
                           )}
                         </div>

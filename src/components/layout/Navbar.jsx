@@ -66,6 +66,14 @@ function MobileNavIcon({ label, large = false }) {
   )
 }
 
+function DesktopNavIcon({ label }) {
+  const cfg = NAV_ICONS[label]
+  if (cfg?.imgSrc) {
+    return <img src={cfg.imgSrc} alt="" className="w-[18px] h-[18px] object-contain" aria-hidden="true" />
+  }
+  return <NavIcon name={label} className="w-[18px] h-[18px]" />
+}
+
 
 // Mobile: flat grid — Clubhouse children are surfaced directly
 const mobileNavItems = [
@@ -157,7 +165,7 @@ export default function Navbar() {
         }`}
       >
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 xl:h-auto xl:min-h-[5.5rem] xl:py-3">
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0 group">
@@ -188,8 +196,9 @@ export default function Navbar() {
             </Link>
 
             {/* ── Desktop Nav ────────────────────────────────── */}
-            <div className="hidden lg:flex items-center gap-1">
-              {desktopNavItems.map((item) => {
+            <div className="hidden xl:grid xl:grid-cols-[minmax(0,1fr)_auto] items-center flex-1 min-w-0 ml-5 gap-3">
+              <div className="flex flex-wrap items-center content-center gap-1 min-w-0 pr-1">
+                {desktopNavItems.map((item) => {
                 if (item.group) {
                   const isGroupActive = item.children.some(c => location.pathname === c.path)
                   return (
@@ -202,7 +211,7 @@ export default function Navbar() {
                             : 'text-gray-200 hover:text-white hover:bg-white/10'
                         }`}
                       >
-                        <NavIcon name={item.label} className="w-[18px] h-[18px]" />
+                        <DesktopNavIcon label={item.label} />
                         {item.label}
                         <svg
                           className={`w-3 h-3 transition-transform duration-200 ${clubhouseOpen ? 'rotate-180' : ''}`}
@@ -230,7 +239,7 @@ export default function Navbar() {
                                     active ? 'text-accent bg-white/10' : 'text-gray-200 hover:text-white hover:bg-white/10'
                                   }`}
                                 >
-                                  <NavIcon name={child.label} className="w-[18px] h-[18px]" />
+                                  <DesktopNavIcon label={child.label} />
                                   {child.label}
                                 </Link>
                               )
@@ -254,21 +263,22 @@ export default function Navbar() {
                         : 'text-gray-200 hover:text-white hover:bg-white/10'
                     } ${item.label === 'Join Us' ? '!bg-accent !text-primary-dark hover:!bg-accent-dark ml-2' : ''}`}
                   >
-                      <NavIcon name={item.label} className="w-[18px] h-[18px]" />
+                    <DesktopNavIcon label={item.label} />
                     {item.label}
                   </Link>
                 )
-              })}
+                })}
+              </div>
 
               {/* Desktop auth */}
               {user ? (
-                <div className="flex items-center gap-2 ml-3 pl-3 border-l border-white/20">
+                <div className="shrink-0 flex items-center gap-2 pl-3 border-l border-white/20">
                   {isAdmin && (
                     <Link
                       to="/admin"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-accent/20 text-accent border border-accent/30 hover:bg-accent hover:text-primary-dark transition-colors"
                     >
-                      <NavIcon name="Admin" className="w-5 h-5" />
+                      <DesktopNavIcon label="Admin" />
                       Admin
                     </Link>
                   )}
@@ -290,7 +300,7 @@ export default function Navbar() {
               ) : (
                 <Link
                   to="/login"
-                  className="ml-3 px-4 py-1.5 rounded-md text-sm font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors"
+                  className="shrink-0 px-4 py-1.5 rounded-md text-sm font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors"
                 >
                   Sign In
                 </Link>
@@ -299,7 +309,7 @@ export default function Navbar() {
 
             {/* ── Mobile: hamburger ──────────────────────────── */}
             <button
-              className="lg:hidden p-2 rounded-md text-gray-200 hover:text-white hover:bg-white/10 transition-colors"
+              className="xl:hidden p-2 rounded-md text-gray-200 hover:text-white hover:bg-white/10 transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Toggle menu"
               aria-expanded={menuOpen}
@@ -334,7 +344,7 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed inset-x-0 top-16 bottom-0 z-[65] lg:hidden bg-primary-dark flex flex-col"
+            className="fixed inset-x-0 top-16 bottom-0 z-[65] xl:hidden bg-primary-dark flex flex-col"
           >
             {/* Scrollable nav grid area */}
             <div className="flex-1 overflow-y-auto px-4 pt-5 pb-4">

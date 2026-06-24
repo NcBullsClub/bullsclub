@@ -12,6 +12,12 @@ const TEAMS = [
   { id: 'royal-bulls',   label: 'Royal Bulls' },
 ]
 
+function formatMoney(value) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '$0'
+  return `$${num.toFixed(2)}`
+}
+
 function getSeasonTagText(seasonId) {
   if (!seasonId) return 'Season TBD'
   const season = SEASONS.find((s) => s.id === seasonId)
@@ -74,7 +80,7 @@ function StatusPill({ value, count }) {
   )
 }
 
-function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, myPaymentPaid, financeLoaded, onResponseSaved }) {
+function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinance, financeLoaded, onResponseSaved }) {
   const { user, profile } = useAuth()
   const { activeSeason } = useSeason()
   const navigate = useNavigate()
@@ -212,14 +218,6 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
   const outPlayers = counts.players
     .filter((p) => p.status === 'out')
     .sort((a, b) => a.name.localeCompare(b.name))
-
-  function hasPaid(fullName) {
-    const first = (fullName || '').split(' ')[0].toLowerCase()
-    const key = Object.keys(financeMap).find(
-      (k) => k.split('::')[0].toLowerCase() === first && k.split('::')[1] === fixture.team
-    )
-    return key ? financeMap[key] : null
-  }
 
   return (
     <motion.div
@@ -406,7 +404,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
         )}
 
         {/* ── PAYMENT BANNER: only shown when fee is unpaid */}
-        {user && profile?.team === fixture.team && !isPast && financeLoaded && !myPaymentPaid && (
+        {user && profile?.team === fixture.team && !isPast && financeLoaded && !myPaymentFinance?.paid && (
           <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-300 shadow-sm">
             {/* Banknotes icon */}
             <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
@@ -422,7 +420,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, financeMap, my
             </div>
             <div className="flex-shrink-0">
               <span className="inline-flex items-baseline gap-0.5 bg-red-500 text-white px-2.5 py-1 rounded-lg shadow-sm">
-                <span className="text-sm font-black tabular-nums">$120</span>
+                <span className="text-sm font-black tabular-nums">{formatMoney(myPaymentFinance?.amountDue ?? 120)}</span>
                 <span className="text-[9px] font-semibold uppercase tracking-wide ml-0.5">due</span>
               </span>
             </div>
@@ -918,12 +916,23 @@ export default function Availability() {
 
     supabase
       .from('player_finances')
-      .select('player_name, team, paid')
+      .select('player_name, team, season, paid, amount_due')
       .in('season', (activeSeason?.id || '2026') === SEASONS[0].id ? [SEASONS[0].id, '2026'] : [activeSeason?.id || '2026'])
       .eq('team', profile.team)
       .then(({ data }) => {
         const map = {}
-        ;(data || []).forEach((r) => { map[`${r.player_name}::${r.team}`] = r.paid })
+        ;(data || []).forEach((r) => {
+          const key = `${r.player_name}::${r.team}`
+          const existing = map[key]
+          if (existing && existing.season === (activeSeason?.id || '2026') && r.season !== (activeSeason?.id || '2026')) {
+            return
+          }
+          map[key] = {
+            season: r.season,
+            paid: !!r.paid,
+            amountDue: Number(r.amount_due ?? 120),
+          }
+        })
         setFinanceMap(map)
         setFinanceLoaded(true)
       })
@@ -987,8 +996,8 @@ export default function Availability() {
     setShowA2HS(true)
   }
 
-  // Look up the logged-in player's own payment status
-  const myPaymentStatus = (() => {
+  // Look up the logged-in player's own payment details
+  const myPaymentFinance = (() => {
     if (!profile || !financeLoaded) return undefined
     const exactKey = `${profile.full_name}::${profile.team}`
     if (exactKey in financeMap) return financeMap[exactKey]
@@ -997,8 +1006,8 @@ export default function Availability() {
     const k = Object.keys(financeMap).find(
       (k) => k.split('::')[0].toLowerCase() === fn && k.split('::')[1] === profile.team
     )
-    // default to unpaid (false) if loaded but no record found
-    return k !== undefined ? financeMap[k] : false
+    // default to unpaid and expected due if loaded but no record found
+    return k !== undefined ? financeMap[k] : { paid: false, amountDue: 120 }
   })()
 
   return (
@@ -1126,9 +1135,9 @@ export default function Availability() {
                 </div>
 
                 {/* Payment status tag for the logged-in player */}
-                {myPaymentStatus !== undefined && (
+                {myPaymentFinance !== undefined && (
                   <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 rounded-full ${
-                    myPaymentStatus
+                    myPaymentFinance.paid
                       ? 'bg-green-500 text-white'
                       : 'bg-red-500 text-white'
                   }`}>
@@ -1137,7 +1146,9 @@ export default function Availability() {
                       <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 0 1 1.5 14.625v-9.75ZM8.25 9.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM18.75 9a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V9.75a.75.75 0 0 0-.75-.75h-.008ZM4.5 9.75A.75.75 0 0 1 5.25 9h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V9.75Z" clipRule="evenodd" />
                       <path d="M2.25 18a.75.75 0 0 0 0 1.5c5.4 0 10.63.722 15.6 2.075 1.19.324 2.4-.558 2.4-1.82V18.75a.75.75 0 0 0-.75-.75H2.25Z" />
                     </svg>
-                    {myPaymentStatus ? '$120 · Season Fee Paid' : '$120 Due · Season Fee Unpaid'}
+                    {myPaymentFinance.paid
+                      ? `${formatMoney(myPaymentFinance.amountDue)} · Season Fee Paid`
+                      : `${formatMoney(myPaymentFinance.amountDue)} Due · Season Fee Unpaid`}
                   </span>
                 )}
               </div>
@@ -1251,8 +1262,7 @@ export default function Availability() {
                                     fixture={f}
                                     availabilityMap={availabilityMap}
                                     userResponseMap={userResponseMap}
-                                    financeMap={financeMap}
-                                    myPaymentPaid={myPaymentStatus}
+                                    myPaymentFinance={myPaymentFinance}
                                     financeLoaded={financeLoaded}
                                     onResponseSaved={() => loadData({ showSpinner: false })}
                                   />
@@ -1282,8 +1292,7 @@ export default function Availability() {
                               fixture={f}
                               availabilityMap={availabilityMap}
                               userResponseMap={userResponseMap}
-                              financeMap={financeMap}
-                              myPaymentPaid={myPaymentStatus}
+                              myPaymentFinance={myPaymentFinance}
                               financeLoaded={financeLoaded}
                               onResponseSaved={() => loadData({ showSpinner: false })}
                             />

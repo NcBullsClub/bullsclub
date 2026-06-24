@@ -6,6 +6,12 @@ import { SEASONS } from '../../config/seasons'
 
 const SEASON_FEE = 120
 
+function formatMoney(value) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '$0.00'
+  return `$${num.toFixed(2)}`
+}
+
 const TEAMS = [
   { id: 'all',           label: 'All Teams'    },
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -23,7 +29,9 @@ const EXPENSE_CATS = [
 ]
 
 function getFinanceSeasonIds(seasonId) {
-  if (seasonId === 'mega-bash-26') return ['mega-bash-26', 'mega-smash-26', '2026']
+  if (seasonId === 'mega-bash-26') {
+    return ['mega-bash-26', '2026', 'mega bash', 'mega-bash', 'Mega Bash']
+  }
   return [seasonId]
 }
 
@@ -35,14 +43,17 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery]   = useState('')
   const [confirmToggleId, setConfirmToggleId] = useState(null)
+  const [markPaidAmounts, setMarkPaidAmounts] = useState({})
 
   const teamPlayers    = teamFilter === 'all'
     ? rosterPlayers
     : rosterPlayers.filter((p) => p.team === teamFilter)
-  const paidCount      = teamPlayers.filter((p) => getRecord(p)?.paid).length
+  const paidPlayers    = teamPlayers.filter((p) => getRecord(p)?.paid)
+  const paidCount      = paidPlayers.length
   const unpaidCount    = teamPlayers.length - paidCount
   const totalDue       = teamPlayers.length * SEASON_FEE
-  const totalCollected = paidCount * SEASON_FEE
+  const totalCollected = paidPlayers.reduce((sum, p) => sum + Number(getRecord(p)?.amount_due || 0), 0)
+  const collectionPct  = totalDue > 0 ? Math.min(100, (totalCollected / totalDue) * 100) : 0
 
   const visiblePlayers = teamPlayers
     .filter((p) => {
@@ -77,8 +88,8 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
             <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-red-400 mt-1">Unpaid</p>
           </div>
           <div className="bg-accent/10 border border-accent/30 rounded-xl p-2.5 sm:px-4 sm:py-3 text-center">
-            <p className="text-xl sm:text-2xl font-black text-primary leading-none truncate">${totalCollected}</p>
-            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-amber-600 mt-1 truncate">of ${totalDue}</p>
+            <p className="text-xl sm:text-2xl font-black text-primary leading-none truncate">{formatMoney(totalCollected)}</p>
+            <p className="text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-amber-600 mt-1 truncate">of {formatMoney(totalDue)}</p>
           </div>
         </div>
       )}
@@ -88,12 +99,12 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
         <div className="mb-4">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>Collection progress</span>
-            <span className="font-semibold">{Math.round((paidCount / teamPlayers.length) * 100)}%</span>
+            <span className="font-semibold">{Math.round(collectionPct)}%</span>
           </div>
           <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${teamPlayers.length ? (paidCount / teamPlayers.length) * 100 : 0}%` }}
+              style={{ width: `${collectionPct}%` }}
             />
           </div>
         </div>
@@ -190,6 +201,9 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                     )}
                   </div>
                   <p className="text-[11px] text-gray-400">{player.email}</p>
+                  <p className="text-[11px] text-gray-500 sm:hidden mt-0.5">
+                    Amount: <span className="font-semibold text-gray-700">{formatMoney(record?.amount_due ?? SEASON_FEE)}</span>
+                  </p>
                   {record?.updated_by && record?.updated_at && (
                     <p className="text-[10px] text-gray-500 mt-0.5">
                       {record.updated_by} marked as {record.paid ? 'paid' : 'unpaid'} on {new Date(record.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -197,7 +211,7 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                   )}
                 </div>
                 <div className="text-right flex-shrink-0 hidden sm:block">
-                  <p className={`text-sm font-bold tabular-nums ${paid ? 'text-green-600' : 'text-gray-400'}`}>${SEASON_FEE}</p>
+                  <p className={`text-sm font-bold tabular-nums ${paid ? 'text-green-600' : 'text-gray-400'}`}>{formatMoney(record?.amount_due ?? SEASON_FEE)}</p>
                   {record?.paid_at && (
                     <p className="text-[10px] text-gray-400">
                       Paid {new Date(record.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -211,9 +225,26 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                     <p className="text-[10px] text-gray-500 whitespace-nowrap">
                       {paid ? 'Mark as unpaid?' : 'Mark as paid?'}
                     </p>
+                    {!paid && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-gray-500">Amount</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={markPaidAmounts[player.id] ?? String(record?.amount_due ?? SEASON_FEE)}
+                          onChange={(e) => setMarkPaidAmounts((prev) => ({ ...prev, [player.id]: e.target.value }))}
+                          className="w-20 px-2 py-1 rounded-md text-[11px] border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-accent"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => { setConfirmToggleId(null); togglePaid(player) }}
+                        onClick={() => {
+                          const amountInput = paid ? null : (markPaidAmounts[player.id] ?? String(record?.amount_due ?? SEASON_FEE))
+                          setConfirmToggleId(null)
+                          togglePaid(player, amountInput)
+                        }}
                         disabled={isToggling}
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white transition-colors disabled:opacity-50 ${
                           paid ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-500 hover:bg-green-600'
@@ -235,7 +266,12 @@ function SeasonFeesPanel({ rosterPlayers, financeMap, loading, getRecord, toggle
                   </div>
                 ) : (
                   <button
-                    onClick={() => setConfirmToggleId(player.id)}
+                    onClick={() => {
+                      if (!paid) {
+                        setMarkPaidAmounts((prev) => ({ ...prev, [player.id]: String(record?.amount_due ?? SEASON_FEE) }))
+                      }
+                      setConfirmToggleId(player.id)
+                    }}
                     disabled={isToggling}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all disabled:opacity-50 ${
                       paid
@@ -302,14 +338,6 @@ function ExpensesPanel({ rosterPlayers, currentUserName, seasonId }) {
     const seasonIds = getFinanceSeasonIds(seasonId)
 
     try {
-      if (seasonId === 'mega-bash-26') {
-        await supabase
-          .from('team_expenses')
-          .update({ season: seasonId })
-          .eq('season', 'mega-smash-26')
-          .is('deleted_at', null)
-      }
-
       const { data } = await supabase
         .from('team_expenses')
         .select('*')
@@ -1003,13 +1031,6 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
     setLoading(true)
     const seasonIds = getFinanceSeasonIds(seasonId)
 
-    if (seasonId === 'mega-bash-26') {
-      await supabase
-        .from('umpiring_fees')
-        .update({ season: seasonId })
-        .eq('season', 'mega-smash-26')
-    }
-
     const seasonDef = SEASONS.find((s) => s.id === seasonId)
     let assignmentsQ = supabase.from('umpiring_assignments').select('*').order('date')
     if (seasonDef?.startDate) assignmentsQ = assignmentsQ.gte('date', seasonDef.startDate)
@@ -1033,7 +1054,21 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
         })
         .map((a) => a.id)
     )
-    const feeKeySet = new Set(feeData.map((r) => `${r.user_id}::${r.umpiring_assignment_id}`))
+    // Build key set from all existing fee rows for these assignments, regardless of season
+    // alias, so we never upsert a "missing" row that can overwrite an already-paid record.
+    let feeKeySet = new Set(feeData.map((r) => `${r.user_id}::${r.umpiring_assignment_id}`))
+    if (assignmentsData.length > 0) {
+      const { data: allFeeRows } = await supabase
+        .from('umpiring_fees')
+        .select('user_id, umpiring_assignment_id')
+        .in('umpiring_assignment_id', assignmentsData.map((a) => a.id))
+      if (allFeeRows?.length) {
+        feeKeySet = new Set([
+          ...feeKeySet,
+          ...allFeeRows.map((r) => `${r.user_id}::${r.umpiring_assignment_id}`),
+        ])
+      }
+    }
 
     const missingRows = availabilityData
       .filter((av) => elapsedSet.has(av.umpiring_assignment_id))
@@ -1095,9 +1130,22 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
     completedByUser[av.user_id].push(av.umpiring_assignment_id)
   })
 
-  // Fee record lookup: `userId::assignmentId` -> record
+  // Dedupe fee rows by (user, assignment), preferring paid rows and latest updates.
   const feeMap = {}
-  feeRecords.forEach((r) => { feeMap[`${r.user_id}::${r.umpiring_assignment_id}`] = r })
+  feeRecords.forEach((r) => {
+    const key = `${r.user_id}::${r.umpiring_assignment_id}`
+    const prev = feeMap[key]
+    if (!prev) {
+      feeMap[key] = r
+      return
+    }
+    const prevTs = new Date(prev.updated_at || prev.paid_at || prev.created_at || 0).getTime()
+    const curTs = new Date(r.updated_at || r.paid_at || r.created_at || 0).getTime()
+    if ((r.paid && !prev.paid) || (r.paid === prev.paid && curTs > prevTs)) {
+      feeMap[key] = r
+    }
+  })
+  const uniqueFeeRecords = Object.values(feeMap)
 
   const visiblePlayers = teamFilter === 'all'
     ? rosterPlayers
@@ -1109,7 +1157,7 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
   // Stats
   const totalAssignmentsDone = completedPlayers.reduce((s, p) => s + (completedByUser[p.id]?.length || 0), 0)
   const totalOwed = totalAssignmentsDone * UMP_FEE
-  const totalPaid = feeRecords.filter((r) => r.paid).reduce((s) => s + UMP_FEE, 0)
+  const totalPaid = uniqueFeeRecords.filter((r) => r.paid).reduce((s) => s + UMP_FEE, 0)
   const totalPending = totalOwed - totalPaid
 
   async function togglePaid(player, assignmentId) {
@@ -1420,7 +1468,22 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
         if (creditInsertErr) throw creditInsertErr
       }
 
-        // 3. Create carry-forward request for audit trail (non-blocking —
+      // 3. Sync Season Fee row in target season with carry-forward amount.
+      const { error: seasonFeeSyncErr } = await supabase
+        .from('player_finances')
+        .upsert({
+          player_name: player.full_name,
+          team: fee.team,
+          season: toSeason,
+          amount_due: carryAmount,
+          paid: true,
+          paid_at: nowIso,
+          updated_by: currentUserName || 'Admin',
+          updated_at: nowIso,
+        }, { onConflict: 'player_name,team,season' })
+      if (seasonFeeSyncErr) throw seasonFeeSyncErr
+
+        // 4. Create carry-forward request for audit trail (non-blocking —
         //    requires fix_carry_forward_admin_insert.sql to be run in Supabase)
         const cfPayload = {
           user_id: player.id,
@@ -1445,7 +1508,7 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
           console.warn('carry-forward audit record skipped (run fix_carry_forward_admin_insert.sql):', cfFullErr.message)
         }
 
-        // 4. Update local fee state to reflect paid
+        // 5. Update local fee state to reflect paid
       setFeeRecords((prev) => prev.map((r) =>
         r.user_id === player.id && r.umpiring_assignment_id === assignmentId
           ? { ...r, paid: true, paid_at: nowIso, updated_by: currentUserName || 'Admin', updated_at: nowIso }
@@ -2154,6 +2217,23 @@ function CarryForwardRequestsPanel({ seasonId, currentUserName }) {
             .insert(insertPayload)
           if (creditInsertErr) throw creditInsertErr
         }
+
+        const syncedPlayerName = req.player?.full_name || fee.player_name || null
+        if (syncedPlayerName) {
+          const { error: seasonFeeSyncErr } = await supabase
+            .from('player_finances')
+            .upsert({
+              player_name: syncedPlayerName,
+              team: fee.team,
+              season: req.to_season,
+              amount_due: carryAmount,
+              paid: true,
+              paid_at: nowIso,
+              updated_by: currentUserName,
+              updated_at: nowIso,
+            }, { onConflict: 'player_name,team,season' })
+          if (seasonFeeSyncErr) throw seasonFeeSyncErr
+        }
       }
 
       let requestData = null
@@ -2313,16 +2393,27 @@ export default function FinancesTab() {
     return financeMap[`${player.full_name}::${player.team}`] || null
   }
 
-  async function togglePaid(player) {
+  async function togglePaid(player, paidAmountInput = null) {
     if (!['raising-bulls', 'royal-bulls'].includes(player.team)) return
-    setToggling(player.id)
     const existing = getRecord(player)
     const nowPaid  = !existing?.paid
+    const parsedPaidAmount = nowPaid
+      ? Number.parseFloat(String(paidAmountInput ?? SEASON_FEE))
+      : SEASON_FEE
+    if (nowPaid && (!Number.isFinite(parsedPaidAmount) || parsedPaidAmount < 0)) {
+      alert('Please enter a valid amount (0 or more).')
+      return
+    }
+    setToggling(player.id)
+    const normalizedPaidAmount = Number.isFinite(parsedPaidAmount) && parsedPaidAmount >= 0
+      ? Number(parsedPaidAmount.toFixed(2))
+      : SEASON_FEE
     const currentUserName = rosterPlayers.find((p) => p.email === user?.email)?.full_name || 'Unknown'
 
     // Optimistic update
     const optimisticRecord = {
       ...existing,
+      amount_due: normalizedPaidAmount,
       paid: nowPaid,
       paid_at: nowPaid ? new Date().toISOString() : null,
       updated_by: currentUserName,
@@ -2339,6 +2430,7 @@ export default function FinancesTab() {
       const res = await supabase
         .from('player_finances')
         .update({
+          amount_due: normalizedPaidAmount,
           paid:       nowPaid,
           paid_at:    nowPaid ? new Date().toISOString() : null,
           updated_by: currentUserName,
@@ -2354,7 +2446,7 @@ export default function FinancesTab() {
           player_name: player.full_name,
           team:        player.team,
           season:      seasonId,
-          amount_due:  SEASON_FEE,
+          amount_due:  normalizedPaidAmount,
           paid:        nowPaid,
           paid_at:     nowPaid ? new Date().toISOString() : null,
           updated_by:  currentUserName,
@@ -2386,7 +2478,7 @@ export default function FinancesTab() {
         <div>
           <h2 className="font-display font-bold text-primary text-2xl mb-1">Finances</h2>
           <p className="text-sm text-gray-500">
-            {seasonLabel} · Fee per player: <strong className="text-gray-700">${SEASON_FEE}</strong>
+            {seasonLabel} · Default fee per player: <strong className="text-gray-700">{formatMoney(SEASON_FEE)}</strong>
           </p>
         </div>
       </div>

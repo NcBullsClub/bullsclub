@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS player_finances (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   player_name TEXT        NOT NULL,
   team        TEXT        NOT NULL CHECK (team IN ('raising-bulls', 'royal-bulls')),
-  season      TEXT        NOT NULL DEFAULT '2026',
+  season      TEXT        NOT NULL DEFAULT 'mega-bash-26',
   amount_due  NUMERIC     NOT NULL DEFAULT 120,
   paid        BOOLEAN     NOT NULL DEFAULT false,
   paid_at     TIMESTAMPTZ,

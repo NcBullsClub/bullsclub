@@ -419,7 +419,7 @@ function UmpCard({ a, onEdit, onDelete, deletingId }) {
 }
 
 export default function FixturesTab() {
-  const { isSuperAdmin, adminTeam } = useAuth()
+  const { adminTeam } = useAuth()
   const { activeSeason, setActiveSeason, seasons } = useSeason()
 
   // ── Fixtures state ──
@@ -450,7 +450,7 @@ export default function FixturesTab() {
     setErrorFix('')
     try {
       let q = supabase.from('fixtures').select('*').order('date', { ascending: true })
-      const eff = isSuperAdmin ? teamFilter : adminTeam
+      const eff = teamFilter
       if (eff && eff !== 'all') q = q.eq('team', eff)
       if (activeSeason?.id) {
         // Backward compatibility: first season should include legacy rows with NULL season.
@@ -473,7 +473,7 @@ export default function FixturesTab() {
     setLoadingUmp(true)
     try {
       let q = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
-      const eff = isSuperAdmin ? teamFilter : adminTeam
+      const eff = teamFilter
       if (eff && eff !== 'all') q = q.eq('ncb_team', eff)
       if (activeSeason?.startDate) q = q.gte('date', activeSeason.startDate)
       if (activeSeason?.endDate)   q = q.lte('date', activeSeason.endDate)
@@ -608,7 +608,7 @@ export default function FixturesTab() {
     <div>
       {/* Header + team filter */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        {isSuperAdmin && TEAMS.map((t) => (
+        {TEAMS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTeamFilter(t.id)}
@@ -619,13 +619,6 @@ export default function FixturesTab() {
             {t.label}
           </button>
         ))}
-        {!isSuperAdmin && (
-          <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-            adminTeam === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
-          }`}>
-            {TEAM_LABELS[adminTeam]}
-          </span>
-        )}
         <button onClick={() => { loadFixtures(); loadAssignments() }} className="ml-auto text-xs font-medium text-gray-500 hover:text-primary">
           ↻ Refresh
         </button>

@@ -111,7 +111,14 @@ export default function PlayerFinances() {
 
       if (!isMounted) return
       const feeRows = feeRes?.data || []
-      const preferredFee = feeRows.find((r) => r.season === seasonId) || feeRows[0] || null
+      const preferredFee = feeRows.reduce((best, row) => {
+        if (!best) return row
+        const bestTs = Date.parse(best.updated_at || best.created_at || 0)
+        const rowTs = Date.parse(row.updated_at || row.created_at || 0)
+        if (rowTs > bestTs) return row
+        if (rowTs === bestTs && row.season === seasonId && best.season !== seasonId) return row
+        return best
+      }, null)
       setSeasonFee(preferredFee)
       setUmpiringFees(umpRes?.data || [])
       setAssignments(assgnRes?.data || [])
@@ -186,7 +193,7 @@ export default function PlayerFinances() {
   }, [umpiringFees, personalCreditsOwedToYou])
 
   const youOweTeam = useMemo(() => {
-    const seasonDue = seasonFee && !seasonFee.paid ? Number(seasonFee.amount_due || 120) : 0
+    const seasonDue = seasonFee && !seasonFee.paid ? Number(seasonFee.amount_due ?? 120) : 0
     return seasonDue + personalDuesYouOwe
   }, [seasonFee, personalDuesYouOwe])
 
@@ -467,7 +474,7 @@ export default function PlayerFinances() {
                     {seasonFee?.paid ? 'Paid' : 'Pending'}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">Amount: <strong>{toMoney(seasonFee?.amount_due || 120)}</strong></p>
+                <p className="text-sm text-gray-600">{seasonFee?.paid ? 'Collected' : 'Amount'}: <strong>{toMoney(seasonFee?.amount_due ?? 120)}</strong></p>
                 {seasonFee?.updated_by && seasonFee?.updated_at && (
                   <p className="text-xs text-gray-500 mt-1">{seasonFee.updated_by} marked as {seasonFee.paid ? 'paid' : 'unpaid'} on {new Date(seasonFee.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                 )}

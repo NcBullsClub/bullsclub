@@ -727,7 +727,6 @@ export default function Contacts() {
         .from('profiles')
         .select('id, full_name, team, phone, email')
         .in('team', ['raising-bulls', 'royal-bulls'])
-        .order('team')
         .order('full_name')
       if (!active) return
       setPlayers(data || [])
@@ -786,6 +785,7 @@ export default function Contacts() {
           || String(p.phone || '').toLowerCase().includes(q)
         )
       })
+      .sort((a, b) => String(a.full_name || '').localeCompare(String(b.full_name || '')))
   }, [players, playerTeamFilter, playerSearch])
 
   const contactsBySection = useMemo(() => {

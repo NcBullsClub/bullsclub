@@ -234,16 +234,17 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
               onClick={() => {
                 const msg =
 `🏏 *${teamLabel(team)} - PLAYING*
-*- NC Bulls Cricket Club*
+*-- NC Bulls Cricket Club*
 
 Hi Team 👋,
-Please update your *PLAYING availability* for our upcoming match:
+Please update your *PLAYING availability* for our upcoming *${fixtureTypeTag}* match:
 
 📅 *Date:* ${formatLongDate(date)}
 ⏰ *Time:* ${fixture.time || 'TBD'}
 ⚔️ *Opponent:* ${fixture.opponent || 'TBD'}
 🏟️ *Ground:* ${fixture.venue || 'TBD'}
 🧢 *Umpires:* ${formatFixtureUmpires(fixture)}
+🏆 *Season:* ${seasonTag}
 
 👉 Please mark your response as ✅ IN, ❌ OUT, or 🤔 MAYBE in the app.`
                 openWhatsApp(msg)

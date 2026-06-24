@@ -47,7 +47,7 @@ const NAV_ICONS = {
   'Sponsors':     { emoji: '🤝', bg: 'bg-teal-600' ,imgSrc: '/icons/sponsors-icon.svg' },
   'Finances':     { emoji: '💰', bg: 'bg-emerald-600' },
   'Availability': { emoji: '✅', bg: 'bg-green-600',imgSrc: '/icons/availability-icon.svg' },
-  'Contacts':     { emoji: '📇', bg: 'bg-sky-600' },
+  'Contacts':     { emoji: '📇', bg: 'bg-sky-600', imgSrc: '/icons/contacts-list.svg' },
   'Join Us':      { emoji: '🏏', bg: 'bg-accent' },
   'Clubhouse':    { emoji: '🏡', bg: 'bg-amber-500' },
   'Admin':        { emoji: '🛡️', bg: 'bg-gray-700',imgSrc: '/icons/adminpanel-icon.svg' },

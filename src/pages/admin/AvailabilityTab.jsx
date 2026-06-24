@@ -718,7 +718,7 @@ function SectionHeader({ title, count, dotColor = 'bg-accent' }) {
 // ── Main tab ───────────────────────────────────────────────────────────────
 
 export default function AvailabilityTab({ onSelectFixture }) {
-  const { isSuperAdmin, adminTeam } = useAuth()
+  const { adminTeam } = useAuth()
   const { activeSeason } = useSeason()
 
   const [teamFilter, setTeamFilter] = useState(adminTeam ?? 'raising-bulls')
@@ -740,7 +740,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
   const [umpPastOpen,       setUmpPastOpen]       = useState(false)
   const umpInitializedCollapse = useRef(false)
 
-  const effectiveFilter = isSuperAdmin ? teamFilter : adminTeam
+  const effectiveFilter = teamFilter
 
   const fixtureMap = useMemo(
     () => Object.fromEntries(fixturesData.map((f) => [`${f.date}::${f.team}`, f])),
@@ -814,7 +814,7 @@ export default function AvailabilityTab({ onSelectFixture }) {
     }
   }
 
-  useEffect(() => { load() }, [teamFilter, isSuperAdmin, adminTeam, activeSeason])
+  useEffect(() => { load() }, [teamFilter, activeSeason])
 
   // Auto-collapse past entries on first load
   useEffect(() => {
@@ -928,30 +928,20 @@ export default function AvailabilityTab({ onSelectFixture }) {
         </div>
       </div>
 
-      {/* ── Team filter (superadmin only, no "All Teams") ── */}
-      {isSuperAdmin ? (
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-          {TEAMS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTeamFilter(t.id)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="mb-6">
-          <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-            adminTeam === 'raising-bulls' ? 'bg-primary-dark text-accent' : 'bg-primary text-white'
-          }`}>
-            {teamLabel(adminTeam || 'royal-bulls')}
-          </span>
-        </div>
-      )}
+      {/* ── Team filter ── */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+        {TEAMS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTeamFilter(t.id)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+              teamFilter === t.id ? 'bg-primary-dark text-accent' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {/* ── Loading / error states ── */}
       {loading && (

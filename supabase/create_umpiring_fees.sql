@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS umpiring_fees (
   player_name            TEXT NOT NULL,
   team                   TEXT NOT NULL,
   umpiring_assignment_id BIGINT NOT NULL REFERENCES umpiring_assignments(id) ON DELETE CASCADE,
-  season                 TEXT NOT NULL DEFAULT '2026',
+  season                 TEXT NOT NULL DEFAULT 'mega-bash-26',
   amount                 NUMERIC(10, 2) NOT NULL DEFAULT 60,
   paid                   BOOLEAN NOT NULL DEFAULT false,
   paid_at                TIMESTAMPTZ,

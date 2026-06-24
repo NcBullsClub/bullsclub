@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { SEASONS } from '../../config/seasons'
 
 // Only show fixtures within the last 7 days or upcoming
 function isRelevantFixture(f) {
@@ -49,6 +50,72 @@ function subtractMinutes(timeStr, mins) {
   const newMer = h >= 12 ? 'PM' : 'AM'
   h = h % 12 || 12
   return `${h}:${String(m2).padStart(2, '0')} ${newMer}`
+}
+
+function titleCaseSlug(value) {
+  return String(value || '')
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function seasonMetaFromFixture(fixture) {
+  const fallbackYear = fixture?.date ? Number(String(fixture.date).slice(0, 4)) : new Date().getFullYear()
+  const seasonId = String(fixture?.season || '').trim()
+  const known = SEASONS.find((s) => s.id === seasonId)
+  if (known) {
+    return { year: known.year, shortLabel: known.shortLabel }
+  }
+
+  if (!seasonId) {
+    return { year: fallbackYear, shortLabel: 'Mega Bash' }
+  }
+
+  const yyMatch = seasonId.match(/-(\d{2})$/)
+  const inferredYear = yyMatch ? Number(`20${yyMatch[1]}`) : fallbackYear
+  const inferredLabel = titleCaseSlug(seasonId.replace(/-(\d{2})$/, ''))
+  return { year: inferredYear, shortLabel: inferredLabel || 'Mega Bash' }
+}
+
+function defaultDivisionFromFixture(fixture, shortLabel) {
+  const explicitDivision = String(fixture?.division || '').trim()
+  if (explicitDivision) {
+    const normalized = explicitDivision.replace(/\s+/g, '').toUpperCase()
+    const numberMatch = normalized.match(/^(?:D|DIVISION)?(\d+)$/)
+    if (numberMatch) return `Division - ${numberMatch[1]}`
+
+    const divisionTextMatch = explicitDivision.match(/^division\s*[-:]?\s*(\d+)$/i)
+    if (divisionTextMatch) return `Division - ${divisionTextMatch[1]}`
+
+    return explicitDivision
+  }
+
+  if (String(shortLabel || '').toLowerCase().includes('winter')) {
+    return 'Division - 4'
+  }
+
+  return fixture?.team === 'royal-bulls' ? 'Division - 9' : 'Division - 5'
+}
+
+function defaultSeasonDivisionText(fixture) {
+  if (!fixture) return '2026 HT Mega Bash - Division 5'
+  const { shortLabel } = seasonMetaFromFixture(fixture)
+  const matchYear = fixture?.date ? Number(String(fixture.date).slice(0, 4)) : new Date().getFullYear()
+  const matchFormat = String(fixture?.format || 'HT').trim() || 'HT'
+  const division = defaultDivisionFromFixture(fixture, shortLabel)
+  return `${matchYear} ${matchFormat} ${shortLabel} - ${division}`
+}
+
+function getFixtureTypeLabel(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return 'League'
+  const v = raw.toLowerCase()
+  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  if (v === 'mega smash' || v === 'mega bash') return 'Mega Smash'
+  if (v === 'league') return 'League'
+  return raw
 }
 
 // ─── Shared player row used in the picker ────────────────────────────────────
@@ -250,7 +317,7 @@ function GuestPlayersSection({ guests, selected, onToggle, onAdd, onRemove }) {
 }
 
 export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
-  const { isSuperAdmin, adminTeam } = useAuth()
+  const { isSuperAdmin } = useAuth()
 
   // Fixtures from Supabase
   const [allFixtures, setAllFixtures] = useState([])
@@ -261,7 +328,6 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
 
   const visibleFixtures = allFixtures
     .filter((f) => {
-      if (!isSuperAdmin && f.team !== adminTeam) return false
       return isRelevantFixture(f)
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -290,11 +356,7 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   // Auto-set season/division and umpires based on selected fixture
   useEffect(() => {
     if (!selectedFixture) return
-    setSeason(
-      selectedFixture.team === 'royal-bulls'
-        ? '2026 HT Mega Bash - Division 9'
-        : '2026 HT Mega Bash - Division 5',
-    )
+    setSeason(defaultSeasonDivisionText(selectedFixture))
     // Auto-fill umpires from fixture data
     const u1 = selectedFixture.umpire1_team || ''
     const u2 = selectedFixture.umpire2_team || ''
@@ -371,6 +433,8 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
   function buildMessage() {
     if (!selectedFixture || selected.length === 0) return ''
     const gameLabel = gameNumber ? `${ordinal(Number(gameNumber))} Game` : 'Game'
+    const fixtureTypeLabel = getFixtureTypeLabel(selectedFixture?.type)
+    const playingLabel = fixtureTypeLabel ? `${fixtureTypeLabel} Game` : gameLabel
     const playerLines = [...selected]
       .sort((a, b) => a.split(' ')[0].localeCompare(b.split(' ')[0]))
       .map((name, i) => `${String(i + 1).padStart(2, ' ')}. ${name.split(' ')[0]}`)
@@ -379,13 +443,13 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
     const lines = [
       `${season}🏆`,
       '',
-      `Playing 11 for ${gameLabel}:`,
+      `Playing 11 for ${playingLabel}:`,
       `⚔️ *${teamLabel(selectedFixture.team)} Vs ${selectedFixture.opponent}*`,
       `📅 *Date: ${formatDate(selectedFixture.date)}*`,
       `⏰ *Time: ${selectedFixture.time || 'TBD'}*`,
       `🏟️ *Venue: ${selectedFixture.venue}*`,
     ]
-    if (umpires) lines.push(`🧢 Umpires: ${umpires}`)
+    if (umpires) lines.push(`🧢 *Umpires: ${umpires}*`)
     if (selectedFixture.venue_address) lines.push(`*Ground Address: ${selectedFixture.venue_address}*`)
     lines.push(`📍 Maps & Details: https://ncbullscricketclub.com/#/fixtures/${selectedFixture.id}`)
     

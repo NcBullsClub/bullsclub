@@ -13,14 +13,92 @@ function normalizePhone(value) {
   return String(value || '').replace(/\s+/g, '').trim()
 }
 
+function normalizeSectionName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function normalizeCountryCode(value) {
+  const cleaned = String(value || '').replace(/\s+/g, '').trim()
+  if (!cleaned) return ''
+  return cleaned.startsWith('+') ? cleaned : `+${cleaned.replace(/^\++/, '')}`
+}
+
+function applyCountryCode(number, selection, otherCode) {
+  const normalizedNumber = normalizePhone(number)
+  if (!normalizedNumber) return null
+  if (normalizedNumber.startsWith('+')) return normalizedNumber
+
+  if (selection === 'us') {
+    return `+1${normalizedNumber}`
+  }
+
+  const customCode = normalizeCountryCode(otherCode)
+  return customCode ? `${customCode}${normalizedNumber}` : normalizedNumber
+}
+
+function normalizePhoneForComparison(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function splitPhoneForForm(value) {
+  const normalized = normalizePhone(value)
+  if (!normalized) {
+    return { country: 'us', otherCode: '', number: '' }
+  }
+
+  if (normalized.startsWith('+1') && /^\+1\d{10}$/.test(normalized)) {
+    return { country: 'us', otherCode: '', number: normalized.slice(2) }
+  }
+
+  if (normalized.startsWith('+')) {
+    const parsed = normalized.match(/^\+(\d{1,3})(\d+)$/)
+    if (parsed) {
+      const code = `+${parsed[1]}`
+      if (code === '+1') {
+        return { country: 'us', otherCode: '', number: parsed[2] || '' }
+      }
+      return { country: 'other', otherCode: code, number: parsed[2] || '' }
+    }
+    return { country: 'other', otherCode: '', number: normalized.replace(/^\+/, '') }
+  }
+
+  return { country: 'us', otherCode: '', number: normalized }
+}
+
+function buildServiceEditForm(contact) {
+  const phone = splitPhoneForForm(contact.phone)
+  const whatsapp = splitPhoneForForm(contact.whatsapp_number)
+  return {
+    name: contact.name || '',
+    phone: phone.number,
+    phoneCountry: phone.country,
+    phoneOtherCode: phone.otherCode,
+    whatsapp_number: whatsapp.number,
+    whatsappCountry: whatsapp.country,
+    whatsappOtherCode: whatsapp.otherCode,
+    email: contact.email || '',
+    special_note: contact.special_note || '',
+  }
+}
+
 function makeCallHref(phone) {
   const p = normalizePhone(phone)
   return p ? `tel:${p}` : null
 }
 
 function makeWhatsAppHref(phone) {
-  const digits = String(phone || '').replace(/\D/g, '')
-  return digits ? `https://wa.me/${digits}` : null
+  const normalized = normalizePhone(phone)
+  if (!normalized) return null
+
+  let digits = String(normalized).replace(/\D/g, '')
+  if (!digits) return null
+
+  // If no country code is provided (plain 10-digit number), default to US +1.
+  if (digits.length === 10) {
+    digits = `1${digits}`
+  }
+
+  return `https://wa.me/${digits}`
 }
 
 function teamLabel(team) {
@@ -58,9 +136,33 @@ function ContactMethodButton({ href, label, icon, tone = 'slate' }) {
   )
 }
 
-function PlayerCard({ player }) {
+function PlayerCard({ player, canManage, onSave }) {
   const phone = player.phone || ''
   const email = player.email || ''
+  const initialPhone = splitPhoneForForm(phone)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    full_name: player.full_name || '',
+    email: email || '',
+    phone: initialPhone.number,
+    phoneCountry: initialPhone.country,
+    phoneOtherCode: initialPhone.otherCode,
+    team: player.team || 'raising-bulls',
+  })
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    await onSave(player.id, {
+      full_name: form.full_name.trim(),
+      email: form.email.trim() || null,
+      phone: applyCountryCode(form.phone, form.phoneCountry, form.phoneOtherCode),
+      team: form.team,
+    })
+    setSaving(false)
+    setEditing(false)
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
@@ -74,20 +176,115 @@ function PlayerCard({ player }) {
         </span>
       </div>
 
+      {canManage && (
+        <div className="mt-2">
+          {!editing ? (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-[11px] font-bold text-primary hover:text-primary-dark"
+            >
+              Edit Player Contact
+            </button>
+          ) : (
+            <form onSubmit={handleSave} className="mt-2 space-y-2 border border-dashed border-gray-300 rounded-xl p-2.5 bg-gray-50">
+              <input
+                value={form.full_name}
+                onChange={(e) => setForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                placeholder="Full name"
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <input
+                value={form.email}
+                onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="Email"
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <div className="grid grid-cols-[120px_1fr] gap-2">
+                <select
+                  value={form.phoneCountry}
+                  onChange={(e) => setForm((prev) => ({ ...prev, phoneCountry: e.target.value }))}
+                  className="px-2 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="us">🇺🇸 +1</option>
+                  <option value="other">Other</option>
+                </select>
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Phone"
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                {form.phoneCountry === 'other' && (
+                  <input
+                    value={form.phoneOtherCode}
+                    onChange={(e) => setForm((prev) => ({ ...prev, phoneOtherCode: e.target.value }))}
+                    placeholder="Country code (e.g. +91)"
+                    className="col-span-2 w-full px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                )}
+              </div>
+              <select
+                value={form.team}
+                onChange={(e) => setForm((prev) => ({ ...prev, team: e.target.value }))}
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="raising-bulls">Raising Bulls</option>
+                <option value="royal-bulls">Royal Bulls</option>
+              </select>
+              <div className="flex gap-1.5">
+                <button
+                  type="submit"
+                  disabled={saving || !form.full_name.trim()}
+                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-primary-dark text-accent disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const resetPhone = splitPhoneForForm(phone)
+                    setForm({
+                      full_name: player.full_name || '',
+                      email: email || '',
+                      phone: resetPhone.number,
+                      phoneCountry: resetPhone.country,
+                      phoneOtherCode: resetPhone.otherCode,
+                      team: player.team || 'raising-bulls',
+                    })
+                    setEditing(false)
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <ContactMethodButton href={makeCallHref(phone)} label="Call" icon="📞" tone="slate" />
         <ContactMethodButton href={makeWhatsAppHref(phone)} label="WhatsApp" icon="💬" tone="green" />
-        <ContactMethodButton href={email ? `mailto:${email}` : null} label="Email" icon="✉️" tone="blue" />
+        {email && <ContactMethodButton href={`mailto:${email}`} label="Email" icon="✉️" tone="blue" />}
       </div>
     </div>
   )
 }
 
-function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, canDelete }) {
+function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, onEdit, canDelete, canEdit }) {
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editForm, setEditForm] = useState(() => buildServiceEditForm(contact))
+
+  useEffect(() => {
+    setEditForm(buildServiceEditForm(contact))
+  }, [contact])
 
   async function handleDelete() {
     setDeleting(true)
@@ -104,6 +301,21 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, canDele
     setSaving(false)
   }
 
+  async function submitEdit(e) {
+    e.preventDefault()
+    if (!editForm.name.trim()) return
+    setSavingEdit(true)
+    await onEdit(contact.id, {
+      name: editForm.name.trim(),
+      phone: applyCountryCode(editForm.phone, editForm.phoneCountry, editForm.phoneOtherCode),
+      whatsapp_number: applyCountryCode(editForm.whatsapp_number, editForm.whatsappCountry, editForm.whatsappOtherCode),
+      email: String(editForm.email || '').trim() || null,
+      special_note: String(editForm.special_note || '').trim() || null,
+    })
+    setSavingEdit(false)
+    setEditing(false)
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
@@ -114,7 +326,33 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, canDele
               {contact.special_note}
             </p>
           )}
+          {(contact.phone || contact.whatsapp_number) && (
+            <div className="mt-2 space-y-0.5">
+              {contact.phone && (
+                <p className="text-[11px] text-gray-600">
+                  <span className="font-semibold text-gray-700">Phone:</span> {contact.phone}
+                </p>
+              )}
+              {contact.whatsapp_number && (
+                <p className="text-[11px] text-gray-600">
+                  <span className="font-semibold text-gray-700">WhatsApp:</span> {contact.whatsapp_number}
+                </p>
+              )}
+            </div>
+          )}
         </div>
+        {canEdit && !editing && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="p-1 rounded-lg text-gray-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            title="Edit contact"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            </svg>
+          </button>
+        )}
         {canDelete && (
           <div className="shrink-0">
             {!confirmDelete ? (
@@ -149,10 +387,103 @@ function ServiceContactCard({ contact, notes, user, onAddNote, onDelete, canDele
         )}
       </div>
 
+      {editing && (
+        <form onSubmit={submitEdit} className="mt-3 space-y-2 border border-dashed border-gray-300 rounded-xl p-3 bg-gray-50">
+          <div className="grid sm:grid-cols-2 gap-2">
+            <input
+              value={editForm.name}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Name"
+              className="px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <div className="grid grid-cols-[120px_1fr] gap-2">
+              <select
+                value={editForm.phoneCountry}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, phoneCountry: e.target.value }))}
+                className="px-2 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="us">🇺🇸 +1</option>
+                <option value="other">Other</option>
+              </select>
+              <input
+                value={editForm.phone}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))}
+                placeholder="Phone"
+                className="px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              {editForm.phoneCountry === 'other' && (
+                <input
+                  value={editForm.phoneOtherCode}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, phoneOtherCode: e.target.value }))}
+                  placeholder="Country code (e.g. +91)"
+                  className="col-span-2 px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              )}
+            </div>
+            <div className="grid grid-cols-[120px_1fr] gap-2">
+              <select
+                value={editForm.whatsappCountry}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, whatsappCountry: e.target.value }))}
+                className="px-2 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="us">🇺🇸 +1</option>
+                <option value="other">Other</option>
+              </select>
+              <input
+                value={editForm.whatsapp_number}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, whatsapp_number: e.target.value }))}
+                placeholder="WhatsApp"
+                className="px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              {editForm.whatsappCountry === 'other' && (
+                <input
+                  value={editForm.whatsappOtherCode}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, whatsappOtherCode: e.target.value }))}
+                  placeholder="Country code (e.g. +44)"
+                  className="col-span-2 px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              )}
+            </div>
+            <input
+              value={editForm.email}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
+              placeholder="Email"
+              className="px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <textarea
+              rows={2}
+              value={editForm.special_note}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, special_note: e.target.value }))}
+              placeholder="Special note"
+              className="sm:col-span-2 px-2.5 py-1.5 rounded-lg text-xs border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+            />
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              type="submit"
+              disabled={savingEdit || !editForm.name.trim()}
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-primary-dark text-accent disabled:opacity-50"
+            >
+              {savingEdit ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditForm(buildServiceEditForm(contact))
+                setEditing(false)
+              }}
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <ContactMethodButton href={makeCallHref(contact.phone)} label="Phone" icon="📞" tone="slate" />
         <ContactMethodButton href={makeWhatsAppHref(contact.whatsapp_number || contact.phone)} label="WhatsApp" icon="💬" tone="green" />
-        <ContactMethodButton href={contact.email ? `mailto:${contact.email}` : null} label="Email" icon="✉️" tone="blue" />
+        {contact.email && <ContactMethodButton href={`mailto:${contact.email}`} label="Email" icon="✉️" tone="blue" />}
       </div>
 
       <div className="mt-3 border-t border-gray-100 pt-3">
@@ -202,7 +533,7 @@ function DeleteSectionButton({ sectionId, sectionName, onDelete }) {
   }
 
   return (
-    <div className="shrink-0 flex items-center pr-3">
+    <div className="shrink-0 flex items-center">
       {!confirm ? (
         <button
           type="button"
@@ -236,8 +567,95 @@ function DeleteSectionButton({ sectionId, sectionName, onDelete }) {
   )
 }
 
+function EditSectionButton({ sectionId, sectionName, onRename }) {
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [draftName, setDraftName] = useState(sectionName)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!editing) {
+      setDraftName(sectionName)
+      setError('')
+    }
+  }, [sectionName, editing])
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setSaving(true)
+    const result = await onRename(sectionId, draftName)
+    setSaving(false)
+
+    if (!result?.ok) {
+      setError(result?.message || 'Unable to rename section right now.')
+      return
+    }
+
+    setEditing(false)
+    setError('')
+  }
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setEditing(true) }}
+        className="p-1 rounded-lg text-gray-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+        title={`Edit section "${sectionName}"`}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+        </svg>
+      </button>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={handleSave}
+      className="flex items-center gap-1"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <input
+        value={draftName}
+        onChange={(e) => {
+          setDraftName(e.target.value)
+          if (error) setError('')
+        }}
+        placeholder="Section name"
+        className={`w-36 px-2 py-1 rounded-lg text-xs border bg-white focus:outline-none focus:ring-2 ${error ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-accent'}`}
+      />
+      <button
+        type="submit"
+        disabled={saving || !draftName.trim()}
+        className="px-2 py-1 rounded text-[10px] font-bold bg-primary-dark text-accent disabled:opacity-50"
+      >
+        {saving ? '...' : 'Save'}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setDraftName(sectionName)
+          setError('')
+          setEditing(false)
+        }}
+        className="px-2 py-1 rounded text-[10px] font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
+      >
+        Cancel
+      </button>
+      {error && (
+        <span className="text-[10px] font-semibold text-red-600 max-w-[160px] truncate" title={error}>
+          {error}
+        </span>
+      )}
+    </form>
+  )
+}
+
 export default function Contacts() {
   const { user, profile, isAdmin } = useAuth()
+  const canManagePlayers = !!isAdmin
+  const canEditServices = !!user
 
   const [activeTab, setActiveTab] = useState('players')
   const [playerTeamFilter, setPlayerTeamFilter] = useState('all')
@@ -253,11 +671,13 @@ export default function Contacts() {
   const [serviceSearch, setServiceSearch] = useState('')
   const [addingSection, setAddingSection] = useState(false)
   const [newSectionName, setNewSectionName] = useState('')
+  const [sectionError, setSectionError] = useState('')
   // per-section UI state: collapsed + inline add-contact form
   const [sectionOpen, setSectionOpen] = useState({})
   const [sectionAddOpen, setSectionAddOpen] = useState({})
   const [sectionAddForm, setSectionAddForm] = useState({})
   const [sectionAddSaving, setSectionAddSaving] = useState({})
+  const [sectionAddError, setSectionAddError] = useState({})
 
   useEffect(() => {
     let active = true
@@ -286,7 +706,6 @@ export default function Contacts() {
           .from('service_contact_sections')
           .select('id, name, slug, sort_order, is_active')
           .eq('is_active', true)
-          .order('sort_order', { ascending: true })
           .order('name', { ascending: true }),
         supabase
           .from('service_contacts')
@@ -369,8 +788,34 @@ export default function Contacts() {
 
   async function handleAddSection(e) {
     e.preventDefault()
-    const name = newSectionName.trim()
-    if (!name || !user?.id) return
+    const name = newSectionName.trim().replace(/\s+/g, ' ')
+    if (!name || !user?.id || loadingServices) return
+
+    const normalizedName = normalizeSectionName(name)
+    const hasLocalDuplicate = sections.some((s) => normalizeSectionName(s.name) === normalizedName)
+    if (hasLocalDuplicate) {
+      setSectionError('Section already exists. Please use a different name.')
+      return
+    }
+
+    // Defensive server-side check to avoid duplicates caused by stale client state
+    // and to catch case/whitespace variations reliably.
+    const { data: existingRows, error: existingRowsError } = await supabase
+      .from('service_contact_sections')
+      .select('id, name')
+      .eq('is_active', true)
+      .limit(500)
+
+    if (existingRowsError) {
+      setSectionError(existingRowsError.message || 'Unable to validate section name right now.')
+      return
+    }
+
+    const hasRemoteDuplicate = (existingRows || []).some((row) => normalizeSectionName(row.name) === normalizedName)
+    if (hasRemoteDuplicate) {
+      setSectionError('Section already exists. Please use a different name.')
+      return
+    }
 
     const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'section'
     let slug = baseSlug
@@ -389,16 +834,34 @@ export default function Contacts() {
     setAddingSection(false)
 
     if (error) {
-      alert(error.message || 'Unable to add section')
+      const errorCode = String(error.code || '')
+      const errorMessage = String(error.message || '')
+      const isDuplicateError = errorCode === '23505' || /duplicate|already exists|unique constraint/i.test(errorMessage)
+      if (isDuplicateError) {
+        setSectionError('Section already exists. Please use a different name.')
+      } else {
+        alert(errorMessage || 'Unable to add section')
+      }
       return
     }
 
-    setSections((prev) => [...prev, data].sort((a, b) => (a.sort_order - b.sort_order) || a.name.localeCompare(b.name)))
+    setSections((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
     setNewSectionName('')
+    setSectionError('')
   }
 
   function getSectionForm(sectionId) {
-    return sectionAddForm[sectionId] || { name: '', phone: '', whatsapp: '', email: '', specialNote: '' }
+    return sectionAddForm[sectionId] || {
+      name: '',
+      phone: '',
+      phoneCountry: 'us',
+      phoneOtherCode: '',
+      whatsapp: '',
+      whatsappCountry: 'us',
+      whatsappOtherCode: '',
+      email: '',
+      specialNote: '',
+    }
   }
 
   function setSectionForm(sectionId, patch) {
@@ -406,17 +869,69 @@ export default function Contacts() {
       ...prev,
       [sectionId]: { ...getSectionForm(sectionId), ...patch },
     }))
+    setSectionAddError((prev) => ({ ...prev, [sectionId]: '' }))
   }
 
   async function handleAddContact(e, sectionId) {
     e.preventDefault()
     if (!user?.id) return
     const form = getSectionForm(sectionId)
+    const normalizedPhone = applyCountryCode(form.phone, form.phoneCountry, form.phoneOtherCode)
+    const normalizedWhatsApp = applyCountryCode(form.whatsapp, form.whatsappCountry, form.whatsappOtherCode)
+
+    const requestedNumbers = [normalizedPhone, normalizedWhatsApp]
+      .map(normalizePhoneForComparison)
+      .filter(Boolean)
+
+    const duplicateByNumber = (rows) => {
+      return (rows || []).find((row) => {
+        const existingNumbers = [row.phone, row.whatsapp_number]
+          .map(normalizePhoneForComparison)
+          .filter(Boolean)
+        return existingNumbers.some((n) => requestedNumbers.includes(n))
+      })
+    }
+
+    if (requestedNumbers.length > 0) {
+      const localDuplicate = duplicateByNumber(serviceContacts.filter((c) => c.section_id === sectionId))
+      if (localDuplicate) {
+        setSectionAddError((prev) => ({
+          ...prev,
+          [sectionId]: `This number already exists in this section under ${localDuplicate.name}. Please edit the existing contact or use a different number.`,
+        }))
+        return
+      }
+
+      const { data: remoteSectionContacts, error: remoteSectionContactsError } = await supabase
+        .from('service_contacts')
+        .select('id, name, phone, whatsapp_number')
+        .eq('section_id', sectionId)
+        .eq('is_active', true)
+        .limit(500)
+
+      if (remoteSectionContactsError) {
+        setSectionAddError((prev) => ({
+          ...prev,
+          [sectionId]: remoteSectionContactsError.message || 'Unable to validate duplicate contact number right now. Please try again.',
+        }))
+        return
+      }
+
+      const remoteDuplicate = duplicateByNumber(remoteSectionContacts)
+      if (remoteDuplicate) {
+        setSectionAddError((prev) => ({
+          ...prev,
+          [sectionId]: `This number already exists in this section under ${remoteDuplicate.name}. Please edit the existing contact or use a different number.`,
+        }))
+        return
+      }
+    }
+
     const payload = {
       section_id: sectionId,
       name: form.name.trim(),
-      phone: normalizePhone(form.phone) || null,
-      whatsapp_number: normalizePhone(form.whatsapp) || null,
+      phone: normalizedPhone,
+      whatsapp_number: normalizedWhatsApp,
       email: String(form.email || '').trim() || null,
       special_note: String(form.specialNote || '').trim() || null,
       created_by: user.id,
@@ -438,7 +953,21 @@ export default function Contacts() {
     }
 
     setServiceContacts((prev) => [...prev, data].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))))
-    setSectionAddForm((prev) => ({ ...prev, [sectionId]: { name: '', phone: '', whatsapp: '', email: '', specialNote: '' } }))
+    setSectionAddForm((prev) => ({
+      ...prev,
+      [sectionId]: {
+        name: '',
+        phone: '',
+        phoneCountry: 'us',
+        phoneOtherCode: '',
+        whatsapp: '',
+        whatsappCountry: 'us',
+        whatsappOtherCode: '',
+        email: '',
+        specialNote: '',
+      },
+    }))
+    setSectionAddError((prev) => ({ ...prev, [sectionId]: '' }))
     setSectionAddOpen((prev) => ({ ...prev, [sectionId]: false }))
   }
 
@@ -466,6 +995,105 @@ export default function Contacts() {
     }
     setSections((prev) => prev.filter((s) => s.id !== sectionId))
     setServiceContacts((prev) => prev.filter((c) => c.section_id !== sectionId))
+  }
+
+  async function handleRenameSection(sectionId, rawName) {
+    const name = String(rawName || '').trim().replace(/\s+/g, ' ')
+    if (!name) {
+      return { ok: false, message: 'Section name is required.' }
+    }
+
+    const current = sections.find((s) => s.id === sectionId)
+    if (!current) {
+      return { ok: false, message: 'Section not found.' }
+    }
+
+    if (normalizeSectionName(current.name) === normalizeSectionName(name)) {
+      return { ok: true }
+    }
+
+    const normalizedName = normalizeSectionName(name)
+    const hasLocalDuplicate = sections.some(
+      (s) => s.id !== sectionId && normalizeSectionName(s.name) === normalizedName,
+    )
+    if (hasLocalDuplicate) {
+      return { ok: false, message: 'Section already exists. Please use a different name.' }
+    }
+
+    const { data: existingRows, error: existingRowsError } = await supabase
+      .from('service_contact_sections')
+      .select('id, name')
+      .eq('is_active', true)
+      .limit(500)
+
+    if (existingRowsError) {
+      return { ok: false, message: existingRowsError.message || 'Unable to validate section name right now.' }
+    }
+
+    const hasRemoteDuplicate = (existingRows || []).some(
+      (row) => row.id !== sectionId && normalizeSectionName(row.name) === normalizedName,
+    )
+    if (hasRemoteDuplicate) {
+      return { ok: false, message: 'Section already exists. Please use a different name.' }
+    }
+
+    const { data, error } = await supabase
+      .from('service_contact_sections')
+      .update({ name })
+      .eq('id', sectionId)
+      .select('id, name, slug, sort_order, is_active')
+      .single()
+
+    if (error) {
+      const errorCode = String(error.code || '')
+      const errorMessage = String(error.message || '')
+      const isDuplicateError = errorCode === '23505' || /duplicate|already exists|unique constraint/i.test(errorMessage)
+      if (isDuplicateError) {
+        return { ok: false, message: 'Section already exists. Please use a different name.' }
+      }
+      return { ok: false, message: errorMessage || 'Unable to rename section right now.' }
+    }
+
+    setSections((prev) => prev.map((s) => (s.id === sectionId ? data : s)).sort((a, b) => a.name.localeCompare(b.name)))
+    return { ok: true }
+  }
+
+  async function handleEditServiceContact(contactId, updates) {
+    const { data, error } = await supabase
+      .from('service_contacts')
+      .update(updates)
+      .eq('id', contactId)
+      .select('id, section_id, name, phone, whatsapp_number, email, special_note, is_active')
+      .single()
+
+    if (error) {
+      alert(error.message || 'Unable to update contact')
+      return
+    }
+
+    setServiceContacts((prev) => prev.map((c) => (c.id === contactId ? data : c)))
+  }
+
+  async function handleEditPlayerContact(playerId, updates) {
+    const payload = {
+      full_name: updates.full_name,
+      email: updates.email,
+      phone: updates.phone,
+      team: updates.team,
+    }
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', playerId)
+      .select('id, full_name, team, phone, email')
+      .single()
+
+    if (error) {
+      alert(error.message || 'Unable to update player contact')
+      return
+    }
+
+    setPlayers((prev) => prev.map((p) => (p.id === playerId ? data : p)))
   }
 
   async function handleAddNote(serviceContactId, note) {
@@ -542,7 +1170,14 @@ export default function Contacts() {
                 <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" /></div>
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredPlayers.map((p) => <PlayerCard key={p.id} player={p} />)}
+                  {filteredPlayers.map((p) => (
+                    <PlayerCard
+                      key={p.id}
+                      player={p}
+                      canManage={canManagePlayers}
+                      onSave={handleEditPlayerContact}
+                    />
+                  ))}
                 </div>
               )}
             </>
@@ -556,21 +1191,31 @@ export default function Contacts() {
                   placeholder="Search contacts by name, phone, email…"
                   className="flex-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                 />
-                <form onSubmit={handleAddSection} className="flex gap-2">
-                  <input
-                    value={newSectionName}
-                    onChange={(e) => setNewSectionName(e.target.value)}
-                    placeholder="New section name…"
-                    className="w-44 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                  />
-                  <button
-                    type="submit"
-                    disabled={addingSection || !newSectionName.trim()}
-                    className="px-4 py-2 rounded-xl text-sm font-bold bg-primary-dark text-accent disabled:opacity-50 shrink-0"
-                  >
-                    {addingSection ? 'Adding...' : '+ Section'}
-                  </button>
-                </form>
+                <div className="flex flex-col gap-1.5">
+                  <form onSubmit={handleAddSection} className="flex gap-2">
+                    <input
+                      value={newSectionName}
+                      onChange={(e) => {
+                        setNewSectionName(e.target.value)
+                        if (sectionError) setSectionError('')
+                      }}
+                      placeholder="New section name…"
+                      className={`w-44 px-3 py-2 rounded-xl border bg-white text-sm focus:outline-none focus:ring-2 focus:border-transparent ${sectionError ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-accent'}`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loadingServices || addingSection || !newSectionName.trim()}
+                      className="px-4 py-2 rounded-xl text-sm font-bold bg-primary-dark text-accent disabled:opacity-50 shrink-0"
+                    >
+                      {addingSection ? 'Adding...' : '+ Section'}
+                    </button>
+                  </form>
+                  {sectionError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2" role="alert" aria-live="polite">
+                      <p className="text-xs font-semibold text-red-700">{sectionError}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {loadingServices ? (
@@ -586,6 +1231,7 @@ export default function Contacts() {
                     const isAddOpen = !!sectionAddOpen[section.id]
                     const form = getSectionForm(section.id)
                     const isSaving = !!sectionAddSaving[section.id]
+                    const addError = sectionAddError[section.id] || ''
 
                     return (
                       <div key={section.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
@@ -610,7 +1256,14 @@ export default function Contacts() {
                             </span>
                           </button>
                           {isAdmin && (
-                            <DeleteSectionButton sectionId={section.id} sectionName={section.name} onDelete={handleDeleteSection} />
+                            <div className="shrink-0 flex items-center gap-1 pr-3">
+                              <EditSectionButton
+                                sectionId={section.id}
+                                sectionName={section.name}
+                                onRename={handleRenameSection}
+                              />
+                              <DeleteSectionButton sectionId={section.id} sectionName={section.name} onDelete={handleDeleteSection} />
+                            </div>
                           )}
                         </div>
 
@@ -625,40 +1278,29 @@ export default function Contacts() {
                               style={{ overflow: 'hidden' }}
                             >
                               <div className="px-4 pb-4">
-                                {/* Contacts grid */}
-                                {contacts.length === 0 ? (
-                                  <p className="text-sm text-gray-400 py-2">No contacts yet.</p>
-                                ) : (
-                                  <div className="grid sm:grid-cols-2 gap-3 mb-3">
-                                    {contacts.map((c) => (
-                                      <ServiceContactCard
-                                        key={c.id}
-                                        contact={c}
-                                        notes={notesByContact[c.id] || []}
-                                        user={user}
-                                        onAddNote={handleAddNote}
-                                        onDelete={handleDeleteContact}
-                                        canDelete={isAdmin}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-
                                 {/* Add contact toggle */}
                                 {!isAddOpen ? (
                                   <button
                                     type="button"
-                                    onClick={() => setSectionAddOpen((prev) => ({ ...prev, [section.id]: true }))}
-                                    className="text-xs font-bold text-accent bg-primary-dark/90 px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
+                                    onClick={() => {
+                                      setSectionAddOpen((prev) => ({ ...prev, [section.id]: true }))
+                                      setSectionAddError((prev) => ({ ...prev, [section.id]: '' }))
+                                    }}
+                                    className="mb-3 text-xs font-bold text-accent bg-primary-dark/90 px-3 py-1.5 rounded-lg hover:bg-primary-dark transition-colors"
                                   >
                                     + Add Contact
                                   </button>
                                 ) : (
                                   <form
                                     onSubmit={(e) => handleAddContact(e, section.id)}
-                                    className="mt-2 border border-dashed border-gray-300 rounded-xl p-3 bg-gray-50"
+                                    className="mb-3 border border-dashed border-gray-300 rounded-xl p-3 bg-gray-50"
                                   >
                                     <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">New Contact in {section.name}</p>
+                                    {addError && (
+                                      <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2" role="alert" aria-live="polite">
+                                        <p className="text-xs font-semibold text-amber-800">{addError}</p>
+                                      </div>
+                                    )}
                                     <div className="grid sm:grid-cols-2 gap-2">
                                       <input
                                         value={form.name}
@@ -667,18 +1309,54 @@ export default function Contacts() {
                                         required
                                         className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                                       />
-                                      <input
-                                        value={form.phone}
-                                        onChange={(e) => setSectionForm(section.id, { phone: e.target.value })}
-                                        placeholder="Phone"
-                                        className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                                      />
-                                      <input
-                                        value={form.whatsapp}
-                                        onChange={(e) => setSectionForm(section.id, { whatsapp: e.target.value })}
-                                        placeholder="WhatsApp"
-                                        className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                                      />
+                                      <div className="grid grid-cols-[120px_1fr] gap-2">
+                                        <select
+                                          value={form.phoneCountry}
+                                          onChange={(e) => setSectionForm(section.id, { phoneCountry: e.target.value })}
+                                          className="px-2 py-2 rounded-lg border border-gray-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+                                        >
+                                          <option value="us">🇺🇸 +1</option>
+                                          <option value="other">Other</option>
+                                        </select>
+                                        <input
+                                          value={form.phone}
+                                          onChange={(e) => setSectionForm(section.id, { phone: e.target.value })}
+                                          placeholder="Phone"
+                                          className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                        />
+                                        {form.phoneCountry === 'other' && (
+                                          <input
+                                            value={form.phoneOtherCode}
+                                            onChange={(e) => setSectionForm(section.id, { phoneOtherCode: e.target.value })}
+                                            placeholder="Country code (e.g. +91)"
+                                            className="col-span-2 px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                          />
+                                        )}
+                                      </div>
+                                      <div className="grid grid-cols-[120px_1fr] gap-2">
+                                        <select
+                                          value={form.whatsappCountry}
+                                          onChange={(e) => setSectionForm(section.id, { whatsappCountry: e.target.value })}
+                                          className="px-2 py-2 rounded-lg border border-gray-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+                                        >
+                                          <option value="us">🇺🇸 +1</option>
+                                          <option value="other">Other</option>
+                                        </select>
+                                        <input
+                                          value={form.whatsapp}
+                                          onChange={(e) => setSectionForm(section.id, { whatsapp: e.target.value })}
+                                          placeholder="WhatsApp"
+                                          className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                        />
+                                        {form.whatsappCountry === 'other' && (
+                                          <input
+                                            value={form.whatsappOtherCode}
+                                            onChange={(e) => setSectionForm(section.id, { whatsappOtherCode: e.target.value })}
+                                            placeholder="Country code (e.g. +44)"
+                                            className="col-span-2 px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                          />
+                                        )}
+                                      </div>
                                       <input
                                         value={form.email}
                                         onChange={(e) => setSectionForm(section.id, { email: e.target.value })}
@@ -703,13 +1381,37 @@ export default function Contacts() {
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => setSectionAddOpen((prev) => ({ ...prev, [section.id]: false }))}
+                                        onClick={() => {
+                                          setSectionAddOpen((prev) => ({ ...prev, [section.id]: false }))
+                                          setSectionAddError((prev) => ({ ...prev, [section.id]: '' }))
+                                        }}
                                         className="px-4 py-2 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200"
                                       >
                                         Cancel
                                       </button>
                                     </div>
                                   </form>
+                                )}
+
+                                {/* Contacts grid */}
+                                {contacts.length === 0 ? (
+                                  <p className="text-sm text-gray-400 py-2">No contacts yet.</p>
+                                ) : (
+                                  <div className="grid sm:grid-cols-2 gap-3 mb-3">
+                                    {contacts.map((c) => (
+                                      <ServiceContactCard
+                                        key={c.id}
+                                        contact={c}
+                                        notes={notesByContact[c.id] || []}
+                                        user={user}
+                                        onAddNote={handleAddNote}
+                                        onDelete={handleDeleteContact}
+                                        onEdit={handleEditServiceContact}
+                                        canDelete={isAdmin}
+                                        canEdit={canEditServices}
+                                      />
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             </motion.div>

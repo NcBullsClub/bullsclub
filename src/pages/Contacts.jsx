@@ -86,7 +86,22 @@ function makeCallHref(phone) {
   return p ? `tel:${p}` : null
 }
 
-function makeWhatsAppHref(phone) {
+function extractFirstName(name) {
+  const normalized = String(name || '').trim().replace(/\s+/g, ' ')
+  if (!normalized) return ''
+
+  // Service contacts often use labels like "Name - Service".
+  const dashIndex = normalized.indexOf('-')
+  if (dashIndex !== -1) {
+    const leftPart = normalized.slice(0, dashIndex).trim()
+    if (leftPart) return leftPart
+  }
+
+  const firstWord = normalized.split(' ')[0].replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, '')
+  return firstWord || ''
+}
+
+function makeWhatsAppHref(phone, name) {
   const normalized = normalizePhone(phone)
   if (!normalized) return null
 
@@ -98,7 +113,11 @@ function makeWhatsAppHref(phone) {
     digits = `1${digits}`
   }
 
-  return `https://wa.me/${digits}`
+  const firstName = extractFirstName(name)
+  const whatsappMessage = firstName ? `Hi ${firstName}` : ''
+  const textQuery = whatsappMessage ? `?text=${encodeURIComponent(whatsappMessage)}` : ''
+
+  return `https://wa.me/${digits}${textQuery}`
 }
 
 function teamLabel(team) {
@@ -303,7 +322,7 @@ function PlayerCard({ player, canManage, onSave }) {
 
       <div className="mt-3 flex flex-wrap gap-2">
         <ContactMethodButton href={makeCallHref(phone)} label="Call" icon="📞" tone="slate" />
-        <ContactMethodButton href={makeWhatsAppHref(phone)} label="WhatsApp" icon="💬" tone="green" />
+        <ContactMethodButton href={makeWhatsAppHref(phone, player.full_name)} label="WhatsApp" icon="💬" tone="green" />
         {email && <ContactMethodButton href={`mailto:${email}`} label="Email" icon="✉️" tone="blue" />}
       </div>
     </div>
@@ -545,7 +564,7 @@ function ServiceContactCard({
 
       <div className="mt-3 flex flex-wrap gap-2">
         <ContactMethodButton href={makeCallHref(contact.phone)} label="Phone" icon="📞" tone="slate" />
-        <ContactMethodButton href={makeWhatsAppHref(contact.whatsapp_number || contact.phone)} label="WhatsApp" icon="💬" tone="green" />
+        <ContactMethodButton href={makeWhatsAppHref(contact.whatsapp_number || contact.phone, contact.name)} label="WhatsApp" icon="💬" tone="green" />
         {contact.email && <ContactMethodButton href={`mailto:${contact.email}`} label="Email" icon="✉️" tone="blue" />}
       </div>
 

@@ -29,7 +29,7 @@ const TEAM_LABELS = {
   'royal-bulls':   'Royal Bulls',
 }
 
-const FIXTURE_TYPE_OPTIONS = ['League', 'Playoffs', 'Championship']
+const FIXTURE_TYPE_OPTIONS = ['League', 'Playoffs', 'SemiFinal', 'Championship']
 
 const EMPTY_FORM = {
   date: '',
@@ -82,7 +82,8 @@ function normalizeFixtureType(value) {
   if (!raw) return 'League'
   const key = raw.toLowerCase()
   if (key === 'league' || key === 'mega bash' || key === 'mega smash') return 'League'
-  if (key === 'playoffs' || key === 'playoff') return 'Playoffs'
+  if (key === 'playoffs' || key === 'playoff' || key === 'quarterfinal' || key === 'quarterfinals' || key === 'qualifier' || key === 'qualifiers') return 'Playoffs'
+  if (key === 'semifinal' || key === 'semi final' || key === 'semi-final' || key === 'semifinals' || key === 'semis') return 'SemiFinal'
   if (key === 'championship' || key === 'final') return 'Championship'
   return FIXTURE_TYPE_OPTIONS.includes(raw) ? raw : 'League'
 }
@@ -100,11 +101,26 @@ function normalizeUmpire(value) {
 }
 
 function normalizeLookupKey(value) {
-  return cleanText(value).toLowerCase()
+  const raw = cleanText(value).toLowerCase()
+  const canonical = raw
+    .replace(/century\s*fields?\s*(\d+)/g, 'cf$1')
+    .replace(/\bcf\s*(\d+)\b/g, 'cf$1')
+    .replace(/\bc\s*r\s*woods(?:\s*park)?\b/g, 'crwoodspark')
+    .replace(/\bcr\s*woods(?:\s*park)?\b/g, 'crwoodspark')
+
+  return canonical.replace(/[^a-z0-9]/g, '')
 }
 
-function buildKnownVenues(fixtures) {
+function buildKnownVenues(fixtures, grounds = []) {
   const map = new Map()
+
+  ;(grounds || []).forEach((g) => {
+    const venue = cleanText(g?.name)
+    if (!venue) return
+    const key = normalizeLookupKey(venue)
+    map.set(key, { venue, address: cleanText(g?.address), uses: 1000, source: 'ground' })
+  })
+
   ;(fixtures || []).forEach((f) => {
     const venue = cleanText(f?.venue)
     if (!venue) return
@@ -112,20 +128,24 @@ function buildKnownVenues(fixtures) {
     const address = cleanText(f?.venue_address)
     const prev = map.get(key)
     if (!prev) {
-      map.set(key, { venue, address, uses: 1 })
+      map.set(key, { venue, address, uses: 1, source: 'fixture' })
       return
     }
     const next = {
-      venue: prev.venue.length >= venue.length ? prev.venue : venue,
+      venue: prev.source === 'ground' ? prev.venue : (prev.venue.length >= venue.length ? prev.venue : venue),
       address: prev.address,
       uses: prev.uses + 1,
+      source: prev.source,
     }
     if (address && (!prev.address || address.length > prev.address.length)) {
       next.address = address
     }
     map.set(key, next)
   })
-  return Array.from(map.values()).sort((a, b) => (b.uses - a.uses) || a.venue.localeCompare(b.venue))
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.source !== b.source) return a.source === 'ground' ? -1 : 1
+    return a.venue.localeCompare(b.venue)
+  })
 }
 
 // ── Fixture Form (add / edit) ──────────────────────────────────────────────
@@ -539,6 +559,7 @@ export default function FixturesTab() {
   // ── Fixtures state ──
   const [teamFilter, setTeamFilter]   = useState(adminTeam ?? 'raising-bulls')
   const [fixtures, setFixtures]       = useState([])
+  const [grounds, setGrounds]         = useState([])
   const [loadingFix, setLoadingFix]   = useState(true)
   const [errorFix, setErrorFix]       = useState('')
   const [editingFix, setEditingFix]   = useState(null)   // null = closed, 'new' or fixture object
@@ -553,7 +574,7 @@ export default function FixturesTab() {
   const [deletingUmp, setDeletingUmp]   = useState(null)
 
   const [activeSection, setActiveSection] = useState('fixtures')  // 'fixtures' | 'umpiring'
-  const knownVenues = buildKnownVenues(fixtures)
+  const knownVenues = buildKnownVenues(fixtures, grounds)
 
   // Past/Upcoming section collapse state
   const [pastFixCollapsed, setPastFixCollapsed] = useState(true)
@@ -584,6 +605,17 @@ export default function FixturesTab() {
     }
   }
 
+  async function loadGrounds() {
+    try {
+      const { data, error } = await supabase.from('grounds').select('name, address').order('name', { ascending: true })
+      if (error) throw error
+      setGrounds(data || [])
+    } catch {
+      // Keep fixture-derived fallback if grounds table is not available yet.
+      setGrounds([])
+    }
+  }
+
   async function loadAssignments() {
     setLoadingUmp(true)
     try {
@@ -604,6 +636,7 @@ export default function FixturesTab() {
   }
 
   useEffect(() => { loadFixtures(); loadAssignments() }, [teamFilter, activeSeason])
+  useEffect(() => { loadGrounds() }, [])
 
   // ── Save fixture ──
   async function saveFixture(form) {

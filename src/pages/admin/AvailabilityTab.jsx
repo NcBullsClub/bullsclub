@@ -4,19 +4,6 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSeason } from '../../contexts/SeasonContext'
 import { SEASONS } from '../../config/seasons'
-import groundsData from '../../data/grounds.json'
-
-// venue name → short Google Maps URL (venue name + state for readability in WhatsApp)
-const GROUNDS_MAP = Object.fromEntries(
-  groundsData.map((g) => [
-    g.name.toLowerCase(),
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g.name + ', ' + g.address)}`,
-  ]),
-)
-function groundMapsUrl(venueName) {
-  if (!venueName) return null
-  return GROUNDS_MAP[venueName.toLowerCase()] || `https://maps.google.com/?q=${encodeURIComponent(venueName)}`
-}
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -122,7 +109,8 @@ function getFixtureTypeLabel(value) {
   const raw = String(value || '').trim()
   if (!raw) return 'League'
   const v = raw.toLowerCase()
-  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
+  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
   if (v === 'championship' || v === 'final') return 'Championship'
   if (v === 'mega smash' || v === 'mega bash') return 'Mega Smash'
   if (v === 'league') return 'League'

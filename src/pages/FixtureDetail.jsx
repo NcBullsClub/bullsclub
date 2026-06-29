@@ -27,6 +27,92 @@ function formatDate(dateStr) {
   })
 }
 
+function parseMomStatPart(partRaw) {
+  const text = String(partRaw || '').trim()
+  if (!text) return null
+  const normalized = text
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const batting = normalized.match(/^(\d+)\s*\(\s*(\d+)\s*\)$/) || normalized.match(/(\d+)\s*\(\s*(\d+)\s*\)/)
+  if (batting) {
+    return { kind: 'batting', runs: batting[1], balls: batting[2] }
+  }
+
+  const bowlingHyphen = normalized.match(/^(\d+(?:\.\d+)?)\s*[-/]\s*(\d+)\s*[-/]\s*(\d+)\s*[-/]\s*(\d+)$/)
+  const bowlingSpace = normalized.match(/^(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+)\s+(\d+)$/)
+  const bowlingHint = /overs\s+maiden\s+runs\s+wickets/i.test(normalized)
+  const hintedNums = bowlingHint ? normalized.match(/(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+)\s+(\d+)/) : null
+  const bowling = bowlingHyphen || bowlingSpace || hintedNums
+  if (bowling) {
+    return {
+      kind: 'bowling',
+      overs: bowling[1],
+      maiden: bowling[2],
+      runs: bowling[3],
+      wickets: bowling[4],
+    }
+  }
+
+  return { kind: 'text', text }
+}
+
+function parseMomStat(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return []
+
+  const normalized = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).join(' ')
+  const parts = normalized.split('&').map((p) => p.trim()).filter(Boolean)
+  if (parts.length > 1) {
+    return parts.map(parseMomStatPart).filter(Boolean)
+  }
+
+  const parsed = parseMomStatPart(normalized)
+  return parsed ? [parsed] : []
+}
+
+function MomStatBlock({ value }) {
+  const parts = parseMomStat(value)
+  if (!parts.length || !value) return null
+
+  return (
+    <div className={`grid ${parts.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-1.5`}>
+      {parts.map((parsed, idx) => {
+        if (parsed.kind === 'bowling') {
+          return (
+            <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <div className="grid grid-cols-4 gap-x-2 uppercase tracking-wide text-gray-500 text-[10px] font-semibold">
+                <span className="text-center">Overs</span>
+                <span className="text-center">Mdn</span>
+                <span className="text-center">Runs</span>
+                <span className="text-center">Wkts</span>
+              </div>
+              <div className="grid grid-cols-4 gap-x-2 font-mono font-bold text-gray-700 mt-0.5 text-xs">
+                <span className="text-center">{parsed.overs}</span>
+                <span className="text-center">{parsed.maiden}</span>
+                <span className="text-center">{parsed.runs}</span>
+                <span className="text-center">{parsed.wickets}</span>
+              </div>
+            </div>
+          )
+        }
+
+        if (parsed.kind === 'batting') {
+          return (
+            <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <div className="uppercase tracking-wide text-gray-500 text-[10px] font-semibold">Runs (Balls)</div>
+              <div className="font-mono font-bold text-gray-700 mt-0.5 text-xs">{parsed.runs} ({parsed.balls})</div>
+            </div>
+          )
+        }
+
+        return <div key={idx} className="text-xs text-gray-600">{parsed.text}</div>
+      })}
+    </div>
+  )
+}
+
 export default function FixtureDetail() {
   const { id } = useParams()
   const [fixture, setFixture]   = useState(null)
@@ -243,7 +329,7 @@ export default function FixtureDetail() {
                 {result.mom_stat && (
                   <div>
                     <dt className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Player of the Match</dt>
-                    <dd className="font-semibold text-gray-800">{result.mom_stat}</dd>
+                    <dd><MomStatBlock value={result.mom_stat} /></dd>
                   </div>
                 )}
                 {result.result && (

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSeason } from '../../contexts/SeasonContext'
-import { SEASONS } from '../../config/seasons'
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -65,11 +64,12 @@ export default function ResultsTab() {
   // Fixtures from Supabase
   const [fixturesData, setFixturesData] = useState([])
   useEffect(() => {
-    const isFirst = activeSeason.id === SEASONS[0].id
-    const q = isFirst
-      ? supabase.from('fixtures').select('*').or(`season.eq.${activeSeason.id},season.is.null`).order('date', { ascending: true })
-      : supabase.from('fixtures').select('*').eq('season', activeSeason.id).order('date', { ascending: true })
-    q.then(({ data }) => setFixturesData(data || []))
+    supabase
+      .from('fixtures')
+      .select('*')
+      .eq('season', activeSeason.id)
+      .order('date', { ascending: true })
+      .then(({ data }) => setFixturesData(data || []))
   }, [activeSeason])
 
   const [dbResults, setDbResults] = useState([])
@@ -95,11 +95,10 @@ export default function ResultsTab() {
 
   async function loadResults() {
     setLoading(true)
-    const isFirst = activeSeason.id === SEASONS[0].id
-    const q = isFirst
-      ? supabase.from('match_results').select('*').or(`season.eq.${activeSeason.id},season.is.null`)
-      : supabase.from('match_results').select('*').eq('season', activeSeason.id)
-    const { data } = await q
+    const { data } = await supabase
+      .from('match_results')
+      .select('*')
+      .eq('season', activeSeason.id)
     setDbResults(data || [])
     setLoading(false)
   }
@@ -137,6 +136,7 @@ export default function ResultsTab() {
     setSaveError('')
     const payload = {
       fixture_date:  fixture.date,
+      season:        activeSeason.id,
       opponent:      fixture.opponent,
       team:          fixture.team,
       venue:         fixture.venue,

@@ -73,15 +73,14 @@ export default function Results() {
     setLoading(true)
     const isFirst = activeSeason.id === SEASONS[0].id
     Promise.all([
-      // First season also matches un-tagged rows (season IS NULL) for backward compat
+      supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
+      supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
       isFirst
-        ? supabase.from('match_results').select('*').eq('team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`).order('fixture_date', { ascending: false })
-        : supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
+        ? supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
+        : supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).eq('season', activeSeason.id),
       isFirst
-        ? supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
-        : supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
-      supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter),
-      supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter),
+        ? supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
+        : supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter).eq('season', activeSeason.id),
       supabase.from('profiles').select('id, full_name, team').eq('team', teamFilter),
     ]).then(([{ data: resData }, { data: fixData }, { data: assgnData }, { data: availData }, { data: playersData }]) => {
       setResults(resData || [])

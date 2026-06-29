@@ -1033,14 +1033,20 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
   const load = useCallback(async () => {
     setLoading(true)
     const seasonIds = getFinanceSeasonIds(seasonId)
+    const isFirstSeason = seasonId === SEASONS[0].id
 
-    const seasonDef = SEASONS.find((s) => s.id === seasonId)
     let assignmentsQ = supabase.from('umpiring_assignments').select('*').order('date')
-    if (seasonDef?.startDate) assignmentsQ = assignmentsQ.gte('date', seasonDef.startDate)
-    if (seasonDef?.endDate)   assignmentsQ = assignmentsQ.lte('date', seasonDef.endDate)
+    if (seasonId) {
+      assignmentsQ = isFirstSeason
+        ? assignmentsQ.or(`season.eq.${seasonId},season.is.null`)
+        : assignmentsQ.eq('season', seasonId)
+    }
+    const availabilityQ = isFirstSeason
+      ? supabase.from('umpiring_availability').select('*').eq('status', 'in').or(`season.eq.${seasonId},season.is.null`)
+      : supabase.from('umpiring_availability').select('*').eq('status', 'in').eq('season', seasonId)
     const [{ data: assgn }, { data: avail }, { data: fees }] = await Promise.all([
       assignmentsQ,
-      supabase.from('umpiring_availability').select('*').eq('status', 'in'),
+      availabilityQ,
       supabase.from('umpiring_fees').select('*').in('season', seasonIds),
     ])
     const assignmentsData = assgn || []
@@ -1252,6 +1258,7 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
     const newRow = {
       user_id: player.id,
       umpiring_assignment_id: assignmentId,
+      season: seasonId,
       ncb_team: player.team,
       status: 'in',
       notes: 'Admin marked',
@@ -1312,6 +1319,7 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
         {
           user_id: player.id,
           umpiring_assignment_id: newAssignId,
+          season: seasonId,
           ncb_team: newAssgn.ncb_team || player.team,
           status: 'in',
           notes: 'Admin reassigned',
@@ -1355,6 +1363,7 @@ function UmpFeesPanel({ rosterPlayers, seasonId, currentUserName }) {
         return [...filtered, {
           user_id: player.id,
           umpiring_assignment_id: newAssignId,
+          season: seasonId,
           ncb_team: newAssgn.ncb_team || player.team,
           status: 'in',
           notes: 'Admin reassigned',

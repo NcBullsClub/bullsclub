@@ -99,8 +99,37 @@ function normalizeUmpire(value) {
     .trim()
 }
 
+function normalizeLookupKey(value) {
+  return cleanText(value).toLowerCase()
+}
+
+function buildKnownVenues(fixtures) {
+  const map = new Map()
+  ;(fixtures || []).forEach((f) => {
+    const venue = cleanText(f?.venue)
+    if (!venue) return
+    const key = normalizeLookupKey(venue)
+    const address = cleanText(f?.venue_address)
+    const prev = map.get(key)
+    if (!prev) {
+      map.set(key, { venue, address, uses: 1 })
+      return
+    }
+    const next = {
+      venue: prev.venue.length >= venue.length ? prev.venue : venue,
+      address: prev.address,
+      uses: prev.uses + 1,
+    }
+    if (address && (!prev.address || address.length > prev.address.length)) {
+      next.address = address
+    }
+    map.set(key, next)
+  })
+  return Array.from(map.values()).sort((a, b) => (b.uses - a.uses) || a.venue.localeCompare(b.venue))
+}
+
 // ── Fixture Form (add / edit) ──────────────────────────────────────────────
-function FixtureForm({ initial, onSave, onCancel, saving }) {
+function FixtureForm({ initial, onSave, onCancel, saving, knownVenues = [] }) {
   const [form, setForm] = useState(initial || EMPTY_FORM)
 
   useEffect(() => {
@@ -109,6 +138,34 @@ function FixtureForm({ initial, onSave, onCancel, saving }) {
 
   function set(field, val) {
     setForm((prev) => ({ ...prev, [field]: val }))
+  }
+
+  const knownVenueMap = new Map(knownVenues.map((v) => [normalizeLookupKey(v.venue), v]))
+  const venueQueryKey = normalizeLookupKey(form.venue)
+  const exactVenueMatch = knownVenueMap.get(venueQueryKey)
+  const hasVenueInput = venueQueryKey.length > 0
+  const suggestedVenues = hasVenueInput
+    ? knownVenues
+        .filter((v) => normalizeLookupKey(v.venue).includes(venueQueryKey))
+        .slice(0, 5)
+    : knownVenues.slice(0, 5)
+
+  function applyVenue(venueValue) {
+    const matched = knownVenueMap.get(normalizeLookupKey(venueValue))
+    setForm((prev) => ({
+      ...prev,
+      venue: venueValue,
+      venue_address: matched?.address || prev.venue_address,
+    }))
+  }
+
+  function handleVenueInput(value) {
+    const matched = knownVenueMap.get(normalizeLookupKey(value))
+    setForm((prev) => ({
+      ...prev,
+      venue: value,
+      venue_address: matched?.address || prev.venue_address,
+    }))
   }
 
   function handleSubmit(e) {
@@ -147,8 +204,65 @@ function FixtureForm({ initial, onSave, onCancel, saving }) {
       </div>
 
       <div>
+        <label className={labelCls}>Venue Lookup</label>
+        <select
+          value=""
+          onChange={(e) => {
+            if (!e.target.value) return
+            applyVenue(e.target.value)
+            e.target.value = ''
+          }}
+          className={inputCls}
+        >
+          <option value="">{knownVenues.length ? 'Select saved venue...' : 'No saved venues available yet'}</option>
+          {knownVenues.map((v) => (
+            <option key={v.venue} value={v.venue}>
+              {v.venue}{v.address ? ` - ${v.address}` : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
         <label className={labelCls}>Venue *</label>
-        <input type="text" required value={form.venue} onChange={(e) => set('venue', e.target.value)} placeholder="RTP 3" className={inputCls} />
+        <input
+          type="text"
+          list="fixture-venue-lookup"
+          required
+          value={form.venue}
+          onChange={(e) => handleVenueInput(e.target.value)}
+          placeholder="RTP 3"
+          className={inputCls}
+        />
+        <datalist id="fixture-venue-lookup">
+          {knownVenues.map((v) => (
+            <option key={v.venue} value={v.venue} />
+          ))}
+        </datalist>
+        {suggestedVenues.length > 0 && !exactVenueMatch && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {suggestedVenues.map((v) => (
+              <button
+                key={v.venue}
+                type="button"
+                onClick={() => applyVenue(v.venue)}
+                className="text-[11px] font-medium px-2 py-1 rounded-full border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+              >
+                {v.venue}
+              </button>
+            ))}
+          </div>
+        )}
+        {hasVenueInput && !exactVenueMatch && (
+          <p className="mt-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
+            No exact venue match found. You can keep this custom value or pick a suggestion above.
+          </p>
+        )}
+        {exactVenueMatch?.address && (
+          <p className="mt-1.5 text-[11px] text-green-700 bg-green-50 border border-green-200 rounded-md px-2.5 py-1.5">
+            Matched saved venue. Address auto-filled from lookup.
+          </p>
+        )}
       </div>
       <div>
         <label className={labelCls}>Venue Address</label>
@@ -439,6 +553,7 @@ export default function FixturesTab() {
   const [deletingUmp, setDeletingUmp]   = useState(null)
 
   const [activeSection, setActiveSection] = useState('fixtures')  // 'fixtures' | 'umpiring'
+  const knownVenues = buildKnownVenues(fixtures)
 
   // Past/Upcoming section collapse state
   const [pastFixCollapsed, setPastFixCollapsed] = useState(true)
@@ -472,11 +587,15 @@ export default function FixturesTab() {
   async function loadAssignments() {
     setLoadingUmp(true)
     try {
+      const isFirst = activeSeason.id === SEASONS[0].id
       let q = supabase.from('umpiring_assignments').select('*').order('date', { ascending: true })
       const eff = teamFilter
       if (eff && eff !== 'all') q = q.eq('ncb_team', eff)
-      if (activeSeason?.startDate) q = q.gte('date', activeSeason.startDate)
-      if (activeSeason?.endDate)   q = q.lte('date', activeSeason.endDate)
+      if (activeSeason?.id) {
+        q = isFirst
+          ? q.or(`season.eq.${activeSeason.id},season.is.null`)
+          : q.eq('season', activeSeason.id)
+      }
       const { data } = await q
       setAssignments(data || [])
     } finally {
@@ -546,6 +665,7 @@ export default function FixturesTab() {
         match_home:    form.match_home,
         venue:         form.venue || null,
         division:      form.division || null,
+        season:        activeSeason?.id || null,
       }
       if (editingUmp === 'new') {
         const { error } = await supabase.from('umpiring_assignments').insert(payload)
@@ -678,6 +798,7 @@ export default function FixturesTab() {
                   onSave={saveFixture}
                   onCancel={() => setEditingFix(null)}
                   saving={savingFix}
+                  knownVenues={knownVenues}
                 />
               </motion.div>
             )}

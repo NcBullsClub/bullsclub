@@ -499,7 +499,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
 }
 
 // ── Umpiring Assignment Card ───────────────────────────────────────────────
-function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved }) {
+function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved, seasonId }) {
   const { user, profile } = useAuth()
   const isRaising = assignment.ncb_team === 'raising-bulls'
   const teamLabel = isRaising ? 'Raising Bulls' : 'Royal Bulls'
@@ -536,6 +536,7 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved })
         {
           user_id:               user.id,
           umpiring_assignment_id: assignment.id,
+          season:                seasonId,
           ncb_team:              assignment.ncb_team,
           status,
           notes: notes.trim(),
@@ -826,9 +827,13 @@ export default function Availability() {
   // Load umpiring assignments
   useEffect(() => {
     setLoadingUmp(true)
+    const isFirst = activeSeason.id === SEASONS[0].id
     let q = supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).order('date', { ascending: true })
-    if (activeSeason?.startDate) q = q.gte('date', activeSeason.startDate)
-    if (activeSeason?.endDate)   q = q.lte('date', activeSeason.endDate)
+    if (activeSeason?.id) {
+      q = isFirst
+        ? q.or(`season.eq.${activeSeason.id},season.is.null`)
+        : q.eq('season', activeSeason.id)
+    }
     q.then(({ data }) => { setUmpAssignments(data || []); setLoadingUmp(false) })
   }, [teamFilter, activeSeason])
 
@@ -836,12 +841,21 @@ export default function Availability() {
   async function loadUmpAvailability() {
     const ids = umpAssignments.map((a) => a.id)
     if (ids.length === 0) { setUmpAvailMap({}); setMyUmpResponseMap({}); return }
+    const isFirst = activeSeason.id === SEASONS[0].id
 
     // Step 1: fetch availability rows (include user_name)
-    const { data: availRows, error: availErr } = await supabase
-      .from('umpiring_availability')
-      .select('user_id, umpiring_assignment_id, status, notes, user_name')
-      .in('umpiring_assignment_id', ids)
+    const availQ = isFirst
+      ? supabase
+          .from('umpiring_availability')
+          .select('user_id, umpiring_assignment_id, status, notes, user_name')
+          .or(`season.eq.${activeSeason.id},season.is.null`)
+          .in('umpiring_assignment_id', ids)
+      : supabase
+          .from('umpiring_availability')
+          .select('user_id, umpiring_assignment_id, status, notes, user_name')
+          .eq('season', activeSeason.id)
+          .in('umpiring_assignment_id', ids)
+    const { data: availRows, error: availErr } = await availQ
     if (availErr || !availRows) return
 
     // Step 2: fetch profile names for those user_ids (for active users)
@@ -870,7 +884,7 @@ export default function Availability() {
     setMyUmpResponseMap(mine)
   }
 
-  useEffect(() => { loadUmpAvailability() }, [umpAssignments, user])
+  useEffect(() => { loadUmpAvailability() }, [umpAssignments, user, activeSeason?.id])
 
   async function loadData({ showSpinner = true } = {}) {
     if (showSpinner) setLoadingData(true)
@@ -1364,6 +1378,7 @@ export default function Availability() {
                               umpAvailMap={umpAvailMap}
                               myUmpResponseMap={myUmpResponseMap}
                               onResponseSaved={loadUmpAvailability}
+                              seasonId={activeSeason.id}
                             />
                           ))}
                         </div>
@@ -1389,6 +1404,7 @@ export default function Availability() {
                             umpAvailMap={umpAvailMap}
                             myUmpResponseMap={myUmpResponseMap}
                             onResponseSaved={loadUmpAvailability}
+                            seasonId={activeSeason.id}
                           />
                         ))}
                       </div>

@@ -763,8 +763,11 @@ export default function AvailabilityTab({ onSelectFixture }) {
       const profilesQ = supabase.from('profiles').select('id, full_name, team')
         .in('team', ['raising-bulls', 'royal-bulls']).order('full_name', { ascending: true })
 
-      if (activeSeason?.startDate) umpAssnQ = umpAssnQ.gte('date', activeSeason.startDate)
-      if (activeSeason?.endDate)   umpAssnQ = umpAssnQ.lte('date', activeSeason.endDate)
+      if (activeSeason?.id) {
+        umpAssnQ = isFirst
+          ? umpAssnQ.or(`season.eq.${activeSeason.id},season.is.null`)
+          : umpAssnQ.eq('season', activeSeason.id)
+      }
 
       if (effectiveFilter) {
         playingQ.eq('fixture_team', effectiveFilter)
@@ -801,10 +804,18 @@ export default function AvailabilityTab({ onSelectFixture }) {
       if (assnIds.length === 0) {
         setUmpResponses([])
       } else {
-        const { data: uaRows, error: uaErr } = await supabase
-          .from('umpiring_availability')
-          .select('*, profiles(full_name, email, team, role)')
-          .in('umpiring_assignment_id', assnIds)
+        const uaQ = isFirst
+          ? supabase
+              .from('umpiring_availability')
+              .select('*, profiles(full_name, email, team, role)')
+              .or(`season.eq.${activeSeason.id},season.is.null`)
+              .in('umpiring_assignment_id', assnIds)
+          : supabase
+              .from('umpiring_availability')
+              .select('*, profiles(full_name, email, team, role)')
+              .eq('season', activeSeason.id)
+              .in('umpiring_assignment_id', assnIds)
+        const { data: uaRows, error: uaErr } = await uaQ
         if (uaErr) throw uaErr
         setUmpResponses(uaRows || [])
       }

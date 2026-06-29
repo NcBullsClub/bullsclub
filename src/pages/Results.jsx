@@ -56,6 +56,96 @@ function formatDate(dateStr) {
   }
 }
 
+function parseMomStatPart(partRaw) {
+  const text = String(partRaw || '').trim()
+  if (!text) return null
+  const normalized = text
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const batting = normalized.match(/^(\d+)\s*\(\s*(\d+)\s*\)$/) || normalized.match(/(\d+)\s*\(\s*(\d+)\s*\)/)
+  if (batting) {
+    return { kind: 'batting', runs: batting[1], balls: batting[2] }
+  }
+
+  const bowlingHyphen = normalized.match(/^(\d+(?:\.\d+)?)\s*[-/]\s*(\d+)\s*[-/]\s*(\d+)\s*[-/]\s*(\d+)$/)
+  const bowlingSpace = normalized.match(/^(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+)\s+(\d+)$/)
+  const bowlingHint = /overs\s+maiden\s+runs\s+wickets/i.test(normalized)
+  const hintedNums = bowlingHint ? normalized.match(/(\d+(?:\.\d+)?)\s+(\d+)\s+(\d+)\s+(\d+)/) : null
+  const bowling = bowlingHyphen || bowlingSpace || hintedNums
+  if (bowling) {
+    return {
+      kind: 'bowling',
+      overs: bowling[1],
+      maiden: bowling[2],
+      runs: bowling[3],
+      wickets: bowling[4],
+    }
+  }
+
+  return { kind: 'text', text }
+}
+
+function parseMomStat(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return []
+
+  const normalized = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).join(' ')
+  const parts = normalized.split('&').map((p) => p.trim()).filter(Boolean)
+  if (parts.length > 1) {
+    return parts.map(parseMomStatPart).filter(Boolean)
+  }
+
+  const parsed = parseMomStatPart(normalized)
+  return parsed ? [parsed] : []
+}
+
+function MomStatBlock({ value, compact = false }) {
+  const parts = parseMomStat(value)
+  if (!parts.length || !value) return null
+
+  return (
+    <div className={`grid ${parts.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-1.5`}>
+      {parts.map((parsed, idx) => {
+        if (parsed.kind === 'bowling') {
+          return (
+            <div key={idx} className={`rounded-lg border border-gray-200 bg-gray-50 ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}>
+              <div className={`grid grid-cols-4 gap-x-2 uppercase tracking-wide text-gray-500 ${compact ? 'text-[8px]' : 'text-[10px]'} font-semibold`}>
+                <span className="text-center">Overs</span>
+                <span className="text-center">Mdn</span>
+                <span className="text-center">Runs</span>
+                <span className="text-center">Wkts</span>
+              </div>
+              <div className={`grid grid-cols-4 gap-x-2 font-mono font-bold text-gray-700 mt-0.5 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+                <span className="text-center">{parsed.overs}</span>
+                <span className="text-center">{parsed.maiden}</span>
+                <span className="text-center">{parsed.runs}</span>
+                <span className="text-center">{parsed.wickets}</span>
+              </div>
+            </div>
+          )
+        }
+
+        if (parsed.kind === 'batting') {
+          return (
+            <div key={idx} className={`rounded-lg border border-gray-200 bg-gray-50 ${compact ? 'px-2 py-1.5' : 'px-3 py-2'}`}>
+              <div className={`uppercase tracking-wide text-gray-500 ${compact ? 'text-[8px]' : 'text-[10px]'} font-semibold`}>
+                Runs (Balls)
+              </div>
+              <div className={`font-mono font-bold text-gray-700 mt-0.5 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+                {parsed.runs} ({parsed.balls})
+              </div>
+            </div>
+          )
+        }
+
+        return <div key={idx} className={`${compact ? 'text-[9px]' : 'text-xs'} text-gray-500`}>{parsed.text}</div>
+      })}
+    </div>
+  )
+}
+
 export default function Results() {
   const { user } = useAuth()
   const { activeSeason } = useSeason()
@@ -73,15 +163,14 @@ export default function Results() {
     setLoading(true)
     const isFirst = activeSeason.id === SEASONS[0].id
     Promise.all([
-      // First season also matches un-tagged rows (season IS NULL) for backward compat
+      supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
+      supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
       isFirst
-        ? supabase.from('match_results').select('*').eq('team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`).order('fixture_date', { ascending: false })
-        : supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
+        ? supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
+        : supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).eq('season', activeSeason.id),
       isFirst
-        ? supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
-        : supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
-      supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter),
-      supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter),
+        ? supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
+        : supabase.from('umpiring_availability').select('user_id, umpiring_assignment_id, status, ncb_team').eq('status', 'in').eq('ncb_team', teamFilter).eq('season', activeSeason.id),
       supabase.from('profiles').select('id, full_name, team').eq('team', teamFilter),
     ]).then(([{ data: resData }, { data: fixData }, { data: assgnData }, { data: availData }, { data: playersData }]) => {
       setResults(resData || [])
@@ -374,7 +463,7 @@ export default function Results() {
                             <span className="text-[10px] flex-shrink-0">🏆</span>
                             <div className="min-w-0">
                               <div className="text-[10px] font-semibold text-primary truncate">{r.mom}</div>
-                              {r.mom_stat && <div className="text-[9px] text-gray-400 truncate">{r.mom_stat}</div>}
+                              {r.mom_stat && <div className="mt-1"><MomStatBlock value={r.mom_stat} compact /></div>}
                             </div>
                           </div>
                         </div>
@@ -477,11 +566,13 @@ export default function Results() {
 
                         {/* MoM */}
                         {r.mom && (
-                          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3 text-sm">
-                            <span className="text-base">🏆</span>
-                            <span className="text-gray-500">Man of the Match:</span>
-                            <span className="font-semibold text-primary">{r.mom}</span>
-                            {r.mom_stat && <span className="text-gray-400">— {r.mom_stat}</span>}
+                          <div className="mt-4 pt-4 border-t border-gray-100">
+                            <div className="flex items-center gap-3 text-sm">
+                              <span className="text-base">🏆</span>
+                              <span className="text-gray-500">Man of the Match:</span>
+                              <span className="font-semibold text-primary">{r.mom}</span>
+                            </div>
+                            {r.mom_stat && <div className="mt-2 ml-8"><MomStatBlock value={r.mom_stat} /></div>}
                           </div>
                         )}
                       </div>

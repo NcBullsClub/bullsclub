@@ -27,12 +27,23 @@ CREATE INDEX IF NOT EXISTS match_results_season_idx ON match_results(season);
 
 -- Back-fill results that match existing fixtures
 UPDATE match_results mr
-SET season = f.season
-FROM fixtures f
-WHERE f.date    = mr.fixture_date
-  AND f.team    = mr.team
-  AND mr.season IS NULL
-  AND f.season  IS NOT NULL;
+SET season = COALESCE(
+  (
+    SELECT f.season
+    FROM fixtures f
+    WHERE f.date = mr.fixture_date
+      AND f.team = mr.team
+    ORDER BY f.date DESC
+    LIMIT 1
+  ),
+  CASE
+    WHEN mr.fixture_date BETWEEN DATE '2026-03-01' AND DATE '2026-06-30' THEN 'mega-bash-26'
+    WHEN mr.fixture_date BETWEEN DATE '2026-07-01' AND DATE '2026-09-15' THEN 'mega-smash-26'
+    WHEN mr.fixture_date BETWEEN DATE '2026-09-16' AND DATE '2026-12-31' THEN 'winter-26'
+    ELSE mr.season
+  END
+)
+WHERE mr.season IS NULL;
 
 -- ── 4. (Optional) RLS updates — no changes needed ────────────────────────────
 -- Existing policies already restrict write access to admins and read to everyone.

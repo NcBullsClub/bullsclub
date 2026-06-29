@@ -86,6 +86,7 @@ export default function PlayerFinances() {
         supabase
           .from('umpiring_assignments')
           .select('id, date, time, match_visitor, match_home, venue, ncb_team')
+          .or(seasonId === 'mega-bash-26' ? `season.eq.${seasonId},season.is.null` : `season.eq.${seasonId}`)
           .order('date', { ascending: false }),
         supabase
           .from('player_finance_entries')

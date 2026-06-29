@@ -28,7 +28,8 @@ function getSeasonTagText(seasonId) {
 function normalizeFixtureType(value) {
   const v = String(value || '').trim().toLowerCase()
   if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
-  if (v === 'playoff' || v === 'playoffs') return 'Playoffs'
+  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
+  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
   if (v === 'championship' || v === 'final') return 'Championship'
   return 'League'
 }

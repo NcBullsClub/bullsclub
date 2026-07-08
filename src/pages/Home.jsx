@@ -5,11 +5,32 @@ import logo from '../assets/images/cropped_no bg_nc_bulls_club_logo.png'
 import { supabase } from '../lib/supabase'
 import { turso } from '../lib/turso'
 import sponsors from '../data/sponsors.json'
+import { SEASONS } from '../config/seasons'
 
 function isWon(r) {
   if (!r.result) return false
   const label = r.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
   return r.result.toLowerCase().includes(label.toLowerCase())
+}
+
+function normalizeFixtureType(value) {
+  const v = String(value || '').trim().toLowerCase()
+  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
+  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
+  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  return 'League'
+}
+
+function getSeasonTagText(seasonId, date) {
+  if (seasonId) {
+    const season = SEASONS.find((s) => s.id === seasonId)
+    if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
+    return String(seasonId).replace(/-/g, ' ')
+  }
+  const fallbackYear = String(date || '').slice(0, 4)
+  if (fallbackYear) return `Season '${fallbackYear.slice(-2)}`
+  return 'Season TBD'
 }
 
 function CountUp({ end, duration = 2000, suffix = '' }) {
@@ -210,6 +231,8 @@ export default function Home() {
               <div className="sm:hidden space-y-2.5">
                 {upcomingRB.map((f, i) => {
                   const d = new Date(f.date.replace(/-/g, '/'))
+                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
                     <motion.div key={f.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
@@ -228,6 +251,14 @@ export default function Home() {
                         <div className="text-xs text-gray-400 truncate">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
                         <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-primary-dark bg-accent/15 border border-accent/50 px-2 py-0.5 rounded-full">
                           {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+                        <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
+                          {fixtureTypeTag}
+                        </span>
+                        <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                          {seasonTag}
                         </span>
                       </div>
                       {/* Row 3: CTAs */}
@@ -255,6 +286,8 @@ export default function Home() {
               {/* Desktop: grid cards */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRB.map((f, i) => {
+                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
                   <Link key={f.id} to="/fixtures">
@@ -273,6 +306,14 @@ export default function Home() {
                       <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
+                          {fixtureTypeTag}
+                        </span>
+                        <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                          {seasonTag}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                       <Link
@@ -312,6 +353,8 @@ export default function Home() {
               <div className="sm:hidden space-y-2.5">
                 {upcomingRY.map((f, i) => {
                   const d = new Date(f.date.replace(/-/g, '/'))
+                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
                     <motion.div key={f.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
@@ -330,6 +373,14 @@ export default function Home() {
                         <div className="text-xs text-gray-400 truncate">📍 {f.venue}{f.time ? ` · ${f.time}` : ''}</div>
                         <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
                           {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
+                        <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-full">
+                          {fixtureTypeTag}
+                        </span>
+                        <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                          {seasonTag}
                         </span>
                       </div>
                       {/* Row 3: CTAs */}
@@ -357,6 +408,8 @@ export default function Home() {
               {/* Desktop: grid cards */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRY.map((f, i) => {
+                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
                   <Link key={f.id} to="/fixtures">
@@ -375,6 +428,14 @@ export default function Home() {
                       <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
                         <span className="mt-0.5">📍</span>
                         <span className="truncate">{f.venue}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-full">
+                          {fixtureTypeTag}
+                        </span>
+                        <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                          {seasonTag}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                       <Link

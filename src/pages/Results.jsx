@@ -56,6 +56,22 @@ function formatDate(dateStr) {
   }
 }
 
+function getSeasonTagText(seasonId) {
+  if (!seasonId) return 'Season TBD'
+  const season = SEASONS.find((s) => s.id === seasonId)
+  if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
+  return String(seasonId).replace(/-/g, ' ')
+}
+
+function normalizeFixtureType(value) {
+  const v = String(value || '').trim().toLowerCase()
+  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
+  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
+  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
+  if (v === 'championship' || v === 'final') return 'Championship'
+  return 'League'
+}
+
 function parseMomStatPart(partRaw) {
   const text = String(partRaw || '').trim()
   if (!text) return null
@@ -164,7 +180,7 @@ export default function Results() {
     const isFirst = activeSeason.id === SEASONS[0].id
     Promise.all([
       supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
-      supabase.from('fixtures').select('id, date, team, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
+      supabase.from('fixtures').select('id, date, team, season, type, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
       isFirst
         ? supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
         : supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).eq('season', activeSeason.id),
@@ -327,6 +343,8 @@ export default function Results() {
                 const teamLabel = r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
                 const dt        = formatDate(r.fixture_date)
                 const fixture   = fixtureMap[`${r.fixture_date}::${r.team}`]
+                const seasonTag = getSeasonTagText(r.season || fixture?.season || activeSeason?.id)
+                const fixtureTypeTag = normalizeFixtureType(fixture?.type || r.type || r.match_type || r.fixture_type)
                 const umpires   = fixture
                   ? [fixture.umpire1_team, fixture.umpire2_team].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' & ')
                   : null
@@ -345,7 +363,7 @@ export default function Results() {
                     transition={{ delay: i * 0.05 }}
                   >
                     {/* ── Mobile card ── */}
-                    <div className={`sm:hidden bg-white rounded-2xl overflow-hidden border border-gray-100 border-l-4 ${borderColor}`}>
+                    <div className={`sm:hidden bg-white rounded-2xl overflow-hidden border border-black border-l-4 ${borderColor}`}>
 
                       {/* Row 1: badge + match title + date */}
                       <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
@@ -361,6 +379,8 @@ export default function Results() {
                               {r.format || (r.team === 'raising-bulls' ? 'Div5' : 'Div9')}
                             </span>
                             {r.format && <span className="text-[9px] font-bold bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full">{r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>}
+                            <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">{fixtureTypeTag}</span>
+                            <span className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{seasonTag}</span>
                           </div>
                         </div>
                         <div className="flex-shrink-0 text-right">
@@ -461,8 +481,11 @@ export default function Results() {
                         <div className="border-t border-gray-100 px-3 py-2">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="text-[10px] flex-shrink-0">🏆</span>
-                            <div className="min-w-0">
-                              <div className="text-[10px] font-semibold text-primary truncate">{r.mom}</div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[10px] truncate">
+                                <span className="text-gray-400">Player of the Match:</span>{' '}
+                                <span className="text-xs font-bold text-primary">{r.mom}</span>
+                              </div>
                               {r.mom_stat && <div className="mt-1"><MomStatBlock value={r.mom_stat} compact /></div>}
                             </div>
                           </div>
@@ -471,7 +494,7 @@ export default function Results() {
                     </div>
 
                     {/* ── Desktop card ── */}
-                    <div className={`hidden sm:block bg-white rounded-2xl border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all ${borderColor}`}>
+                    <div className={`hidden sm:block bg-white rounded-2xl border border-black border-l-4 overflow-hidden shadow-sm hover:shadow-md transition-all ${borderColor}`}>
                       <div className="p-5 md:p-6">
                         <div className="flex items-start gap-4">
                           {/* W/L/~ badge */}
@@ -489,6 +512,8 @@ export default function Results() {
                                 <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.format}</span>
                               )}
                               <span className="text-xs bg-gray-100 text-gray-400 px-2.5 py-1 rounded-full">{r.team === 'raising-bulls' ? 'Div5' : 'Div9'}</span>
+                              <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{fixtureTypeTag}</span>
+                              <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">{seasonTag}</span>
                             </div>
                             <h3 className="font-display font-bold text-primary text-xl mb-1">
                               {teamLabel} vs {r.opponent}
@@ -569,7 +594,7 @@ export default function Results() {
                           <div className="mt-4 pt-4 border-t border-gray-100">
                             <div className="flex items-center gap-3 text-sm">
                               <span className="text-base">🏆</span>
-                              <span className="text-gray-500">Man of the Match:</span>
+                              <span className="text-gray-500">Player of the Match:</span>
                               <span className="font-semibold text-primary">{r.mom}</span>
                             </div>
                             {r.mom_stat && <div className="mt-2 ml-8"><MomStatBlock value={r.mom_stat} /></div>}

@@ -4,7 +4,9 @@ import { motion } from 'framer-motion'
 import logo from '../assets/images/cropped_no bg_nc_bulls_club_logo.png'
 import { supabase } from '../lib/supabase'
 import { turso } from '../lib/turso'
+import { useAuth } from '../contexts/AuthContext'
 import sponsors from '../data/sponsors.json'
+import newsData from '../data/news.json'
 import { SEASONS } from '../config/seasons'
 
 function isWon(r) {
@@ -33,24 +35,55 @@ function getSeasonTagText(seasonId, date) {
   return 'Season TBD'
 }
 
+function normalizeNewsRow(r) {
+  return {
+    id: r.id,
+    title: r.title,
+    slug: r.slug,
+    excerpt: r.excerpt || r.summary || '',
+    date: r.date || r.published_at?.split('T')[0] || '',
+    cover_image_url: r.cover_image_url || r.image || '',
+  }
+}
+
+function getFallbackLatestNews(limit = 3) {
+  return (newsData || [])
+    .map(normalizeNewsRow)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+    .slice(0, limit)
+}
+
 function CountUp({ end, duration = 2000, suffix = '' }) {
   const [count, setCount] = useState(0)
   const ref = useRef(null)
-  const started = useRef(false)
+  const countRef = useRef(0)
 
   useEffect(() => {
+    countRef.current = count
+  }, [count])
+
+  useEffect(() => {
+    const animateTo = (target) => {
+      const from = Number.isFinite(countRef.current) ? countRef.current : 0
+      const to = Number.isFinite(target) ? target : 0
+      const startTime = performance.now()
+
+      const tick = (now) => {
+        const elapsed = now - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const next = Math.floor(from + (to - from) * progress)
+        setCount(next)
+        if (progress < 1) requestAnimationFrame(tick)
+      }
+
+      requestAnimationFrame(tick)
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true
-          const startTime = performance.now()
-          const tick = (now) => {
-            const elapsed = now - startTime
-            const progress = Math.min(elapsed / duration, 1)
-            setCount(Math.floor(progress * end))
-            if (progress < 1) requestAnimationFrame(tick)
-          }
-          requestAnimationFrame(tick)
+        if (entry.isIntersecting) {
+          animateTo(end)
+          observer.disconnect()
         }
       },
       { threshold: 0.5 }
@@ -68,6 +101,7 @@ const teamData = {
 }
 
 export default function Home() {
+  const { loading: authLoading, lastAuthEvent } = useAuth()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -77,9 +111,11 @@ export default function Home() {
 
   const [latestRBResults, setLatestRBResults] = useState([])
   const [latestRYResults, setLatestRYResults] = useState([])
+  const [resultsEnteredCount, setResultsEnteredCount] = useState(0)
   const [rbWins, setRbWins] = useState(0)
   const [ryWins, setRyWins] = useState(0)
   const totalWins = rbWins + ryWins
+  const matchesPlayedTotal = 170 + resultsEnteredCount
   const [latestNews, setLatestNews] = useState([])
 
   useEffect(() => {
@@ -90,32 +126,53 @@ export default function Home() {
   useEffect(() => {
     turso.execute("SELECT id, title, slug, summary, published_at, cover_image_url FROM news WHERE status='published' ORDER BY published_at DESC LIMIT 3")
       .then(({ rows }) => {
-        setLatestNews(rows.map(r => ({
-          id: r.id,
-          title: r.title,
-          slug: r.slug,
-          excerpt: r.summary,
-          date: r.published_at?.split('T')[0] ?? '',
-          cover_image_url: r.cover_image_url ?? '',
-        })))
+        const normalized = (rows || []).map(normalizeNewsRow)
+        setLatestNews(normalized.length > 0 ? normalized : getFallbackLatestNews(3))
+      })
+      .catch(() => {
+        setLatestNews(getFallbackLatestNews(3))
       })
   }, [])
 
   useEffect(() => {
-    supabase
-      .from('match_results')
-      .select('id, fixture_date, team, opponent, venue, result, ncb_score, opp_score')
-      .order('fixture_date', { ascending: false })
-      .then(({ data }) => {
+    if (authLoading) return
+
+    let cancelled = false
+
+    const loadResults = async (attempt = 0) => {
+      try {
+        const { data, error } = await supabase
+          .from('match_results')
+          .select('*')
+          .order('fixture_date', { ascending: false })
+
+        if (error) {
+          if (!cancelled && attempt < 2) {
+            setTimeout(() => { loadResults(attempt + 1) }, 900)
+          }
+          return
+        }
+
+        if (cancelled) return
+
         const all = data || []
-        const rb = all.filter(r => r.team === 'raising-bulls')
-        const ry = all.filter(r => r.team === 'royal-bulls')
+        setResultsEnteredCount(all.length)
+        const rb = all.filter((r) => r.team === 'raising-bulls')
+        const ry = all.filter((r) => r.team === 'royal-bulls')
         setLatestRBResults(rb.slice(0, 3))
         setLatestRYResults(ry.slice(0, 3))
         setRbWins(rb.filter(isWon).length)
         setRyWins(ry.filter(isWon).length)
-      })
-  }, [])
+      } catch {
+        if (!cancelled && attempt < 2) {
+          setTimeout(() => { loadResults(attempt + 1) }, 900)
+        }
+      }
+    }
+
+    loadResults()
+    return () => { cancelled = true }
+  }, [authLoading, lastAuthEvent])
 
   return (
     <div>
@@ -193,8 +250,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             {[
-              { label: 'Total Players', value: 119, suffix: '+' },
-              { label: 'Matches Played', value: 170, suffix: '+' },
+              { label: 'Total Players', value: 121, suffix: '+' },
+              { label: 'Matches Played', value: matchesPlayedTotal, suffix: '+' },
               { label: 'Wins This Season', value: totalWins, suffix: '' },
               { label: 'Years in Cricket', value: 4, suffix: '+' },
             ].map((stat) => (
@@ -495,9 +552,14 @@ export default function Home() {
                     No results yet this season
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4 sm:space-y-3">
                     {results.map((r, i) => (
-                      <Link key={r.id} to="/results">
+                      <Link key={r.id} to="/results" className="block">
+                      {(() => {
+                        const fixture = allFixtures.find((f) => f.date === r.fixture_date && f.team === r.team)
+                        const matchTypeTag = normalizeFixtureType(fixture?.type || r.type || r.match_type || r.fixture_type)
+                        const seasonTag = getSeasonTagText(r.season || fixture?.season, r.fixture_date)
+                        return (
                       <motion.div
                         initial={{ opacity: 0, x: -16 }}
                         whileInView={{ opacity: 1, x: 0 }}
@@ -510,10 +572,24 @@ export default function Home() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-gray-800 text-xs sm:text-sm truncate">vs {r.opponent}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            {r.venue && <span className="hidden sm:inline"> · {r.venue}</span>}
+                          <div className="flex items-center gap-1.5 mt-0.5 min-w-0 overflow-hidden">
+                            <span className="text-xs text-gray-400 truncate">
+                              {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {r.venue && <span className="hidden sm:inline"> · {r.venue}</span>}
+                            </span>
+                            <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
+                              {matchTypeTag}
+                            </span>
+                            <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                              {seasonTag}
+                            </span>
                           </div>
+                          {r.mom && (
+                            <div className="text-[10px] sm:text-xs mt-1 line-clamp-1">
+                              <span className="text-gray-400">Player of the Match:</span>{' '}
+                              <span className="font-bold text-primary">{r.mom}</span>
+                            </div>
+                          )}
                           {r.result && (
                             <div className={`text-xs font-medium mt-0.5 line-clamp-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
                           )}
@@ -525,6 +601,8 @@ export default function Home() {
                           </div>
                         )}
                       </motion.div>
+                        )
+                      })()}
                       </Link>
                     ))}
                   </div>

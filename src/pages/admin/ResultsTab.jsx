@@ -401,7 +401,7 @@ export default function ResultsTab() {
                 className="border border-gray-300 rounded-xl px-3.5 sm:px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <input
-                placeholder="Man of the Match name"
+                placeholder="Player of the Match name"
                 value={form.mom}
                 onChange={(e) => setForm((f) => ({ ...f, mom: e.target.value }))}
                 className="border border-gray-300 rounded-xl px-3.5 sm:px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"

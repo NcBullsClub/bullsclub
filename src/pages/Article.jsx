@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { turso } from '../lib/turso'
+import newsData from '../data/news.json'
 
 const TAG_ICONS = {
   'match report':   '🏏',
@@ -54,6 +55,25 @@ function renderInline(text) {
 function tagWithIcon(tag) {
   const icon = TAG_ICONS[tag.toLowerCase().trim()]
   return icon ? `${icon} ${tag}` : tag
+}
+
+function normalizeArticleRow(r) {
+  const tagValue = Array.isArray(r.tags)
+    ? r.tags
+    : (() => {
+      try {
+        return r.tags ? JSON.parse(r.tags) : []
+      } catch {
+        return []
+      }
+    })()
+
+  return {
+    ...r,
+    date: r.date || r.published_at?.split('T')[0] || '',
+    tags: tagValue,
+    cover_image_url: r.cover_image_url || r.image || '',
+  }
 }
 
 /* ── Share button ────────────────────────────────────── */
@@ -173,16 +193,21 @@ export default function Article() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fallback = (targetSlug) => {
+      const found = (newsData || []).find((n) => n.slug === targetSlug)
+      if (found) setArticle(normalizeArticleRow(found))
+    }
+
     turso.execute({ sql: 'SELECT * FROM news WHERE slug=? LIMIT 1', args: [slug] })
       .then(({ rows }) => {
         if (rows.length > 0) {
-          const r = rows[0]
-          setArticle({
-            ...r,
-            date: r.published_at?.split('T')[0] ?? '',
-            tags: r.tags ? JSON.parse(r.tags) : [],
-          })
+          setArticle(normalizeArticleRow(rows[0]))
+        } else {
+          fallback(slug)
         }
+      })
+      .catch(() => {
+        fallback(slug)
       })
       .finally(() => setLoading(false))
   }, [slug])

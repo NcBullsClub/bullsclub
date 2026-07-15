@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { turso } from '../lib/turso'
+import newsData from '../data/news.json'
 
 /* ── Inline share button for cards ──────────────────── */
 function CardShare({ slug, title }) {
@@ -138,6 +139,32 @@ function tagWithIcon(tag) {
   return icon ? `${icon} ${tag}` : tag
 }
 
+function normalizeNewsRow(r) {
+  const tagValue = Array.isArray(r.tags)
+    ? r.tags
+    : (() => {
+      try {
+        return r.tags ? JSON.parse(r.tags) : []
+      } catch {
+        return []
+      }
+    })()
+
+  return {
+    ...r,
+    date: r.date || r.published_at?.split('T')[0] || '',
+    excerpt: r.excerpt || r.summary || '',
+    cover_image_url: r.cover_image_url || r.image || '',
+    tags: tagValue,
+  }
+}
+
+function getFallbackNews() {
+  return (newsData || [])
+    .map(normalizeNewsRow)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+}
+
 export default function News() {
   const [news, setNews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -145,12 +172,11 @@ export default function News() {
   useEffect(() => {
     turso.execute("SELECT * FROM news WHERE status='published' ORDER BY published_at DESC")
       .then(({ rows }) => {
-        setNews(rows.map((r) => ({
-          ...r,
-          date: r.published_at?.split('T')[0] ?? '',
-          excerpt: r.summary,
-          tags: r.tags ? JSON.parse(r.tags) : [],
-        })))
+        const normalized = (rows || []).map(normalizeNewsRow)
+        setNews(normalized.length > 0 ? normalized : getFallbackNews())
+      })
+      .catch(() => {
+        setNews(getFallbackNews())
       })
       .finally(() => setLoading(false))
   }, [])

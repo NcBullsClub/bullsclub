@@ -11,6 +11,7 @@ FROM profiles
 WHERE availability.user_id = profiles.id;
 
 -- Change foreign key to not cascade delete (preserve availability records)
+ALTER TABLE availability ALTER COLUMN user_id DROP NOT NULL;
 ALTER TABLE availability DROP CONSTRAINT IF EXISTS availability_user_id_fkey;
 ALTER TABLE availability ADD CONSTRAINT availability_user_id_fkey
   FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL;
@@ -25,6 +26,7 @@ FROM profiles
 WHERE umpiring_availability.user_id = profiles.id;
 
 -- Change foreign key to not cascade delete
+ALTER TABLE umpiring_availability ALTER COLUMN user_id DROP NOT NULL;
 ALTER TABLE umpiring_availability DROP CONSTRAINT IF EXISTS umpiring_availability_user_id_fkey;
 ALTER TABLE umpiring_availability ADD CONSTRAINT umpiring_availability_user_id_fkey
   FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL;

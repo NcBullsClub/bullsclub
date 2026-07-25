@@ -32,6 +32,9 @@ jobs:
           VITE_TURSO_DB_URL: ${{ secrets.VITE_TURSO_DB_URL }}
           VITE_TURSO_DB_AUTH_TOKEN: ${{ secrets.VITE_TURSO_DB_AUTH_TOKEN }}
 
+      - name: Add custom domain
+        run: echo "ncbullscricketclub.com" > dist/CNAME
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:

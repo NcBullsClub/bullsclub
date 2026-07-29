@@ -21,6 +21,7 @@ function NavIcon({ name, className = 'w-5 h-5' }) {
     Finances: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
     Availability: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
     Contacts: 'M2.25 6.75a3 3 0 013-3h13.5a3 3 0 013 3v10.5a3 3 0 01-3 3H5.25a3 3 0 01-3-3V6.75zm3.75 2.25L12 13.5l6-4.5',
+    Jerseys: 'M6.75 3.75L12 6.75l5.25-3 3.75 3v13.5H3V6.75l3.75-3zM12 6.75v13.5',
     'Join Us': 'M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z',
     Clubhouse: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
     Admin: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
@@ -48,6 +49,7 @@ const NAV_ICONS = {
   'Finances':     { emoji: '💰', bg: 'bg-emerald-600' },
   'Availability': { emoji: '✅', bg: 'bg-green-600',imgSrc: '/icons/availability-icon.svg' },
   'Contacts':     { emoji: '📇', bg: 'bg-sky-600', imgSrc: '/icons/contacts-list.svg' },
+  'Jerseys':      {emoji: '👕',bg:'bg-accent'},
   'Join Us':      { emoji: '🏏', bg: 'bg-accent' },
   'Clubhouse':    { emoji: '🏡', bg: 'bg-amber-500' },
   'Admin':        { emoji: '🛡️', bg: 'bg-gray-700',imgSrc: '/icons/adminpanel-icon.svg' },
@@ -89,6 +91,7 @@ const mobileNavItems = [
   { path: '/finances', label: 'Finances', requiresAuth: true },
   { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contacts', label: 'Contacts', requiresAuth: true },
+  { path: '/jersey', label: 'Jerseys', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
 
@@ -112,6 +115,7 @@ const desktopNavItems = [
   { path: '/finances', label: 'Finances', requiresAuth: true },
   { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contacts', label: 'Contacts', requiresAuth: true },
+  { path: '/jersey', label: 'Jerseys', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
 

@@ -82,24 +82,35 @@ export default function Sponsors() {
                 </div>
                 <div className={`grid gap-4 ${tier === 'Gold' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
                   {tierSponsors.map((s, i) => (
-                    <motion.div
+                    <motion.a
                       key={s.id}
+                      href={s.website || '#'}
+                      target={s.website ? "_blank" : undefined}
+                      rel={s.website ? "noopener noreferrer" : undefined}
                       initial={{ opacity: 0, scale: 0.95 }}
                       whileInView={{ opacity: 1, scale: 1 }}
                       viewport={{ once: true }}
                       transition={{ delay: i * 0.1 }}
-                      className={`border-2 rounded-2xl p-4 sm:p-6 text-center hover:shadow-md transition-all ${style.bg}`}
+                      className={`block border-2 rounded-2xl p-4 sm:p-6 text-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer ${style.bg}`}
                     >
-                      <div className="h-14 sm:h-20 flex items-center justify-center mb-3">
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-xl sm:text-2xl font-bold">
-                          {s.name[0]}
-                        </div>
+                      <div className="h-16 sm:h-24 flex items-center justify-center mb-3">
+                        {s.logo ? (
+                          <img 
+                            src={s.logo} 
+                            alt={`${s.name} logo`} 
+                            className="max-w-full max-h-full object-contain drop-shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-xl sm:text-2xl font-bold">
+                            {s.name[0]}
+                          </div>
+                        )}
                       </div>
                       <h3 className="font-display font-bold text-primary text-sm sm:text-base">{s.name}</h3>
                       <span className={`inline-block mt-2 text-xs font-medium px-2.5 py-1 rounded-full ${style.badge}`}>
                         {style.label}
                       </span>
-                    </motion.div>
+                    </motion.a>
                   ))}
                 </div>
               </motion.div>

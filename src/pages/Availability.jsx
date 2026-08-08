@@ -42,6 +42,30 @@ function normalizeDivisionLabel(value) {
   return raw
 }
 
+function getPaymentSummary(finance, fallbackAmount = 120) {
+  const parsedAmount = Number(finance?.amountDue ?? finance?.amount_due ?? 0)
+  const isPaid = !!finance?.paid
+
+  if (isPaid && parsedAmount >= fallbackAmount) {
+    return { isPaid: true, remaining: 0, label: 'Season Fee Paid' }
+  }
+
+  if (isPaid && Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount < fallbackAmount) {
+    return {
+      isPaid: false,
+      remaining: fallbackAmount - parsedAmount,
+      label: 'Partial payment',
+    }
+  }
+
+  const remaining = Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : fallbackAmount
+  return {
+    isPaid: false,
+    remaining,
+    label: remaining < fallbackAmount ? 'Remaining balance' : 'Season Fee Unpaid',
+  }
+}
+
 const STATUS_OPTIONS = [
   {
     value: 'in',
@@ -113,6 +137,9 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
   const key = `${fixture.date}::${fixture.team}`
   const counts = availabilityMap[key] || { in: 0, out: 0, maybe: 0, players: [] }
   const myResponse = userResponseMap[key]
+  const paymentSummary = getPaymentSummary(myPaymentFinance, 120)
+  const isPartialPayment = !paymentSummary.isPaid && paymentSummary.remaining > 0 && paymentSummary.remaining < 120
+  const isFullUnpaid = !paymentSummary.isPaid && paymentSummary.remaining >= 120
 
   const [status, setStatus] = useState(myResponse?.status || '')
   const [notes, setNotes]   = useState(myResponse?.notes  || '')
@@ -405,10 +432,10 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
         )}
 
         {/* ── PAYMENT BANNER: only shown when fee is unpaid */}
-        {user && profile?.team === fixture.team && !isPast && financeLoaded && !myPaymentFinance?.paid && (
-          <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-300 shadow-sm">
+        {user && profile?.team === fixture.team && !isPast && financeLoaded && !paymentSummary.isPaid && (
+          <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl border shadow-sm ${isPartialPayment ? 'bg-amber-50 border-amber-300' : 'bg-red-50 border-red-300'}`}>
             {/* Banknotes icon */}
-            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
+            <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${isPartialPayment ? 'bg-amber-500' : 'bg-red-500'} flex items-center justify-center shadow-sm`}>
               <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 7.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
                 <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 0 1 1.5 14.625v-9.75ZM8.25 9.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM18.75 9a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V9.75a.75.75 0 0 0-.75-.75h-.008ZM4.5 9.75A.75.75 0 0 1 5.25 9h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V9.75Z" clipRule="evenodd" />
@@ -416,13 +443,19 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-amber-900 leading-tight">Season Fee Unpaid</p>
-              <p className="text-[10px] text-amber-600 mt-0.5">Contact your admin to settle payment</p>
+              <p className={`text-xs font-bold leading-tight ${isPartialPayment ? 'text-amber-900' : 'text-red-800'}`}>
+                {isPartialPayment ? 'Partial Payment' : 'Season Fee Unpaid'}
+              </p>
+              <p className={`text-[10px] mt-0.5 ${isPartialPayment ? 'text-amber-700' : 'text-red-600'}`}>
+                {isPartialPayment ? 'Pay the remaining balance to complete the season fee' : 'Contact your admin to settle payment'}
+              </p>
             </div>
             <div className="flex-shrink-0">
-              <span className="inline-flex items-baseline gap-0.5 bg-red-500 text-white px-2.5 py-1 rounded-lg shadow-sm">
-                <span className="text-sm font-black tabular-nums">{formatMoney(myPaymentFinance?.amountDue ?? 120)}</span>
-                <span className="text-[9px] font-semibold uppercase tracking-wide ml-0.5">due</span>
+              <span className={`inline-flex items-baseline gap-0.5 text-white px-2.5 py-1 rounded-lg shadow-sm ${isPartialPayment ? 'bg-amber-500' : 'bg-red-500'}`}>
+                <span className="text-sm font-black tabular-nums">{formatMoney(paymentSummary.remaining)}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-wide ml-0.5">
+                  {isPartialPayment ? 'remaining' : 'due'}
+                </span>
               </span>
             </div>
           </div>
@@ -1024,6 +1057,7 @@ export default function Availability() {
     // default to unpaid and expected due if loaded but no record found
     return k !== undefined ? financeMap[k] : { paid: false, amountDue: 120 }
   })()
+  const paymentSummary = getPaymentSummary(myPaymentFinance, 120)
 
   return (
     <div>
@@ -1152,18 +1186,22 @@ export default function Availability() {
                 {/* Payment status tag for the logged-in player */}
                 {myPaymentFinance !== undefined && (
                   <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-4 py-1.5 rounded-full ${
-                    myPaymentFinance.paid
+                    paymentSummary.isPaid
                       ? 'bg-green-500 text-white'
-                      : 'bg-red-500 text-white'
+                      : paymentSummary.remaining > 0 && paymentSummary.remaining < 120
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-red-500 text-white'
                   }`}>
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 7.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z" />
                       <path fillRule="evenodd" d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 0 1 1.5 14.625v-9.75ZM8.25 9.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM18.75 9a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V9.75a.75.75 0 0 0-.75-.75h-.008ZM4.5 9.75A.75.75 0 0 1 5.25 9h.008a.75.75 0 0 1 .75.75v.008a.75.75 0 0 1-.75.75H5.25a.75.75 0 0 1-.75-.75V9.75Z" clipRule="evenodd" />
                       <path d="M2.25 18a.75.75 0 0 0 0 1.5c5.4 0 10.63.722 15.6 2.075 1.19.324 2.4-.558 2.4-1.82V18.75a.75.75 0 0 0-.75-.75H2.25Z" />
                     </svg>
-                    {myPaymentFinance.paid
-                      ? `${formatMoney(myPaymentFinance.amountDue)} · Season Fee Paid`
-                      : `${formatMoney(myPaymentFinance.amountDue)} Due · Season Fee Unpaid`}
+                    {paymentSummary.isPaid
+                      ? 'Season Fee Paid'
+                      : paymentSummary.remaining > 0 && paymentSummary.remaining < 120
+                        ? `${formatMoney(paymentSummary.remaining)} Remaining · Partial Payment`
+                        : `${formatMoney(paymentSummary.remaining)} Due · Season Fee Unpaid`}
                   </span>
                 )}
               </div>

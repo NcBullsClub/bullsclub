@@ -21,7 +21,8 @@ const milestones = [
   { year: '2023', event: 'Spring, Summer, Fall & Winter titles — Raising Bulls dominate all four seasons.' },
   { year: '2024', event: 'Winter Champions — another title added to the cabinet.' },
   { year: '2025', event: 'Triple honour: Smash Table Toppers, Winter Table Toppers & Finalists, APEX Table Toppers & Finalists.' },
-  { year: '2026', event: '2026 Mega Bash underway — aiming for more silverware.' },
+  { year: '2026', event: '2026 Mega Bash Champions — Raising Bulls.' },
+  { year: '2026', event: '2026 Mega Smash underway — aiming for more silverware.' }
 ]
 
 const values = [
@@ -80,7 +81,7 @@ export default function About() {
               </div>
               <div className="space-y-2 md:space-y-3">
                 {[
-                  { icon: '🏆', count: '3', label: 'Champions' },
+                  { icon: '🏆', count: '4', label: 'Champions' },
                   { icon: '⭐', count: '4', label: 'Table Toppers' },
                   { icon: '🥈', count: '3', label: 'Runners-Up' },
                 ].map((item) => (

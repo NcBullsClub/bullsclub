@@ -14,6 +14,7 @@ import ClubhouseEventsTab  from './admin/ClubhouseEventsTab'
 import ClubhouseGalleryTab from './admin/ClubhouseGalleryTab'
 import FixturesTab         from './admin/FixturesTab'
 import UsersTab            from './admin/UsersTab'
+import AnalyticsTab        from './admin/AnalyticsTab'
 
 const SEASON_TABS = new Set(['availability', 'fixtures', 'results', 'finances'])
 const ROW1 = [
@@ -25,9 +26,10 @@ const ROW1 = [
 // Row 2 — management tools
 const ROW2_BASE = [
   { id: 'access',     label: 'Access',        icon: '🔑', short: 'Access'    },
-  { id: 'roster',     label: 'Player Roster',  icon: '👥', short: 'Roster'    },
-  { id: 'requests',   label: 'Join Requests',  icon: '📩', short: 'Requests'  },
-  { id: 'clubhouse',  label: 'Clubhouse',      icon: '🏠', short: 'Clubhouse' },
+  { id: 'roster',     label: 'Player Roster', icon: '👥', short: 'Roster'    },
+  { id: 'requests',   label: 'Join Requests', icon: '📩', short: 'Requests'  },
+  { id: 'analytics',  label: 'Analytics',     icon: '📊', short: 'Analytics' },
+  { id: 'clubhouse',  label: 'Clubhouse',     icon: '🏠', short: 'Clubhouse' },
 ]
 const USERS_TAB = { id: 'users', label: 'Users', icon: '🛡️', short: 'Users' }
 const TABS = [...ROW1, ...ROW2_BASE]
@@ -172,6 +174,7 @@ export default function AdminDashboard() {
             {activeTab === 'access'       && <AllowedEmailsTab onPlayerDeleted={handlePlayerDeleted} />}
             {activeTab === 'roster'       && <PlayerRosterTab key={rosterRefreshKey} />}
             {activeTab === 'requests'     && <JoinRequestsTab onPendingCount={setPendingRequests} />}
+            {activeTab === 'analytics'    && <AnalyticsTab />}
             {activeTab === 'users'        && isSuperAdmin && <UsersTab />}
             {activeTab === 'clubhouse'    && (
               <div>

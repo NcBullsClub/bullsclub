@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 const teams = [
   {
     id: 'raising-bulls',
-    name: 'Raising Bulls',
+    name: 'Raising Bulls ⭐ ⭐ ⭐ ⭐',
     tagline: 'Rising with every match — unstoppable, relentless.',
     description:
       'The Raising Bulls are NC Bulls Cricket Club\'s flagship T20 squad. Known for aggressive batting and intelligent bowling, the Raising Bulls have claimed the Triangle Cricket League title three years running. They represent determination, grit, and the never-say-die spirit that defines this club.',
@@ -19,7 +19,7 @@ const teams = [
   },
   {
     id: 'royal-bulls',
-    name: 'Royal Bulls',
+    name: 'Royal Bulls ⭐',
     tagline: 'Playing with pride, performing with royalty.',
     description:
       'The Royal Bulls are NC Bulls Cricket Club\'s second T20 squad, providing a pathway for developing players while still competing at a high level. In 2025, the Royal Bulls reached the semi-finals for the first time — signaling their growth into a genuine force in the Triangle cricket scene.',

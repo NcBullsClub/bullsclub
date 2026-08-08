@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import logo from '../assets/images/cropped_no bg_nc_bulls_club_logo.png'
 import { supabase } from '../lib/supabase'
 import { turso } from '../lib/turso'
@@ -100,6 +100,8 @@ const teamData = {
   'royal-bulls': { name: 'Royal Bulls', color: 'bg-primary', badge: 'RY', textColor: 'text-white', subTextColor: 'text-gray-300', badgeBg: 'bg-accent', badgeText: 'text-primary-dark' },
 }
 
+const championshipFeatureImage = 'https://res.cloudinary.com/ncbullscloud/image/upload/v1784844571/IMG_7230_suwpu5.png'
+
 export default function Home() {
   const { loading: authLoading, lastAuthEvent } = useAuth()
   const today = new Date()
@@ -117,6 +119,28 @@ export default function Home() {
   const totalWins = rbWins + ryWins
   const matchesPlayedTotal = 170 + resultsEnteredCount
   const [latestNews, setLatestNews] = useState([])
+  const [activeSponsorIndex, setActiveSponsorIndex] = useState(0)
+
+  const featuredSponsors = (sponsors || [])
+    .filter((s) => (s.tier === 'Gold' || s.tier === 'Silver') && s.name && !s.name.toLowerCase().includes('new partners loading'))
+
+  useEffect(() => {
+    if (featuredSponsors.length <= 1) return
+    const interval = window.setInterval(() => {
+      setActiveSponsorIndex((current) => (current + 1) % featuredSponsors.length)
+    }, 4000)
+    return () => window.clearInterval(interval)
+  }, [featuredSponsors.length])
+
+  const handleSponsorChange = (direction) => {
+    setActiveSponsorIndex((current) => {
+      if (featuredSponsors.length === 0) return 0
+      if (direction === 'next') return (current + 1) % featuredSponsors.length
+      return (current - 1 + featuredSponsors.length) % featuredSponsors.length
+    })
+  }
+
+  const activeSponsor = featuredSponsors[activeSponsorIndex] || null
 
   useEffect(() => {
     supabase.from('fixtures').select('*').order('date', { ascending: true })
@@ -179,7 +203,7 @@ export default function Home() {
       {/* Hero */}
       <section className="relative bg-primary-dark text-white overflow-hidden min-h-[90vh] flex items-center">
         {/* Background logo watermark */}
-        <div className="absolute inset-0 flex items-start justify-center pointer-events-none" style={{paddingTop: '6%'}}>
+        <div className="absolute inset-0 flex items-start justify-center pointer-events-none" style={{ paddingTop: '6%' }}>
           <img
             src={logo}
             alt=""
@@ -221,7 +245,7 @@ export default function Home() {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4"
             >
               {['raising-bulls', 'royal-bulls'].map((teamId) => {
                 const team = teamData[teamId]
@@ -230,13 +254,13 @@ export default function Home() {
                   <Link
                     key={teamId}
                     to="/teams"
-                    className={`${team.color} rounded-xl p-5 hover:scale-105 transition-transform duration-200`}
+                    className={`${team.color} rounded-2xl p-3 sm:p-5 hover:scale-[1.01] transition-all duration-200 shadow-[0_16px_40px_rgba(0,0,0,0.18)] border border-black/10`}
                   >
-                    <div className={`w-12 h-12 ${team.badgeBg} rounded-full flex items-center justify-center font-display font-bold ${team.badgeText} text-lg mb-3`}>
+                    <div className={`w-16 h-16 sm:w-16 sm:h-16 ${team.badgeBg} rounded-full flex items-center justify-center font-display font-bold ${team.badgeText} text-base sm:text-lg mb-2.5 sm:mb-3`}>
                       {team.badge}
                     </div>
-                    <h3 className={`font-display font-bold ${team.textColor} text-lg leading-tight mb-2`}>{team.name}</h3>
-                    <div className={`${team.subTextColor} text-sm`}>{wins} wins this season</div>
+                    <h3 className={`font-display font-bold ${team.textColor} text-lg sm:text-xl leading-tight mb-1 sm:mb-2`}>{team.name}</h3>
+                    <div className={`${team.subTextColor} text-[11px] sm:text-sm`}>{wins} wins this season</div>
                   </Link>
                 )
               })}
@@ -262,6 +286,116 @@ export default function Home() {
                 <div className="font-medium text-sm mt-1 uppercase tracking-wider opacity-80">{stat.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Proud Sponsors */}
+      <section className="py-4 sm:py-6 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h4 className="font-display font-bold text-primary text-lg">Proud Sponsors</h4>
+              <p className="text-gray-500 text-xs mt-0.5">Supporting NC Bulls Cricket Club !!!</p>
+            </div>
+            <Link to="/sponsors" className="text-primary font-medium hover:text-accent transition-colors text-sm">
+              View All →
+            </Link>
+          </div>
+
+          {featuredSponsors.length > 0 ? (
+            <div className="rounded-3xl border border-gray-200 bg-gradient-to-br from-white via-slate-50 to-gray-100 p-4 sm:p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Featured Partners</p>
+                  <p className="text-sm text-gray-500">Our current sponsors</p>
+                </div>
+                {featuredSponsors.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSponsorChange('prev')}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-primary transition hover:border-primary hover:text-accent"
+                      aria-label="Previous sponsor"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSponsorChange('next')}
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-primary transition hover:border-primary hover:text-accent"
+                      aria-label="Next sponsor"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative min-h-[190px]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSponsor?.id || 'empty'}
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col sm:flex-row items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-5 shadow-sm sm:px-6"
+                  >
+                    <div className="flex h-28 w-full max-w-[220px] items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-white flex-shrink-0 sm:h-36 sm:max-w-[280px]">
+                      {activeSponsor?.logo ? (
+                        <img src={activeSponsor.logo} alt={activeSponsor.name} className="h-full w-full object-contain p-3 sm:p-4" />
+                      ) : (
+                        <span className="font-display text-2xl font-bold text-gray-500">
+                          {activeSponsor?.name?.[0] || 'S'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 text-center sm:text-left">
+                      <div className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${activeSponsor?.tier === 'Gold' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {activeSponsor?.tier === 'Gold' ? '🥇 Gold Sponsor' : '🥈 Silver Sponsor'}
+                      </div>
+                      <h5 className="mt-2 font-display text-lg font-bold text-primary-dark">{activeSponsor?.name}</h5>
+
+                      {activeSponsor?.website && (
+                        <a
+                          href={activeSponsor.website}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex items-center text-sm font-semibold text-primary hover:text-accent"
+                        >
+                          Visit website →
+                        </a>
+                      )}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {featuredSponsors.length > 1 && (
+                <div className="mt-4 flex justify-center gap-2">
+                  {featuredSponsors.map((sponsor, index) => (
+                    <button
+                      key={sponsor.id}
+                      type="button"
+                      onClick={() => setActiveSponsorIndex(index)}
+                      className={`h-2.5 rounded-full transition-all ${index === activeSponsorIndex ? 'w-8 bg-primary' : 'w-2.5 bg-gray-300 hover:bg-gray-400'}`}
+                      aria-label={`Show ${sponsor.name}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          <div className="mt-5 text-center">
+            <Link
+              to="/sponsors"
+              className="inline-flex items-center gap-2 border-2 border-primary text-primary font-semibold px-6 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all text-sm"
+            >
+              Become a Sponsor →
+            </Link>
           </div>
         </div>
       </section>
@@ -320,20 +454,20 @@ export default function Home() {
                       </div>
                       {/* Row 3: CTAs */}
                       <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        to={`/availability?fixture=${f.id}&team=raising-bulls`}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent/15 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-lg hover:bg-accent hover:border-accent transition-colors"
-                      >
-                        🏏 Mark Availability
-                      </Link>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        📍 Open in Maps
-                      </a>
+                        <Link
+                          to={`/availability?fixture=${f.id}&team=raising-bulls`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-accent/15 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-lg hover:bg-accent hover:border-accent transition-colors"
+                        >
+                          🏏 Mark Availability
+                        </Link>
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          📍 Open in Maps
+                        </a>
                       </div>
                     </motion.div>
                   )
@@ -347,51 +481,51 @@ export default function Home() {
                   const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
-                  <Link key={f.id} to="/fixtures">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                      className="bg-white border border-gray-200 border-t-4 border-t-accent rounded-2xl p-6 hover:shadow-lg hover:border-accent transition-all cursor-pointer h-full"
-                    >
-                      <div className="text-xs font-bold uppercase tracking-widest text-accent mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                      <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="text-sm text-gray-500">{f.time} &middot; {f.format}</div>
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-primary-dark bg-accent/10 border border-accent/50 px-2 py-0.5 rounded-full">
-                          {new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short' })}
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
-                        <span className="mt-0.5">📍</span>
-                        <span className="truncate">{f.venue}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mb-4 flex-wrap">
-                        <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
-                          {fixtureTypeTag}
-                        </span>
-                        <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
-                          {seasonTag}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        to={`/availability?fixture=${f.id}&team=raising-bulls`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs font-semibold bg-accent/20 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-full hover:bg-accent hover:border-accent transition-colors"
+                    <Link key={f.id} to="/fixtures">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                        className="bg-white border border-gray-200 border-t-4 border-t-accent rounded-2xl p-6 hover:shadow-lg hover:border-accent transition-all cursor-pointer h-full"
                       >
-                        🏏 Mark Availability
-                      </Link>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
-                      >
-                        📍 Open in Maps
-                      </a>
-                      </div>
-                    </motion.div>
-                  </Link>
+                        <div className="text-xs font-bold uppercase tracking-widest text-accent mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="text-sm text-gray-500">{f.time} &middot; {f.format}</div>
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-primary-dark bg-accent/10 border border-accent/50 px-2 py-0.5 rounded-full">
+                            {new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short' })}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
+                          <span className="mt-0.5">📍</span>
+                          <span className="truncate">{f.venue}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                          <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
+                            {fixtureTypeTag}
+                          </span>
+                          <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                            {seasonTag}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link
+                            to={`/availability?fixture=${f.id}&team=raising-bulls`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-xs font-semibold bg-accent/20 text-primary-dark border border-accent/40 px-3 py-1.5 rounded-full hover:bg-accent hover:border-accent transition-colors"
+                          >
+                            🏏 Mark Availability
+                          </Link>
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                          >
+                            📍 Open in Maps
+                          </a>
+                        </div>
+                      </motion.div>
+                    </Link>
                   )
                 })}
               </div>
@@ -442,20 +576,20 @@ export default function Home() {
                       </div>
                       {/* Row 3: CTAs */}
                       <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        to={`/availability?fixture=${f.id}&team=royal-bulls`}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-colors"
-                      >
-                        🏏 Mark Availability
-                      </Link>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        📍 Open in Maps
-                      </a>
+                        <Link
+                          to={`/availability?fixture=${f.id}&team=royal-bulls`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                        >
+                          🏏 Mark Availability
+                        </Link>
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          📍 Open in Maps
+                        </a>
                       </div>
                     </motion.div>
                   )
@@ -469,51 +603,51 @@ export default function Home() {
                   const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
-                  <Link key={f.id} to="/fixtures">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                      className="bg-white border border-gray-200 border-t-4 border-t-primary rounded-2xl p-6 hover:shadow-lg hover:border-primary transition-all cursor-pointer h-full"
-                    >
-                      <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                      <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="text-sm text-gray-500">{f.time} &middot; {f.format}</div>
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
-                          {new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short' })}
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
-                        <span className="mt-0.5">📍</span>
-                        <span className="truncate">{f.venue}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mb-4 flex-wrap">
-                        <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-full">
-                          {fixtureTypeTag}
-                        </span>
-                        <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
-                          {seasonTag}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                      <Link
-                        to={`/availability?fixture=${f.id}&team=royal-bulls`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-full hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                    <Link key={f.id} to="/fixtures">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                        className="bg-white border border-gray-200 border-t-4 border-t-primary rounded-2xl p-6 hover:shadow-lg hover:border-primary transition-all cursor-pointer h-full"
                       >
-                        🏏 Mark Availability
-                      </Link>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
-                      >
-                        📍 Open in Maps
-                      </a>
-                      </div>
-                    </motion.div>
-                  </Link>
+                        <div className="text-xs font-bold uppercase tracking-widest text-primary mb-2">{new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        <div className="font-display font-bold text-primary-dark text-2xl mb-1 leading-tight">vs {f.opponent}</div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="text-sm text-gray-500">{f.time} &middot; {f.format}</div>
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 border border-primary/40 px-2 py-0.5 rounded-full">
+                            {new Date(f.date.replace(/-/g, '/')).toLocaleDateString('en-US', { weekday: 'short' })}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-1.5 text-xs text-gray-400 mb-4">
+                          <span className="mt-0.5">📍</span>
+                          <span className="truncate">{f.venue}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-4 flex-wrap">
+                          <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-full">
+                            {fixtureTypeTag}
+                          </span>
+                          <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                            {seasonTag}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link
+                            to={`/availability?fixture=${f.id}&team=royal-bulls`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/30 px-3 py-1.5 rounded-full hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                          >
+                            🏏 Mark Availability
+                          </Link>
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+                          >
+                            📍 Open in Maps
+                          </a>
+                        </div>
+                      </motion.div>
+                    </Link>
                   )
                 })}
               </div>
@@ -523,7 +657,7 @@ export default function Home() {
       </section>
 
       {/* Latest Results */}
-      <section className="py-16 bg-surface">
+      <section className="py-10 sm:py-12 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <h2 className="section-heading">Latest Results</h2>
@@ -535,7 +669,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-8">
             {[
               { label: 'Raising Bulls', id: 'raising-bulls', results: latestRBResults, badgeBg: 'bg-primary-dark', badgeText: 'text-accent' },
-              { label: 'Royal Bulls',   id: 'royal-bulls',   results: latestRYResults, badgeBg: 'bg-primary',      badgeText: 'text-white'  },
+              { label: 'Royal Bulls', id: 'royal-bulls', results: latestRYResults, badgeBg: 'bg-primary', badgeText: 'text-white' },
             ].map(({ label, id, results, badgeBg, badgeText }) => (
               <div key={id}>
                 <div className="flex items-center gap-2 mb-4">
@@ -555,54 +689,54 @@ export default function Home() {
                   <div className="space-y-4 sm:space-y-3">
                     {results.map((r, i) => (
                       <Link key={r.id} to="/results" className="block">
-                      {(() => {
-                        const fixture = allFixtures.find((f) => f.date === r.fixture_date && f.team === r.team)
-                        const matchTypeTag = normalizeFixtureType(fixture?.type || r.type || r.match_type || r.fixture_type)
-                        const seasonTag = getSeasonTagText(r.season || fixture?.season, r.fixture_date)
-                        return (
-                      <motion.div
-                        initial={{ opacity: 0, x: -16 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.07 }}
-                        className={`flex items-center gap-2.5 sm:gap-4 bg-white rounded-xl border-l-4 px-2.5 sm:px-4 py-2 sm:py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
-                      >
-                        <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-display font-bold text-xs sm:text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                          {isWon(r) ? 'W' : 'L'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-800 text-xs sm:text-sm truncate">vs {r.opponent}</div>
-                          <div className="flex items-center gap-1.5 mt-0.5 min-w-0 overflow-hidden">
-                            <span className="text-xs text-gray-400 truncate">
-                              {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              {r.venue && <span className="hidden sm:inline"> · {r.venue}</span>}
-                            </span>
-                            <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
-                              {matchTypeTag}
-                            </span>
-                            <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
-                              {seasonTag}
-                            </span>
-                          </div>
-                          {r.mom && (
-                            <div className="text-[10px] sm:text-xs mt-1 line-clamp-1">
-                              <span className="text-gray-400">Player of the Match:</span>{' '}
-                              <span className="font-bold text-primary">{r.mom}</span>
-                            </div>
-                          )}
-                          {r.result && (
-                            <div className={`text-xs font-medium mt-0.5 line-clamp-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
-                          )}
-                        </div>
-                        {(r.ncb_score || r.opp_score) && (
-                          <div className="text-right flex-shrink-0">
-                            <div className="text-xs font-mono font-semibold text-gray-700">{r.ncb_score}</div>
-                            <div className="text-xs font-mono text-gray-400">{r.opp_score}</div>
-                          </div>
-                        )}
-                      </motion.div>
-                        )
-                      })()}
+                        {(() => {
+                          const fixture = allFixtures.find((f) => f.date === r.fixture_date && f.team === r.team)
+                          const matchTypeTag = normalizeFixtureType(fixture?.type || r.type || r.match_type || r.fixture_type)
+                          const seasonTag = getSeasonTagText(r.season || fixture?.season, r.fixture_date)
+                          return (
+                            <motion.div
+                              initial={{ opacity: 0, x: -16 }}
+                              whileInView={{ opacity: 1, x: 0 }}
+                              viewport={{ once: true }}
+                              transition={{ delay: i * 0.07 }}
+                              className={`flex items-center gap-2.5 sm:gap-4 bg-white rounded-xl border-l-4 px-2.5 sm:px-4 py-2 sm:py-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow ${isWon(r) ? 'border-green-500' : 'border-red-400'}`}
+                            >
+                              <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-display font-bold text-xs sm:text-sm flex-shrink-0 ${isWon(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                                {isWon(r) ? 'W' : 'L'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-gray-800 text-xs sm:text-sm truncate">vs {r.opponent}</div>
+                                <div className="flex items-center gap-1.5 mt-0.5 min-w-0 overflow-hidden">
+                                  <span className="text-xs text-gray-400 truncate">
+                                    {new Date(r.fixture_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    {r.venue && <span className="hidden sm:inline"> · {r.venue}</span>}
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-primary-dark bg-accent/15 border border-accent/40 px-2 py-0.5 rounded-full">
+                                    {matchTypeTag}
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-primary-dark bg-primary-dark/10 border border-primary-dark/20 px-2 py-0.5 rounded-full">
+                                    {seasonTag}
+                                  </span>
+                                </div>
+                                {r.mom && (
+                                  <div className="text-[10px] sm:text-xs mt-1 line-clamp-1">
+                                    <span className="text-gray-400">Player of the Match:</span>{' '}
+                                    <span className="font-bold text-primary">{r.mom}</span>
+                                  </div>
+                                )}
+                                {r.result && (
+                                  <div className={`text-xs font-medium mt-0.5 line-clamp-1 ${isWon(r) ? 'text-green-600' : 'text-red-500'}`}>{r.result}</div>
+                                )}
+                              </div>
+                              {(r.ncb_score || r.opp_score) && (
+                                <div className="text-right flex-shrink-0">
+                                  <div className="text-xs font-mono font-semibold text-gray-700">{r.ncb_score}</div>
+                                  <div className="text-xs font-mono text-gray-400">{r.opp_score}</div>
+                                </div>
+                              )}
+                            </motion.div>
+                          )
+                        })()}
                       </Link>
                     ))}
                   </div>
@@ -613,58 +747,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Proud Sponsors */}
-      <section className="py-8 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h4 className="font-display font-bold text-primary text-lg">Proud Sponsors</h4>
-              <p className="text-gray-500 text-xs mt-0.5">Partners who make NC Bulls Cricket Club possible</p>
+      <section className="bg-gradient-to-br from-slate-950 via-primary-dark to-primary py-4 sm:py-6 md:py-10">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <Link
+            to="/gallery"
+            className="group block overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/10 shadow-[0_16px_60px_rgba(0,0,0,0.28)] backdrop-blur-sm"
+          >
+            <div className="grid lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="flex flex-col justify-center p-4 sm:p-6 md:p-8 lg:p-10">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-sm font-medium text-accent">
+                  <span className="h-2.5 w-2.5 rounded-full bg-accent" />
+                  Featured Moment
+                </div>
+                <h4 className="mt-3 sm:mt-4 font-display text-xl sm:text-2xl md:text-3xl font-semibold text-white leading-tight">
+                  Champions of Mega Bash-2026
+                </h4>
+                <p className="mt-2 text-sm sm:text-base text-slate-300">
+                  Access gallery for more moments.
+                </p>
+              </div>
+              <div className="relative min-h-[180px] sm:min-h-[220px] md:min-h-[260px] lg:min-h-[300px]">
+                <img
+                  src={championshipFeatureImage}
+                  alt="Champions of Mega Bash-2026"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary-dark/80 via-primary-dark/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5 md:p-6">
+                  <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-white/90 backdrop-blur-sm">
+                    Open Gallery
+                  </div>
+                </div>
+              </div>
             </div>
-            <Link to="/sponsors" className="text-primary font-medium hover:text-accent transition-colors text-sm">
-              View All →
-            </Link>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4">
-            {sponsors
-              .filter(s => s.tier === 'Gold' || s.tier === 'Silver')
-              .map((s, i) => (
-                <motion.div
-                  key={s.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  className={`flex items-center gap-3 rounded-2xl px-5 py-3 hover:shadow-md transition-all ${
-                    s.tier === 'Gold'
-                      ? 'bg-amber-50 border-2 border-amber-200'
-                      : 'bg-gray-50 border-2 border-gray-200'
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold text-lg flex-shrink-0 ${
-                    s.tier === 'Gold' ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    {s.name[0]}
-                  </div>
-                  <div>
-                    <div className="font-display font-bold text-primary-dark text-sm leading-tight">{s.name}</div>
-                    <div className={`text-xs font-medium mt-0.5 ${s.tier === 'Gold' ? 'text-amber-600' : 'text-gray-400'}`}>
-                      {s.tier === 'Gold' ? '🥇 Gold' : '🥈 Silver'}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-          </div>
-
-          <div className="mt-5 text-center">
-            <Link
-              to="/sponsors"
-              className="inline-flex items-center gap-2 border-2 border-primary text-primary font-semibold px-6 py-2.5 rounded-full hover:bg-primary hover:text-white transition-all text-sm"
-            >
-              Become a Sponsor →
-            </Link>
-          </div>
+          </Link>
         </div>
       </section>
 

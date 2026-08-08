@@ -51,7 +51,7 @@ export const SEASONS = [
 ]
 
 // App default season used on first visit (when no season is stored yet).
-export const DEFAULT_SEASON_ID = 'mega-bash-26'
+export const DEFAULT_SEASON_ID = 'mega-smash-26'
 
 /**
  * Tailwind classes per season color.

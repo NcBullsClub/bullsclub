@@ -1,10 +1,17 @@
 [
   {
     "id": 1,
-    "name": "New Partners Loading...",
+    "name": "Raising Bulls Sponsor",
     "tier": "Gold",
-    "website": null,
-    "logo": null
+    "website": "https://www.hashtagindia.com/",
+    "logo": "https://res.cloudinary.com/ncbullscloud/image/upload/v1785775057/hashtag_India-removebg-preview_bm0wmg.png"
+  },
+  {
+    "id": 11,
+    "name": "Royal Bulls Sponsor",
+    "tier": "Gold",
+    "website": "https://www.technodeed.com/",
+    "logo": "https://res.cloudinary.com/ncbullscloud/image/upload/v1785776062/td-jukebox-bg-removed_mqpqxf.png"
   },
   {
     "id": 2,

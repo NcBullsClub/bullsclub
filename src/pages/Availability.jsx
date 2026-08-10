@@ -547,22 +547,19 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved, s
   const myResponse = myUmpResponseMap[assignment.id]
 
   const [status, setStatus] = useState(myResponse?.status || '')
-  const [notes,  setNotes]  = useState(myResponse?.notes  || '')
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [error,   setError]   = useState('')
-  const hasChange = status !== (myResponse?.status || '') || notes !== (myResponse?.notes || '')
+  const lastTapRef = useRef({ value: '', ts: 0 })
 
   useEffect(() => {
     setStatus(myResponse?.status || '')
-    setNotes(myResponse?.notes  || '')
   }, [myResponse])
 
   const canRespond = user && !isPast && profile?.team === assignment.ncb_team
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!status) { setError('Please select your availability.'); return }
+  async function saveResponse(newStatus) {
+    if (!user) return
     setError('')
     setSaving(true)
     try {
@@ -572,17 +569,17 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved, s
           umpiring_assignment_id: assignment.id,
           season:                seasonId,
           ncb_team:              assignment.ncb_team,
-          status,
-          notes: notes.trim(),
+          status:                newStatus,
+          notes:                 '',
           user_name:             profile?.full_name || 'Unknown',
-          updated_at: new Date().toISOString(),
+          updated_at:            new Date().toISOString(),
         },
         { onConflict: 'user_id,umpiring_assignment_id' },
       )
       if (sbErr) throw sbErr
       setSaved(true)
       onResponseSaved()
-      setTimeout(() => setSaved(false), 3000)
+      setTimeout(() => setSaved(false), 2000)
     } catch (err) {
       const msg = err.message || ''
       if (msg.includes('row-level security') || msg.includes('RLS') || msg.includes('policy')) {
@@ -595,8 +592,12 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved, s
     }
   }
 
-  async function handleClear() {
-    if (!myResponse) return
+  async function clearResponse() {
+    if (!myResponse && !status) {
+      setStatus('')
+      return
+    }
+
     setError('')
     setSaving(true)
     try {
@@ -606,12 +607,34 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved, s
         .eq('umpiring_assignment_id', assignment.id)
       if (sbErr) throw sbErr
       setStatus('')
-      setNotes('')
+      setSaved(false)
       onResponseSaved()
     } catch (err) {
       setError(err.message || 'Failed to clear.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  function handleStatusClick(value) {
+    if (saving) return
+
+    if (status !== value) {
+      lastTapRef.current = { value: '', ts: 0 }
+      setStatus(value)
+      saveResponse(value)
+      return
+    }
+
+    const now = Date.now()
+    const last = lastTapRef.current
+    const isDoubleTap = last.value === value && now - last.ts <= 350
+
+    if (isDoubleTap) {
+      lastTapRef.current = { value: '', ts: 0 }
+      clearResponse()
+    } else {
+      lastTapRef.current = { value, ts: now }
     }
   }
 
@@ -700,42 +723,39 @@ function UmpCard({ assignment, umpAvailMap, myUmpResponseMap, onResponseSaved, s
         ) : profile?.team !== assignment.ncb_team ? (
           <div className="text-xs text-center text-gray-400 bg-gray-50 rounded-xl px-3 py-2">Only {teamLabel} players can respond</div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <div>
             <div className="flex items-center gap-2 flex-wrap">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => { setStatus(opt.value); setError('') }}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full border-2 text-xs font-semibold transition-all ${
-                    status === opt.value ? opt.selected : opt.idle
-                  }`}
-                >
-                  {opt.emoji} {status === opt.value && myResponse?.status === opt.value ? 'Saved' : opt.label}
-                </button>
-              ))}
-              <div className="ml-auto flex items-center gap-1.5">
-                {myResponse && (
+              {STATUS_OPTIONS.map((opt) => {
+                const isSelected = status === opt.value
+                return (
                   <button
+                    key={opt.value}
                     type="button"
-                    onClick={handleClear}
+                    onClick={() => handleStatusClick(opt.value)}
                     disabled={saving}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-2 border-red-300 text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    title={isSelected ? 'Double tap to clear' : `Mark as ${opt.label}`}
+                    className={`relative flex items-center gap-1 px-3 py-1.5 rounded-full border-2 text-xs font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                      isSelected ? opt.selected : opt.idle
+                    }`}
                   >
-                    Clear
+                    {saving && isSelected ? (
+                      <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      opt.emoji
+                    )}
+                    {opt.label}
+                    {saved && isSelected && (
+                      <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-green-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold">✓</span>
+                    )}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={saving || !status || (!hasChange && !!myResponse)}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-primary-dark text-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  {saving ? <span className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" /> : saved ? '✓ Saved' : 'Save'}
-                </button>
-              </div>
+                )
+              })}
+              {status && !saving && (
+                <span className="text-[10px] text-gray-400 ml-1">double tap selected option to clear</span>
+              )}
             </div>
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-          </form>
+          </div>
         )}
 
         {/* Who's going — two columns */}

@@ -16,15 +16,6 @@ function isWon(r) {
   return r.result.toLowerCase().includes(label.toLowerCase())
 }
 
-function normalizeFixtureType(value) {
-  const v = String(value || '').trim().toLowerCase()
-  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
-  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
-  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
-  if (v === 'championship' || v === 'final') return 'Championship'
-  return 'League'
-}
-
 function getSeasonTagText(seasonId, date) {
   if (seasonId) {
     const season = SEASONS.find((s) => s.id === seasonId)
@@ -692,7 +683,10 @@ export default function Home() {
                       <Link key={r.id} to="/results" className="block">
                         {(() => {
                           const fixture = allFixtures.find((f) => f.date === r.fixture_date && f.team === r.team)
-                          const matchTypeTag = normalizeFixtureType(fixture?.type || r.type || r.match_type || r.fixture_type)
+                          const matchTypeTag = formatFixtureTypeDisplay(
+                            fixture?.type || r.type || r.match_type || r.fixture_type,
+                            fixture?.league_game_number,
+                          )
                           const seasonTag = getSeasonTagText(r.season || fixture?.season, r.fixture_date)
                           return (
                             <motion.div

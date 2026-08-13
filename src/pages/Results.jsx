@@ -5,10 +5,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSeason } from '../contexts/SeasonContext'
 import { SEASONS } from '../config/seasons'
 import SeasonSwitcher, { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
-
-function isComplete(r) {
-  return !!(r.result && r.ncb_score && r.opp_score)
-}
+import { formatFixtureTypeDisplay } from '../utils/fixtures'
+import { getMatchOutcome, getOutcomeStyles, isComplete, isLost, isWon } from '../utils/matchResults'
 
 function renderResult(result) {
   if (!result) return null
@@ -21,12 +19,6 @@ function renderResult(result) {
     }
   }
   return result
-}
-
-function isWon(r) {
-  if (!isComplete(r)) return false
-  const label = r.team === 'raising-bulls' ? 'Raising Bulls won' : 'Royal Bulls won'
-  return r.result.toLowerCase().includes(label.toLowerCase())
 }
 
 const teamsFilter = [
@@ -61,15 +53,6 @@ function getSeasonTagText(seasonId) {
   const season = SEASONS.find((s) => s.id === seasonId)
   if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
   return String(seasonId).replace(/-/g, ' ')
-}
-
-function normalizeFixtureType(value) {
-  const v = String(value || '').trim().toLowerCase()
-  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
-  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
-  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
-  if (v === 'championship' || v === 'final') return 'Championship'
-  return 'League'
 }
 
 function parseMomStatPart(partRaw) {
@@ -178,9 +161,17 @@ export default function Results() {
   useEffect(() => {
     setLoading(true)
     const isFirst = activeSeason.id === SEASONS[0].id
+    const fixturesQuery = supabase
+      .from('fixtures')
+      .select('id, date, team, season, type, league_game_number, umpire1_team, umpire2_team')
+      .eq('team', teamFilter)
+    const fixturesPromise = isFirst
+      ? fixturesQuery.or(`season.eq.${activeSeason.id},season.is.null`)
+      : fixturesQuery.eq('season', activeSeason.id)
+
     Promise.all([
       supabase.from('match_results').select('*').eq('team', teamFilter).eq('season', activeSeason.id).order('fixture_date', { ascending: false }),
-      supabase.from('fixtures').select('id, date, team, season, type, umpire1_team, umpire2_team').eq('team', teamFilter).eq('season', activeSeason.id),
+      fixturesPromise,
       isFirst
         ? supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).or(`season.eq.${activeSeason.id},season.is.null`)
         : supabase.from('umpiring_assignments').select('*').eq('ncb_team', teamFilter).eq('season', activeSeason.id),
@@ -204,7 +195,7 @@ export default function Results() {
   }, [teamFilter, activeSeason])
 
   const wins   = results.filter(isWon).length
-  const losses = results.filter((r) => !isWon(r)).length
+  const losses = results.filter(isLost).length
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const pastAssignments = umpAssignments.filter((a) => {
@@ -339,20 +330,23 @@ export default function Results() {
             <div className="space-y-3 md:space-y-4">
               {results.map((r, i) => {
                 const complete  = isComplete(r)
-                const won       = isWon(r)
+                const outcome   = getMatchOutcome(r)
+                const styles    = getOutcomeStyles(outcome)
                 const teamLabel = r.team === 'raising-bulls' ? 'Raising Bulls' : 'Royal Bulls'
                 const dt        = formatDate(r.fixture_date)
                 const fixture   = fixtureMap[`${r.fixture_date}::${r.team}`]
                 const seasonTag = getSeasonTagText(r.season || fixture?.season || activeSeason?.id)
-                const fixtureTypeTag = normalizeFixtureType(fixture?.type || r.type || r.match_type || r.fixture_type)
+                const fixtureTypeTag = formatFixtureTypeDisplay(
+                  fixture?.type || r.type || r.match_type || r.fixture_type,
+                  fixture?.league_game_number,
+                )
                 const umpires   = fixture
                   ? [fixture.umpire1_team, fixture.umpire2_team].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' & ')
                   : null
 
-                // Border & badge colour helpers
-                const borderColor = complete ? (won ? 'border-l-green-500' : 'border-l-red-400') : 'border-l-amber-400'
-                const badgeBg     = complete ? (won ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600') : 'bg-amber-100 text-amber-700'
-                const badgeLabel  = complete ? (won ? 'W' : 'L') : '~'
+                const borderColor = styles.border
+                const badgeBg     = styles.badgeBg
+                const badgeLabel  = styles.badgeLabel
 
                 return (
                   <motion.div
@@ -392,9 +386,9 @@ export default function Results() {
                       {/* Row 2: scores side by side */}
                       {(r.ncb_score || r.opp_score) && (
                         <div className="px-3 pb-2 grid grid-cols-2 gap-1.5">
-                          <div className={`rounded-xl px-3 py-1.5 ${won ? 'bg-green-50 border border-green-100' : 'bg-gray-50'}`}>
+                          <div className={`rounded-xl px-3 py-1.5 ${outcome === 'won' ? 'bg-green-50 border border-green-100' : 'bg-gray-50'}`}>
                             <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide truncate">{teamLabel}</div>
-                            <div className={`font-mono font-bold text-sm leading-tight ${won ? 'text-green-700' : 'text-gray-800'}`}>{r.ncb_score || '—'}</div>
+                            <div className={`font-mono font-bold text-sm leading-tight ${outcome === 'won' ? 'text-green-700' : 'text-gray-800'}`}>{r.ncb_score || '—'}</div>
                           </div>
                           <div className="bg-gray-50 rounded-xl px-3 py-1.5">
                             <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide truncate">{r.opponent}</div>
@@ -446,10 +440,7 @@ export default function Results() {
                               </span>
                             ) : (
                               r.result && (
-                                <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full truncate ${
-                                  won ? 'bg-green-50 text-green-700 border border-green-200'
-                                      : 'bg-red-50 text-red-600 border border-red-200'
-                                }`}>
+                                <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full truncate ${styles.resultPill}`}>
                                   {renderResult(r.result)}
                                 </span>
                               )
@@ -542,11 +533,9 @@ export default function Results() {
                               )}
                               {r.result && (
                                 <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full ${
-                                  !complete
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                    : won
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-red-100 text-red-600'
+                                  outcome === 'pending'
+                                    ? styles.resultPill
+                                    : styles.resultPill
                                 }`}>
                                   {renderResult(r.result)}
                                 </span>

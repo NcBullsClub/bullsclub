@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSeason } from '../../contexts/SeasonContext'
 import { SEASONS, SEASON_THEME } from '../../config/seasons'
+import { formatFixtureTypeDisplay, parseLeagueGameNumber } from '../../utils/fixtures'
 
 /** Tiny season badge for fixture cards */
 function SeasonBadge({ seasonId }) {
@@ -40,6 +41,7 @@ const EMPTY_FORM = {
   venue_address: '',
   format: 'HT',
   type: 'League',
+  league_game_number: '',
   division: '',
   umpire1_team: '',
   umpire2_team: '',
@@ -289,7 +291,7 @@ function FixtureForm({ initial, onSave, onCancel, saving, knownVenues = [] }) {
         <input type="text" value={form.venue_address} onChange={(e) => set('venue_address', e.target.value)} placeholder="2500 S Tricenter Blvd, Durham, NC 27714" className={inputCls} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div>
           <label className={labelCls}>Format</label>
           <input type="text" value={form.format} onChange={(e) => set('format', e.target.value)} placeholder="HT" className={inputCls} />
@@ -301,6 +303,18 @@ function FixtureForm({ initial, onSave, onCancel, saving, knownVenues = [] }) {
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className={labelCls}>League Game # <span className="font-normal text-gray-400">(optional)</span></label>
+          <input
+            type="number"
+            min="1"
+            max="13"
+            value={form.league_game_number}
+            onChange={(e) => set('league_game_number', e.target.value)}
+            placeholder="e.g. 2"
+            className={inputCls}
+          />
         </div>
         <div>
           <label className={labelCls}>Division</label>
@@ -433,7 +447,7 @@ function FixtureCard({ f, onEdit, onDelete, deletingId }) {
   const ump1 = normalizeUmpire(f.umpire1_team)
   const ump2 = normalizeUmpire(f.umpire2_team)
   const fmt = cleanText(f.format)
-  const typ = normalizeFixtureType(f.type)
+  const typ = formatFixtureTypeDisplay(f.type, f.league_game_number)
   const venue = cleanText(f.venue)
   const venueAddress = cleanText(f.venue_address)
   const hasUmpires = ump1 || ump2
@@ -650,8 +664,9 @@ export default function FixturesTab() {
         venue:         cleanText(form.venue),
         venue_address: cleanText(form.venue_address) || null,
         format:        cleanText(form.format) || 'HT',
-        type:          normalizeFixtureType(form.type),
-        division:      cleanText(form.division) || null,
+        type:               normalizeFixtureType(form.type),
+        league_game_number: parseLeagueGameNumber(form.league_game_number),
+        division:           cleanText(form.division) || null,
         umpire1_team:  normalizeUmpire(form.umpire1_team) || null,
         umpire2_team:  normalizeUmpire(form.umpire2_team) || null,
         season:        form.season || null,
@@ -737,8 +752,9 @@ export default function FixturesTab() {
         venue:         cleanText(editingFix.venue),
         venue_address: cleanText(editingFix.venue_address) || '',
         format:        cleanText(editingFix.format) || 'HT',
-        type:          normalizeFixtureType(editingFix.type),
-        division:      cleanText(editingFix.division) || '',
+        type:               normalizeFixtureType(editingFix.type),
+        league_game_number: editingFix.league_game_number ?? '',
+        division:           cleanText(editingFix.division) || '',
         umpire1_team:  normalizeUmpire(editingFix.umpire1_team) || '',
         umpire2_team:  normalizeUmpire(editingFix.umpire2_team) || '',
         season:        editingFix.season || '',

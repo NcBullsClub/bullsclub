@@ -6,6 +6,7 @@ import { fetchAvailability, getFixtureAvailability, buildFixtureId, isSheetConfi
 import { useSeason } from '../contexts/SeasonContext'
 import { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
 import { SEASONS } from '../config/seasons'
+import { formatFixtureTypeDisplay } from '../utils/fixtures'
 
 const sectionVariants = {
   open:   { height: 'auto', opacity: 1, transition: { duration: 0.28, ease: [0.4, 0, 0.2, 1] } },
@@ -298,7 +299,7 @@ export default function Fixtures() {
     const weekday  = d.toLocaleDateString('en-US', { weekday: 'short' })
     const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
     const seasonTag = f.season ? getSeasonTagText(f.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
-    const fixtureType = normalizeFixtureType(f.type)
+    const fixtureType = formatFixtureTypeDisplay(f.type, f.league_game_number)
     const divisionTag = normalizeDivisionLabel(f.division)
 
     let avail = { inCount: 0, maybeCount: 0, outCount: 0, inNames: [], maybeNames: [], outNames: [] }

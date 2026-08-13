@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { SEASONS } from '../../config/seasons'
+import { formatFixtureTypeDisplay, parseLeagueGameNumber } from '../../utils/fixtures'
 
 // Only show fixtures within the last 7 days or upcoming
 function isRelevantFixture(f) {
@@ -368,6 +369,8 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
       const arrive = subtractMinutes(selectedFixture.time, 30)
       if (arrive) setArriveBy(arrive)
     }
+    const leagueNum = selectedFixture.league_game_number
+    setGameNumber(leagueNum != null && leagueNum !== '' ? String(leagueNum) : '')
   }, [selectedFixture?.id])
 
   useEffect(() => {
@@ -432,9 +435,19 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
 
   function buildMessage() {
     if (!selectedFixture || selected.length === 0) return ''
-    const gameLabel = gameNumber ? `${ordinal(Number(gameNumber))} Game` : 'Game'
+    const leagueNum = parseLeagueGameNumber(gameNumber || selectedFixture.league_game_number)
     const fixtureTypeLabel = getFixtureTypeLabel(selectedFixture?.type)
-    const playingLabel = fixtureTypeLabel ? `${fixtureTypeLabel} Game` : gameLabel
+    const typeWithNumber = formatFixtureTypeDisplay(selectedFixture?.type, leagueNum)
+    let playingLabel
+    if (leagueNum && (fixtureTypeLabel === 'League' || fixtureTypeLabel === 'Mega Smash')) {
+      playingLabel = `${typeWithNumber} Game`
+    } else if (fixtureTypeLabel) {
+      playingLabel = `${fixtureTypeLabel} Game`
+    } else if (gameNumber) {
+      playingLabel = `${ordinal(Number(gameNumber))} Game`
+    } else {
+      playingLabel = 'Game'
+    }
     const playerLines = [...selected]
       .sort((a, b) => a.split(' ')[0].localeCompare(b.split(' ')[0]))
       .map((name, i) => `${String(i + 1).padStart(2, ' ')}. ${name.split(' ')[0]}`)
@@ -530,7 +543,7 @@ export default function WhatsAppSummaryTab({ initialFixtureKey = '' }) {
 
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div>
-                <label className="block text-[10px] sm:text-xs font-semibold text-gray-500 mb-1">Game #</label>
+                <label className="block text-[10px] sm:text-xs font-semibold text-gray-500 mb-1">League Game # <span className="font-normal text-gray-400">(optional)</span></label>
                 <input
                   type="number"
                   min="1"

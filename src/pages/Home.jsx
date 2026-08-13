@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import sponsors from '../data/sponsors.json'
 import newsData from '../data/news.json'
 import { SEASONS } from '../config/seasons'
+import { formatFixtureTypeDisplay } from '../utils/fixtures'
 
 function isWon(r) {
   if (!r.result) return false
@@ -415,14 +416,14 @@ export default function Home() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="bg-primary-dark text-accent text-xs font-bold px-3 py-1 rounded-full">Raising Bulls</span>
-                <span className="text-xs text-gray-400">{upcomingRB[0].type}</span>
+                <span className="text-xs text-gray-400">{formatFixtureTypeDisplay(upcomingRB[0].type, upcomingRB[0].league_game_number)}</span>
               </div>
 
               {/* Mobile: compact list */}
               <div className="sm:hidden space-y-2.5">
                 {upcomingRB.map((f, i) => {
                   const d = new Date(f.date.replace(/-/g, '/'))
-                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const fixtureTypeTag = formatFixtureTypeDisplay(f.type, f.league_game_number)
                   const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
@@ -477,7 +478,7 @@ export default function Home() {
               {/* Desktop: grid cards */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRB.map((f, i) => {
-                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const fixtureTypeTag = formatFixtureTypeDisplay(f.type, f.league_game_number)
                   const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
@@ -537,14 +538,14 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">Royal Bulls</span>
-                <span className="text-xs text-gray-400">{upcomingRY[0].type}</span>
+                <span className="text-xs text-gray-400">{formatFixtureTypeDisplay(upcomingRY[0].type, upcomingRY[0].league_game_number)}</span>
               </div>
 
               {/* Mobile: compact list */}
               <div className="sm:hidden space-y-2.5">
                 {upcomingRY.map((f, i) => {
                   const d = new Date(f.date.replace(/-/g, '/'))
-                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const fixtureTypeTag = formatFixtureTypeDisplay(f.type, f.league_game_number)
                   const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (
@@ -599,7 +600,7 @@ export default function Home() {
               {/* Desktop: grid cards */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {upcomingRY.map((f, i) => {
-                  const fixtureTypeTag = normalizeFixtureType(f.type)
+                  const fixtureTypeTag = formatFixtureTypeDisplay(f.type, f.league_game_number)
                   const seasonTag = getSeasonTagText(f.season, f.date)
                   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(f.venue + (f.venue_address ? `, ${f.venue_address}` : ''))}`
                   return (

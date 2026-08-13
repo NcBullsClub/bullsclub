@@ -10,6 +10,92 @@ function toMoney(v) {
   return `$${Number(v || 0).toFixed(2)}`
 }
 
+function getFinanceSeasonLookupIds(seasonId) {
+  const ids = new Set([String(seasonId || '')].filter(Boolean))
+  const normalized = String(seasonId || '').toLowerCase()
+
+  if (normalized.includes('mega-bash')) {
+    ids.add('mega-bash-26')
+    ids.add('mega-bash')
+    ids.add('mega bash')
+    ids.add('Mega Bash')
+    ids.add('2026')
+  } else if (normalized.includes('mega-smash')) {
+    ids.add('mega-smash-26')
+    ids.add('mega-smash')
+    ids.add('mega smash')
+    ids.add('Mega Smash')
+    ids.add('2026')
+  } else if (normalized.includes('winter')) {
+    ids.add('winter-26')
+    ids.add('winter')
+    ids.add('Winter')
+  }
+
+  if (/^20\d{2}$/.test(String(seasonId || ''))) {
+    ids.add(String(seasonId || ''))
+  }
+
+  return [...ids]
+}
+
+function normalizeFinanceMatchValue(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function getFinanceNameTokens(value) {
+  return normalizeFinanceMatchValue(value)
+    .split(/\s+/)
+    .filter(Boolean)
+}
+
+function scoreFinanceRowMatch(row, profile, seasonId) {
+  const rowPlayer = normalizeFinanceMatchValue(row.player_name)
+  const profilePlayer = normalizeFinanceMatchValue(profile?.full_name)
+  const rowTeam = normalizeFinanceMatchValue(row.team)
+  const profileTeam = normalizeFinanceMatchValue(profile?.team)
+  const seasonLookupIds = getFinanceSeasonLookupIds(seasonId)
+  const rowSeason = String(row.season || '')
+  const seasonExact = rowSeason === seasonId
+  const seasonAlias = seasonLookupIds.includes(rowSeason)
+
+  let score = 0
+
+  if (rowPlayer && profilePlayer) {
+    if (rowPlayer === profilePlayer) {
+      score += 120
+    } else {
+      const rowTokens = getFinanceNameTokens(row.player_name)
+      const profileTokens = getFinanceNameTokens(profile?.full_name)
+      const tokenOverlap = rowTokens.filter((token) => profileTokens.includes(token)).length
+      if (tokenOverlap > 0) {
+        score += 40 + tokenOverlap * 15
+      }
+    }
+  }
+
+  if (rowTeam && profileTeam && rowTeam === profileTeam) {
+    score += 35
+  }
+
+  if (seasonExact) {
+    score += 30
+  } else if (seasonAlias) {
+    score += 10
+  }
+
+  if (row.paid) {
+    score += 25
+  }
+
+  return score
+}
+
 function splitAmountByCents(totalAmount, count) {
   const totalCents = Math.round(Number(totalAmount || 0) * 100)
   if (totalCents <= 0 || count <= 0) return []
@@ -30,10 +116,11 @@ export default function PlayerFinances() {
   const { user, profile } = useAuth()
   const { activeSeason } = useSeason()
   const seasonId = activeSeason?.id || '2026'
+  const seasonLookupIds = useMemo(() => getFinanceSeasonLookupIds(seasonId), [seasonId])
   const isFirstSeason = seasonId === SEASONS[0].id
   const legacySeasonIds = useMemo(
-    () => (isFirstSeason ? [seasonId, '2026'] : [seasonId]),
-    [isFirstSeason, seasonId]
+    () => (isFirstSeason ? [seasonId, '2026'] : seasonLookupIds),
+    [isFirstSeason, seasonId, seasonLookupIds]
   )
   const [loading, setLoading] = useState(true)
   const [seasonFee, setSeasonFee] = useState(null)
@@ -74,8 +161,6 @@ export default function PlayerFinances() {
           .from('player_finances')
           .select('*')
           .in('season', legacySeasonIds)
-          .eq('player_name', profile.full_name)
-          .eq('team', profile.team)
           .order('updated_at', { ascending: false }),
         supabase
           .from('umpiring_fees')
@@ -112,14 +197,17 @@ export default function PlayerFinances() {
 
       if (!isMounted) return
       const feeRows = feeRes?.data || []
-      const preferredFee = feeRows.reduce((best, row) => {
-        if (!best) return row
-        const bestTs = Date.parse(best.updated_at || best.created_at || 0)
-        const rowTs = Date.parse(row.updated_at || row.created_at || 0)
-        if (rowTs > bestTs) return row
-        if (rowTs === bestTs && row.season === seasonId && best.season !== seasonId) return row
-        return best
-      }, null)
+      const scoredRows = feeRows
+        .map((row) => ({ row, score: scoreFinanceRowMatch(row, profile, seasonId) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score
+          const aTs = Date.parse(a.row.updated_at || a.row.created_at || 0)
+          const bTs = Date.parse(b.row.updated_at || b.row.created_at || 0)
+          return bTs - aTs
+        })
+
+      const preferredFee = scoredRows[0]?.row || null
       setSeasonFee(preferredFee)
       setUmpiringFees(umpRes?.data || [])
       setAssignments(assgnRes?.data || [])

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSeason } from '../contexts/SeasonContext'
 import { SEASONS } from '../config/seasons'
 import SeasonSwitcher, { SeasonSwitcherInline } from '../components/ui/SeasonSwitcher'
+import { formatFixtureTypeDisplay } from '../utils/fixtures'
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -23,15 +24,6 @@ function getSeasonTagText(seasonId) {
   const season = SEASONS.find((s) => s.id === seasonId)
   if (season) return `${season.shortLabel} '${String(season.year).slice(-2)}`
   return String(seasonId).replace(/-/g, ' ')
-}
-
-function normalizeFixtureType(value) {
-  const v = String(value || '').trim().toLowerCase()
-  if (!v || v === 'mega bash' || v === 'mega smash' || v === 'league') return 'League'
-  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
-  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
-  if (v === 'championship' || v === 'final') return 'Championship'
-  return 'League'
 }
 
 function normalizeDivisionLabel(value) {
@@ -112,7 +104,7 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
   const isRaising = fixture.team === 'raising-bulls'
   const teamLabel = isRaising ? 'Raising Bulls' : 'Royal Bulls'
   const seasonTag = fixture.season ? getSeasonTagText(fixture.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
-  const fixtureTypeTag = normalizeFixtureType(fixture.type)
+  const fixtureTypeTag = formatFixtureTypeDisplay(fixture.type, fixture.league_game_number)
   const divisionTag = normalizeDivisionLabel(fixture.division || (isRaising ? 'D5' : 'D9'))
 
   const [fy, fm, fd] = fixture.date.split('-').map(Number)

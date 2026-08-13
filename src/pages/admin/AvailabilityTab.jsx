@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSeason } from '../../contexts/SeasonContext'
 import { SEASONS } from '../../config/seasons'
+import { formatFixtureTypeDisplay } from '../../utils/fixtures'
 
 const TEAMS = [
   { id: 'raising-bulls', label: 'Raising Bulls' },
@@ -105,18 +106,6 @@ function getSeasonTagText(seasonId) {
   return String(seasonId).replace(/-/g, ' ')
 }
 
-function getFixtureTypeLabel(value) {
-  const raw = String(value || '').trim()
-  if (!raw) return 'League'
-  const v = raw.toLowerCase()
-  if (v === 'playoff' || v === 'playoffs' || v === 'quarterfinal' || v === 'quarterfinals' || v === 'qualifier' || v === 'qualifiers') return 'Playoffs'
-  if (v === 'semifinal' || v === 'semi final' || v === 'semi-final' || v === 'semifinals' || v === 'semis') return 'SemiFinal'
-  if (v === 'championship' || v === 'final') return 'Championship'
-  if (v === 'mega smash' || v === 'mega bash') return 'Mega Smash'
-  if (v === 'league') return 'League'
-  return raw
-}
-
 // ── StatusTable ────────────────────────────────────────────────────────────
 
 function StatusTable({ rows }) {
@@ -191,7 +180,7 @@ function PlayingMatchCard({ cardKey, rows, fixtureMap, collapsedKeys, toggleColl
   const [date, team] = cardKey.split('::')
   const fixture     = fixtureMap[cardKey]
   const seasonTag   = fixture?.season ? getSeasonTagText(fixture.season) : (activeSeason?.id ? getSeasonTagText(activeSeason.id) : 'Season TBD')
-  const fixtureTypeTag = getFixtureTypeLabel(fixture?.type)
+  const fixtureTypeTag = formatFixtureTypeDisplay(fixture?.type, fixture?.league_game_number)
   const inList      = rows.filter((r) => r.status === 'in')
   const outList     = rows.filter((r) => r.status === 'out')
   const maybeList   = rows.filter((r) => r.status === 'maybe')

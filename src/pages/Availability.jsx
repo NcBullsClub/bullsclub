@@ -386,6 +386,23 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
               )}
             </div>
 
+            {status && (
+              <div className="mt-3 flex items-center justify-center">
+                <span className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full border ${
+                  status === 'in'
+                    ? 'bg-green-50 text-green-700 border-green-200'
+                    : status === 'out'
+                      ? 'bg-red-50 text-red-600 border-red-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  <span className="text-sm">
+                    {status === 'in' ? '✅' : status === 'out' ? '❌' : '🤔'}
+                  </span>
+                  You are {status.toUpperCase()} for this match
+                </span>
+              </div>
+            )}
+
             {/* Notes toggle */}
             <div className="mt-2">
               <button
@@ -458,17 +475,17 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
             <details open={!isPast}>
               <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
                 <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Players</span>
-                {counts.in > 0 && (
+                {isAdmin && counts.in > 0 && (
                   <span className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">
                     ✅ {counts.in} in
                   </span>
                 )}
-                {counts.maybe > 0 && (
+                {isAdmin && counts.maybe > 0 && (
                   <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
                     🤔 {counts.maybe} maybe
                   </span>
                 )}
-                {counts.out > 0 && (
+                {isAdmin && counts.out > 0 && (
                   <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full">
                     ❌ {counts.out} out
                   </span>

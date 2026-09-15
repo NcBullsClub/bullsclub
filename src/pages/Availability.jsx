@@ -98,7 +98,7 @@ function StatusPill({ value, count }) {
 }
 
 function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinance, financeLoaded, onResponseSaved }) {
-  const { user, profile } = useAuth()
+  const { user, profile, isAdmin } = useAuth()
   const { activeSeason } = useSeason()
   const navigate = useNavigate()
   const isRaising = fixture.team === 'raising-bulls'
@@ -454,69 +454,73 @@ function FixtureCard({ fixture, availabilityMap, userResponseMap, myPaymentFinan
         )}
 
         {/* ── SECTION 2 & 3: Player list — two columns */}
-        {user && counts.players.length > 0 && (
-          <details open={!isPast}>
-            <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Players</span>
-              {counts.in > 0 && (
-                <span className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">
-                  ✅ {counts.in} in
-                </span>
-              )}
-              {counts.maybe > 0 && (
-                <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                  🤔 {counts.maybe} maybe
-                </span>
-              )}
-              {counts.out > 0 && (
-                <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full">
-                  ❌ {counts.out} out
-                </span>
-              )}
-            </summary>
-
-            <div className="mt-2 grid grid-cols-2 gap-x-3">
-              {/* Column 1: Available (in) */}
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">✅ Available</div>
-                {availablePlayers.filter((p) => p.status === 'in').length === 0 ? (
-                  <div className="text-[10px] text-gray-400 italic">None yet</div>
-                ) : (
-                  <div className="space-y-0.5">
-                    {availablePlayers.filter((p) => p.status === 'in').map((p, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-50">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-                        <span className="text-xs font-medium text-green-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
-                      </div>
-                    ))}
-                  </div>
+        {user && (!isAdmin || counts.players.length > 0) && (
+            <details open={!isPast}>
+              <summary className="flex items-center gap-2 cursor-pointer select-none list-none">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Players</span>
+                {counts.in > 0 && (
+                  <span className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">
+                    ✅ {counts.in} in
+                  </span>
                 )}
-              </div>
-
-              {/* Column 2: Maybe + Out */}
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Out / Maybe</div>
-                {availablePlayers.filter((p) => p.status === 'maybe').length === 0 && outPlayers.length === 0 ? (
-                  <div className="text-[10px] text-gray-400 italic">None yet</div>
-                ) : (
-                  <div className="space-y-0.5">
-                    {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                        <span className="text-xs font-medium text-amber-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
-                      </div>
-                    ))}
-                    {outPlayers.map((p, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                        <span className="text-xs font-medium text-red-700 flex-1 truncate">{p.name.split(' ')[0]}</span>
-                      </div>
-                    ))}
-                  </div>
+                {counts.maybe > 0 && (
+                  <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                    🤔 {counts.maybe} maybe
+                  </span>
                 )}
+                {counts.out > 0 && (
+                  <span className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-full">
+                    ❌ {counts.out} out
+                  </span>
+                )}
+              </summary>
+
+              {!isAdmin && (
+                <p className="mt-2 text-xs text-gray-400 italic">Security: Captain/Co-Ordinators can see list of players</p>
+              )}
+
+              {isAdmin && (
+              <div className="mt-2 grid grid-cols-2 gap-x-3">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">✅ Available</div>
+                  {availablePlayers.filter((p) => p.status === 'in').length === 0 ? (
+                    <div className="text-[10px] text-gray-400 italic">None yet</div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {availablePlayers.filter((p) => p.status === 'in').map((p, i) => (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-50">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+                          <span className="text-xs font-medium text-green-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1">Out / Maybe</div>
+                  {availablePlayers.filter((p) => p.status === 'maybe').length === 0 && outPlayers.length === 0 ? (
+                    <div className="text-[10px] text-gray-400 italic">None yet</div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {availablePlayers.filter((p) => p.status === 'maybe').map((p, i) => (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-50">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                          <span className="text-xs font-medium text-amber-800 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                        </div>
+                      ))}
+                      {outPlayers.map((p, i) => (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-50">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                          <span className="text-xs font-medium text-red-700 flex-1 truncate">{p.name.split(' ')[0]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </details>
+              )}
+            </details>
         )}
 
       </div>

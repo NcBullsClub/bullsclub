@@ -25,6 +25,7 @@ const EMPTY = {
   title: '', slug: '', description: '', type: 'social',
   date: '', time: '', venue: '', venue_address: '',
   cover_image_url: '', status: 'upcoming', category: 'social',
+  timeline_items: [], food_items: [],
 }
 
 export default function ClubhouseEventsTab() {
@@ -99,6 +100,8 @@ export default function ClubhouseEventsTab() {
       cover_image_url: e.cover_image_url ?? '',
       status:          e.status          ?? 'upcoming',
       category:        e.category        ?? 'social',
+      timeline_items:  Array.isArray(e.timeline_items) ? e.timeline_items : [],
+      food_items:      Array.isArray(e.food_items) ? e.food_items : [],
     })
     setGallerySearch('')
     setShowGalleryPicker(false)
@@ -131,6 +134,8 @@ export default function ClubhouseEventsTab() {
       cover_image_url: form.cover_image_url,
       status: form.status,
       category: form.category,
+      timeline_items: form.timeline_items.filter((item) => item.time || item.title),
+      food_items: form.food_items.filter((item) => item.name),
     }
 
     try {
@@ -190,11 +195,35 @@ export default function ClubhouseEventsTab() {
     past:     events.filter((e) => e.status === 'past').length,
   }
 
-  const filteredGalleryItems = galleryItems.filter((item) => {
-    if (!gallerySearch) return true
-    const q = gallerySearch.toLowerCase()
-    return (item.title || '').toLowerCase().includes(q)
-  })
+  function addTimelineItem() {
+    setForm((f) => ({ ...f, timeline_items: [...f.timeline_items, { time: '', title: '', details: '' }] }))
+  }
+
+  function updateTimelineItem(index, field, value) {
+    setForm((f) => ({
+      ...f,
+      timeline_items: f.timeline_items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }))
+  }
+
+  function removeTimelineItem(index) {
+    setForm((f) => ({ ...f, timeline_items: f.timeline_items.filter((_, itemIndex) => itemIndex !== index) }))
+  }
+
+  function addFoodItem() {
+    setForm((f) => ({ ...f, food_items: [...f.food_items, { name: '', details: '' }] }))
+  }
+
+  function updateFoodItem(index, field, value) {
+    setForm((f) => ({
+      ...f,
+      food_items: f.food_items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }))
+  }
+
+  function removeFoodItem(index) {
+    setForm((f) => ({ ...f, food_items: f.food_items.filter((_, itemIndex) => itemIndex !== index) }))
+  }
 
   return (
     <div>
@@ -398,6 +427,45 @@ export default function ClubhouseEventsTab() {
                     placeholder="Event description"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
                   />
+                </div>
+
+                {/* Meetup timeline */}
+                <div className="border-t border-gray-100 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Meetup Timeline</label>
+                    <button type="button" onClick={addTimelineItem} className="text-xs font-semibold text-primary hover:text-accent">+ Add activity</button>
+                  </div>
+                  <div className="space-y-2">
+                    {form.timeline_items.map((item, index) => (
+                      <div key={`timeline-${index}`} className="grid grid-cols-[88px_1fr_auto] gap-2 items-start">
+                        <input type="text" value={item.time || ''} onChange={(e) => updateTimelineItem(index, 'time', e.target.value)} placeholder="6:00 PM" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        <div className="space-y-1.5">
+                          <input type="text" value={item.title || ''} onChange={(e) => updateTimelineItem(index, 'title', e.target.value)} placeholder="Activity name" className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                          <input type="text" value={item.details || ''} onChange={(e) => updateTimelineItem(index, 'details', e.target.value)} placeholder="Optional details" className="w-full border border-gray-200 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        </div>
+                        <button type="button" onClick={() => removeTimelineItem(index)} aria-label="Remove activity" className="text-red-400 hover:text-red-600 px-1 py-2">✕</button>
+                      </div>
+                    ))}
+                    {form.timeline_items.length === 0 && <p className="text-xs text-gray-400">Add the key moments guests should know about.</p>}
+                  </div>
+                </div>
+
+                {/* Food list */}
+                <div className="border-t border-gray-100 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Food For Guests</label>
+                    <button type="button" onClick={addFoodItem} className="text-xs font-semibold text-primary hover:text-accent">+ Add food</button>
+                  </div>
+                  <div className="space-y-2">
+                    {form.food_items.map((item, index) => (
+                      <div key={`food-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                        <input type="text" value={item.name || ''} onChange={(e) => updateFoodItem(index, 'name', e.target.value)} placeholder="Food or drink" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        <input type="text" value={item.details || ''} onChange={(e) => updateFoodItem(index, 'details', e.target.value)} placeholder="Optional details" className="border border-gray-200 rounded-lg px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        <button type="button" onClick={() => removeFoodItem(index)} aria-label="Remove food item" className="text-red-400 hover:text-red-600 px-1 py-2">✕</button>
+                      </div>
+                    ))}
+                    {form.food_items.length === 0 && <p className="text-xs text-gray-400">Add dishes, drinks, or dietary notes for guests.</p>}
+                  </div>
                 </div>
 
                 {/* Date + Time */}

@@ -119,15 +119,18 @@ export default function PlayerNotesDocs() {
   async function handleDelete(item) {
     const canDelete = isAdmin || item.created_by === user?.id
     if (!canDelete) return
-    if (!window.confirm(`Remove “${item.title}” from Notes & Docs? The record will be kept in the database.`)) return
+    if (!window.confirm(`Delete “${item.title}” from Notes & Docs? This cannot be undone.`)) return
     setDeletingId(item.id)
-    const { error: archiveError } = await supabase
+    const { data: deletedItems, error: deleteError } = await supabase
       .from('player_notes_docs')
-      .update({ deleted_at: new Date().toISOString() })
+      .delete()
       .eq('id', item.id)
-    if (archiveError) {
-      console.error('Failed to archive player note or doc:', archiveError)
-      setError(archiveError.message || 'Could not remove this entry.')
+      .select('id')
+    if (deleteError) {
+      console.error('Failed to delete player note or doc:', deleteError)
+      setError(deleteError.message || 'Could not delete this entry.')
+    } else if (!deletedItems?.length) {
+      setError('Could not delete this entry. You may not have permission to remove it.')
     } else {
       setItems((current) => current.filter((entry) => entry.id !== item.id))
     }

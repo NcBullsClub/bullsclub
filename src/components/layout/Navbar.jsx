@@ -49,6 +49,7 @@ const NAV_ICONS = {
   'Finances':     { emoji: '💰', bg: 'bg-emerald-600' },
   'Availability': { emoji: '✅', bg: 'bg-green-600',imgSrc: '/icons/availability-icon.svg' },
   'Contacts':     { emoji: '📇', bg: 'bg-sky-600', imgSrc: '/icons/contacts-list.svg' },
+  'Notes & Docs': { emoji: '🗂️', bg: 'bg-amber-600' },
   'Jerseys':      {emoji: '👕',bg:'bg-accent'},
   'Join Us':      { emoji: '🏏', bg: 'bg-accent' },
   'Clubhouse':    { emoji: '🏡', bg: 'bg-amber-500' },
@@ -91,6 +92,7 @@ const mobileNavItems = [
   { path: '/finances', label: 'Finances', requiresAuth: true },
   { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contacts', label: 'Contacts', requiresAuth: true },
+  { path: '/notes', label: 'Notes & Docs', requiresAuth: true },
   { path: '/jersey', label: 'Jerseys', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]
@@ -115,6 +117,7 @@ const desktopNavItems = [
   { path: '/finances', label: 'Finances', requiresAuth: true },
   { path: '/availability', label: 'Availability', requiresAuth: true },
   { path: '/contacts', label: 'Contacts', requiresAuth: true },
+  { path: '/notes', label: 'Notes & Docs', requiresAuth: true },
   { path: '/jersey', label: 'Jerseys', requiresAuth: true },
   { path: '/contact', label: 'Join Us' },
 ]

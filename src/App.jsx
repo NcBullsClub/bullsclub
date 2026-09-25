@@ -20,6 +20,7 @@ import Events from './pages/Events'
 import Availability from './pages/Availability'
 import PlayerFinances from './pages/PlayerFinances'
 import Contacts from './pages/Contacts'
+import PlayerNotesDocs from './pages/PlayerNotesDocs'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/availability" element={<Availability />} />
           <Route path="/finances" element={<ProtectedRoute><PlayerFinances /></ProtectedRoute>} />
           <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
+          <Route path="/notes" element={<ProtectedRoute><PlayerNotesDocs /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

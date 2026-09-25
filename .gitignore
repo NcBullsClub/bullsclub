@@ -31,4 +31,7 @@ dist-ssr
 
 # Supabase
 supabase
+!supabase/
+supabase/*
+!supabase/create_jersey_orders.sql
 

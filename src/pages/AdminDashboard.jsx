@@ -15,6 +15,7 @@ import ClubhouseGalleryTab from './admin/ClubhouseGalleryTab'
 import FixturesTab         from './admin/FixturesTab'
 import UsersTab            from './admin/UsersTab'
 import AnalyticsTab        from './admin/AnalyticsTab'
+import JerseysTab          from './admin/JerseysTab'
 
 const SEASON_TABS = new Set(['availability', 'fixtures', 'results', 'finances'])
 const ROW1 = [
@@ -29,6 +30,7 @@ const ROW2_BASE = [
   { id: 'roster',     label: 'Player Roster', icon: '👥', short: 'Roster'    },
   { id: 'requests',   label: 'Join Requests', icon: '📩', short: 'Requests'  },
   { id: 'analytics',  label: 'Analytics',     icon: '📊', short: 'Analytics' },
+  { id: 'jerseys',    label: 'Jerseys',       icon: '👕', short: 'Jerseys'   },
   { id: 'clubhouse',  label: 'Clubhouse',     icon: '🏠', short: 'Clubhouse' },
 ]
 const USERS_TAB = { id: 'users', label: 'Users', icon: '🛡️', short: 'Users' }
@@ -175,6 +177,7 @@ export default function AdminDashboard() {
             {activeTab === 'roster'       && <PlayerRosterTab key={rosterRefreshKey} />}
             {activeTab === 'requests'     && <JoinRequestsTab onPendingCount={setPendingRequests} />}
             {activeTab === 'analytics'    && <AnalyticsTab />}
+            {activeTab === 'jerseys'      && <JerseysTab />}
             {activeTab === 'users'        && isSuperAdmin && <UsersTab />}
             {activeTab === 'clubhouse'    && (
               <div>

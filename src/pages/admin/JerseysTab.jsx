@@ -20,6 +20,7 @@ export default function JerseysTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(null)
+  const [editingAssignment, setEditingAssignment] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -56,7 +57,10 @@ export default function JerseysTab() {
     setSaving(`${order.id}-profile`)
     const { error: updateError } = await supabase.from('jersey_orders').update({ profile_id: profileId || null }).eq('id', order.id)
     if (updateError) setError(updateError.message)
-    else setOrders((current) => current.map((entry) => entry.id === order.id ? { ...entry, profile_id: profileId || null } : entry))
+    else {
+      setOrders((current) => current.map((entry) => entry.id === order.id ? { ...entry, profile_id: profileId || null } : entry))
+      setEditingAssignment(null)
+    }
     setSaving(null)
   }
 
@@ -91,12 +95,19 @@ export default function JerseysTab() {
                 {ITEMS.map((item) => <button key={item.key} onClick={() => toggleItem(order, item)} disabled={saving === `${order.id}-${item.key}`} className={`min-h-11 flex-1 rounded-xl border px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 ${order[item.key] ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-gray-300 text-gray-600'}`}><span className="block text-base leading-none mb-1">{order[item.key] ? '✓' : '○'}</span>{item.label}</button>)}
               </div>
               <div className="mt-3">
-                <label className="block text-xs font-semibold text-gray-500">Assign account
-                  <select value={order.profile_id || ''} onChange={(event) => assignProfile(order, event.target.value)} disabled={saving === `${order.id}-profile`} className="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50">
-                    <option value="">Unassigned</option>
-                    {profiles.map((player) => <option key={player.id} value={player.id}>{player.full_name}{player.email ? ` · ${player.email}` : ''}</option>)}
-                  </select>
-                </label>
+                {order.profile_id && editingAssignment !== order.id ? (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2.5">
+                    <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-green-700">Assigned account</p><p className="truncate text-sm font-semibold text-green-900">{profiles.find((player) => player.id === order.profile_id)?.full_name || 'Club account assigned'}</p></div>
+                    <button type="button" onClick={() => setEditingAssignment(order.id)} aria-label={`Edit account assignment for ${order.player_name}`} title="Edit account assignment" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-green-300 bg-white text-lg text-green-700 transition-colors hover:bg-green-100">✎</button>
+                  </div>
+                ) : (
+                  <label className="block text-xs font-semibold text-gray-500">{order.profile_id ? 'Edit account assignment' : 'Assign account'}
+                    <select autoFocus={editingAssignment === order.id} value={order.profile_id || ''} onChange={(event) => assignProfile(order, event.target.value)} disabled={saving === `${order.id}-profile`} className="mt-1 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50">
+                      <option value="">Unassigned</option>
+                      {profiles.map((player) => <option key={player.id} value={player.id}>{player.full_name}{player.email ? ` · ${player.email}` : ''}</option>)}
+                    </select>
+                  </label>
+                )}
                 <div className="mt-2 text-xs text-gray-500">Pant: {order.pant_size || 'Not selected'} · Cap: {order.cap_choice}{order.notes && <span className="block mt-1 text-amber-700">{order.notes}</span>}</div>
               </div>
             </article>
